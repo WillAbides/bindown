@@ -116,9 +116,7 @@ func (d *downloader) install(targetDir string, force bool) error {
 	if fileExists(d.binPath(targetDir)) && !force {
 		return nil
 	}
-	var err error
-
-	err = d.download(targetDir)
+	err := d.download(targetDir)
 	if err != nil {
 		log.Printf("error downloading: %v", err)
 		return err
