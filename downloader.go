@@ -116,12 +116,41 @@ func (d *downloader) install(targetDir string, force bool) error {
 	if fileExists(d.binPath(targetDir)) && !force {
 		return nil
 	}
-	var err error
-	for _, fn := range []func(string) error{d.download, d.validateChecksum, d.extract, d.link, d.move, d.chmod} {
-		err = fn(targetDir)
-		if err != nil {
-			break
-		}
+	err := d.download(targetDir)
+	if err != nil {
+		log.Printf("error downloading: %v", err)
+		return err
 	}
-	return err
+
+	err = d.validateChecksum(targetDir)
+	if err != nil {
+		log.Printf("error validating: %v", err)
+		return err
+	}
+
+	err = d.extract(targetDir)
+	if err != nil {
+		log.Printf("error extracting: %v", err)
+		return err
+	}
+
+	err = d.link(targetDir)
+	if err != nil {
+		log.Printf("error linking: %v", err)
+		return err
+	}
+
+	err = d.move(targetDir)
+	if err != nil {
+		log.Printf("error moving: %v", err)
+		return err
+	}
+
+	err = d.chmod(targetDir)
+	if err != nil {
+		log.Printf("error chmodding: %v", err)
+		return err
+	}
+
+	return nil
 }
