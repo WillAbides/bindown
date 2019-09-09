@@ -10,6 +10,9 @@ bin/golangci-lint: bin/bindownloader
 bins += bin/golangci-lint
 cleanup_extras += bin/golangci-lint-*-$(UNAME)-*
 
+.PHONY: ci
+ci: lint test
+
 .PHONY: lint
 lint: bin/golangci-lint
 	bin/golangci-lint run
