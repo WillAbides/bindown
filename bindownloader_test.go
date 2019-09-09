@@ -58,7 +58,7 @@ func Test_downloaders_install(t *testing.T) {
 				Arch:     runtime.GOARCH,
 				OS:       runtime.GOOS,
 				URL:      ts.URL + "/foo/foo.tar.gz",
-				Checksum: "fad9ff3cd2e8cbaa0824afb3d7981801d8d532b6e19ee1151b3795f9345b7ffb",
+				Checksum: "f7fa712caea646575c920af17de3462fe9d08d7fe062b9a17010117d5fa4ed88",
 				BinName:  "foo.txt",
 				MoveFrom: "bin/foo.txt",
 			},
@@ -145,7 +145,7 @@ func Test_downloader_validateChecksum(t *testing.T) {
 		defer teardown()
 		d := &downloader{
 			URL:      "foo/foo.tar.gz",
-			Checksum: "fad9ff3cd2e8cbaa0824afb3d7981801d8d532b6e19ee1151b3795f9345b7ffb",
+			Checksum: "f7fa712caea646575c920af17de3462fe9d08d7fe062b9a17010117d5fa4ed88",
 		}
 		err := copy.Copy(
 			filepath.FromSlash("testdata/downloadables/foo.tar.gz"),
@@ -162,7 +162,7 @@ func Test_downloader_validateChecksum(t *testing.T) {
 		defer teardown()
 		d := &downloader{
 			URL:      "foo/foo.tar.gz",
-			Checksum: "fad9ff3cd2e8cbaa0824afb3d7981801d8d532b6e19ee1151b3795f9345b7ffb",
+			Checksum: "f7fa712caea646575c920af17de3462fe9d08d7fe062b9a17010117d5fa4ed88",
 		}
 
 		err := d.validateChecksum(dir)
