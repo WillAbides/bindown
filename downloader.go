@@ -7,9 +7,9 @@ import (
 	"io"
 	"log"
 	"os"
-	"os/exec"
 	"path/filepath"
-	"strings"
+
+	"github.com/mholt/archiver"
 )
 
 type downloader struct {
@@ -64,17 +64,13 @@ func (d *downloader) link(targetDir string) error {
 	return os.Symlink(filepath.FromSlash(d.LinkSource), d.binPath(targetDir))
 }
 
-func (d *downloader) isTar() bool {
-	return strings.HasSuffix(d.URL, ".tar.gz")
-}
-
 func (d *downloader) extract(targetDir string) error {
-	if !d.isTar() {
+	tarPath := filepath.Join(targetDir, d.downloadableName())
+	_, err := archiver.ByExtension(d.downloadableName())
+	if err != nil {
 		return nil
 	}
-	tarPath := filepath.Join(targetDir, d.downloadableName())
-	cmd := exec.Command("tar", "-C", targetDir, "-xzf", tarPath) //nolint:gosec
-	err := cmd.Run()
+	err = archiver.Unarchive(tarPath, targetDir)
 	if err != nil {
 		return err
 	}
