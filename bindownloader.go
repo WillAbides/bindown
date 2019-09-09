@@ -30,6 +30,8 @@ func exitErr(msg string) {
 func Main() {
 	configPath := flag.String("config", "buildtools.json", "json file with tool definitions")
 	force := flag.Bool("force", false, "force download even if it already exists")
+	opSys := flag.String("os", runtime.GOOS, "download for this operating system")
+	arch := flag.String("arch", runtime.GOARCH, "download for this architecture")
 	flag.Parse()
 	downloaders, err := fromFile(*configPath)
 	if err != nil {
@@ -41,7 +43,7 @@ func Main() {
 	}
 	targetDir := path.Dir(wantPath)
 	targetFile := path.Base(wantPath)
-	err = downloaders.installTool(targetFile, targetDir, *force)
+	err = downloaders.installTool(targetFile, targetDir, *force, *opSys, *arch)
 	if err != nil {
 		errOut(fmt.Sprintf("error: %v", err))
 	}
@@ -67,9 +69,7 @@ func downloadFile(targetPath, url string) error {
 
 type downloaders map[string][]*downloader
 
-func (d downloaders) installTool(toolName, binDir string, force bool) error {
-	opSys := runtime.GOOS
-	arch := runtime.GOARCH
+func (d downloaders) installTool(toolName, binDir string, force bool, opSys, arch string) error {
 	dl, ok := d.forInstall(toolName, opSys, arch)
 	if !ok {
 		return fmt.Errorf("no config for %s - %s - %s", toolName, opSys, arch)
