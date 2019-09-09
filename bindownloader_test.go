@@ -6,7 +6,6 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
-	"runtime"
 	"testing"
 
 	"github.com/otiai10/copy"
@@ -55,8 +54,8 @@ func Test_downloaders_install(t *testing.T) {
 	d := downloaders{
 		"foo": []*downloader{
 			{
-				Arch:     runtime.GOARCH,
-				OS:       runtime.GOOS,
+				Arch:     "amd64",
+				OS:       "darwin",
 				URL:      ts.URL + "/foo/foo.tar.gz",
 				Checksum: "f7fa712caea646575c920af17de3462fe9d08d7fe062b9a17010117d5fa4ed88",
 				BinName:  "foo.txt",
@@ -64,7 +63,7 @@ func Test_downloaders_install(t *testing.T) {
 			},
 		},
 	}
-	err := d.installTool("foo", dir, true)
+	err := d.installTool("foo", dir, true, "darwin", "amd64")
 	assert.NoError(t, err)
 }
 
