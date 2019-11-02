@@ -34,5 +34,23 @@
       "symlink": "golangci-lint-1.21.0-linux-amd64/golangci-lint",
       "bin": "golangci-lint"
     }
+  ],
+  "protoc": [
+    {
+      "os": "darwin",
+      "arch": "amd64",
+      "url": "https://github.com/protocolbuffers/protobuf/releases/download/v3.9.1/protoc-3.9.1-osx-x86_64.zip",
+      "checksum": "fd2e8a52b9b173bf90633f346901f4dcf3083769ea24f917809932d29ffa1410",
+      "move-from": "bin/protoc",
+      "bin": "protoc"
+    },
+    {
+      "os": "linux",
+      "arch": "amd64",
+      "url": "https://github.com/protocolbuffers/protobuf/releases/download/v3.9.1/protoc-3.9.1-linux-x86_64.zip",
+      "checksum": "77410d08e9a3c1ebb68afc13ee0c0fb4272c01c20bfd289adfb51b1c622bab07",
+      "move-from": "bin/protoc",
+      "bin": "protoc"
+    }
   ]
 }

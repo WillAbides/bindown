@@ -1,9 +1,9 @@
 package main
 
 import (
-	"github.com/willabides/bindownloader"
+	"github.com/willabides/bindownloader/internal"
 )
 
 func main() {
-	bindownloader.Main()
+	internal.Main()
 }

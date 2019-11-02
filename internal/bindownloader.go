@@ -1,4 +1,4 @@
-package bindownloader
+package internal
 
 import (
 	"encoding/json"

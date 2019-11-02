@@ -1,10 +1,10 @@
-package bindownloader
+package internal
 
 import (
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"path/filepath"
 	"testing"
 
@@ -12,19 +12,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/udhos/equalfile"
+	"github.com/willabides/bindownloader/internal/lib/testutil"
 )
-
-func tmpDir(t *testing.T) (string, func()) {
-	t.Helper()
-	err := os.MkdirAll("tmp", 0750)
-	require.NoError(t, err)
-	name, err := ioutil.TempDir("tmp", "")
-	require.NoError(t, err)
-	return name, func() {
-		err := os.RemoveAll(name)
-		require.NoError(t, err)
-	}
-}
 
 func serveFile(file, path, query string) *httptest.Server {
 	file = filepath.FromSlash(file)
@@ -47,8 +36,14 @@ func assertEqualFiles(t testing.TB, want, actual string) bool {
 	return assert.True(t, equal)
 }
 
+func TestTmpDir(t *testing.T) {
+	tt, teardown := testutil.TmpDir(t)
+	defer teardown()
+	fmt.Println(tt)
+}
+
 func Test_downloaders_install(t *testing.T) {
-	dir, teardown := tmpDir(t)
+	dir, teardown := testutil.TmpDir(t)
 	defer teardown()
 	ts := serveFile("./testdata/downloadables/foo.tar.gz", "/foo/foo.tar.gz", "")
 	d := downloaders{
@@ -69,7 +64,7 @@ func Test_downloaders_install(t *testing.T) {
 
 func Test_fromFile(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
-		dir, teardown := tmpDir(t)
+		dir, teardown := testutil.TmpDir(t)
 		defer teardown()
 		file := filepath.Join(dir, "buildtools.json")
 
@@ -106,7 +101,7 @@ func Test_fromFile(t *testing.T) {
 
 func Test_downloadFile(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
-		dir, teardown := tmpDir(t)
+		dir, teardown := testutil.TmpDir(t)
 		defer teardown()
 		ts := serveFile("./testdata/downloadables/foo.tar.gz", "/foo/foo.tar.gz", "")
 		err := downloadFile(filepath.Join(dir, "bar.tar.gz"), ts.URL+"/foo/foo.tar.gz")
@@ -115,7 +110,7 @@ func Test_downloadFile(t *testing.T) {
 	})
 
 	t.Run("404", func(t *testing.T) {
-		dir, teardown := tmpDir(t)
+		dir, teardown := testutil.TmpDir(t)
 		defer teardown()
 		ts := serveFile("./testdata/downloadables/foo.tar.gz", "/foo/foo.tar.gz", "")
 		err := downloadFile(filepath.Join(dir, "bar.tar.gz"), ts.URL+"/wrongpath")
@@ -123,14 +118,14 @@ func Test_downloadFile(t *testing.T) {
 	})
 
 	t.Run("bad url", func(t *testing.T) {
-		dir, teardown := tmpDir(t)
+		dir, teardown := testutil.TmpDir(t)
 		defer teardown()
 		err := downloadFile(filepath.Join(dir, "bar.tar.gz"), "https://bad/url")
 		assert.Error(t, err)
 	})
 
 	t.Run("bad target", func(t *testing.T) {
-		dir, teardown := tmpDir(t)
+		dir, teardown := testutil.TmpDir(t)
 		defer teardown()
 		ts := serveFile("./testdata/downloadables/foo.tar.gz", "/foo/foo.tar.gz", "")
 		err := downloadFile(filepath.Join(dir, "notreal", "bar.tar.gz"), ts.URL+"/foo/foo.tar.gz")
@@ -140,7 +135,7 @@ func Test_downloadFile(t *testing.T) {
 
 func Test_downloader_validateChecksum(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
-		dir, teardown := tmpDir(t)
+		dir, teardown := testutil.TmpDir(t)
 		defer teardown()
 		d := &downloader{
 			URL:      "foo/foo.tar.gz",
@@ -157,7 +152,7 @@ func Test_downloader_validateChecksum(t *testing.T) {
 	})
 
 	t.Run("missing file", func(t *testing.T) {
-		dir, teardown := tmpDir(t)
+		dir, teardown := testutil.TmpDir(t)
 		defer teardown()
 		d := &downloader{
 			URL:      "foo/foo.tar.gz",
@@ -169,7 +164,7 @@ func Test_downloader_validateChecksum(t *testing.T) {
 	})
 
 	t.Run("mismatch", func(t *testing.T) {
-		dir, teardown := tmpDir(t)
+		dir, teardown := testutil.TmpDir(t)
 		defer teardown()
 		d := &downloader{
 			URL:      "foo/foo.tar.gz",
