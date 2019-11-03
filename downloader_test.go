@@ -103,6 +103,9 @@ func TestDownloader_Install(t *testing.T) {
 		Arch:     "amd64",
 		OS:       "darwin",
 	}
-	err := d.Install(dir, true)
+	err := d.Install(InstallOpts{
+		TargetDir: dir,
+		Force:     true,
+	})
 	assert.NoError(t, err)
 }

@@ -110,9 +110,18 @@ got: %s`, targetFile, d.Checksum, result)
 	return nil
 }
 
+//InstallOpts options for Install
+type InstallOpts struct {
+	// TargetDir is the directory where the executable should end up
+	TargetDir string
+	// Force - whether to force the install even if it already exists
+	Force bool
+}
+
 //Install downloads and installs a bin
-func (d *Downloader) Install(targetDir string, force bool) error {
-	if fileExists(d.binPath(targetDir)) && !force {
+func (d *Downloader) Install(opts InstallOpts) error {
+	targetDir := opts.TargetDir
+	if fileExists(d.binPath(targetDir)) && !opts.Force {
 		return nil
 	}
 	err := d.download(targetDir)
