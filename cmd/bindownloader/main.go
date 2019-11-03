@@ -6,7 +6,7 @@ import (
 	"runtime"
 
 	"github.com/alecthomas/kong"
-	"github.com/willabides/bindownloader/internal"
+	"github.com/willabides/bindownloader"
 )
 
 var kongVars = kong.Vars{
@@ -30,25 +30,28 @@ var cli struct {
 func main() {
 	parser := kong.Must(&cli, kongVars, kong.UsageOnError())
 	kctx, err := parser.Parse(os.Args[1:])
-
 	parser.FatalIfErrorf(err)
 
-	targetDir := path.Dir(cli.TargetFile)
-	targetFile := path.Base(cli.TargetFile)
-
-	downloaders, err := internal.FromFile(cli.Config)
+	config, err := bindownloader.LoadConfigFile(cli.Config)
 	if err != nil {
 		kctx.Errorf("error loading config from %q\n", cli.Config)
 		os.Exit(1)
 	}
 
-	config := internal.InstallToolConfig{
-		ToolName: targetFile,
-		BinDir:   targetDir,
-		OpSys:    cli.OS,
-		Arch:     cli.Arch,
-		Force:    false,
+	binary := path.Base(cli.TargetFile)
+	binDir := path.Dir(cli.TargetFile)
+
+	downloader := config.Downloader(binary, cli.OS, cli.Arch)
+	if downloader == nil {
+		kctx.Errorf(`no downloader configured for:
+bin: %s
+os: %s
+arch: %s
+`, binary, cli.OS, cli.Arch)
+		os.Exit(1)
 	}
 
-	kctx.FatalIfErrorf(downloaders.InstallTool(config))
+	err = downloader.Install(binDir, cli.Force)
+
+	kctx.FatalIfErrorf(err)
 }
