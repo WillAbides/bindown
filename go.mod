@@ -3,6 +3,7 @@ module github.com/willabides/bindownloader
 go 1.12
 
 require (
+	github.com/alecthomas/kong v0.2.1
 	github.com/dsnet/compress v0.0.1 // indirect
 	github.com/frankban/quicktest v1.4.2 // indirect
 	github.com/golang/snappy v0.0.1 // indirect
