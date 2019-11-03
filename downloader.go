@@ -1,4 +1,4 @@
-package internal
+package bindownloader
 
 import (
 	"crypto/sha256"
@@ -6,13 +6,15 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"net/http"
 	"os"
 	"path/filepath"
 
 	"github.com/mholt/archiver"
 )
 
-type downloader struct {
+// Downloader downloads a binary
+type Downloader struct {
 	URL        string `json:"url"`
 	Checksum   string `json:"checksum"`
 	LinkSource string `json:"symlink,omitempty"`
@@ -22,23 +24,23 @@ type downloader struct {
 	Arch       string `json:"arch"`
 }
 
-func (d *downloader) downloadableName() string {
+func (d *Downloader) downloadableName() string {
 	return filepath.Base(filepath.FromSlash(d.URL))
 }
 
-func (d *downloader) downloadablePath(targetDir string) string {
+func (d *Downloader) downloadablePath(targetDir string) string {
 	return filepath.Join(targetDir, d.downloadableName())
 }
 
-func (d *downloader) binPath(targetDir string) string {
+func (d *Downloader) binPath(targetDir string) string {
 	return filepath.Join(targetDir, d.BinName)
 }
 
-func (d *downloader) chmod(targetDir string) error {
+func (d *Downloader) chmod(targetDir string) error {
 	return os.Chmod(d.binPath(targetDir), 0755) //nolint:gosec
 }
 
-func (d *downloader) move(targetDir string) error {
+func (d *Downloader) move(targetDir string) error {
 	if d.MoveFrom == "" {
 		return nil
 	}
@@ -51,7 +53,7 @@ func (d *downloader) move(targetDir string) error {
 	return os.Rename(from, to)
 }
 
-func (d *downloader) link(targetDir string) error {
+func (d *Downloader) link(targetDir string) error {
 	if d.LinkSource == "" {
 		return nil
 	}
@@ -64,7 +66,7 @@ func (d *downloader) link(targetDir string) error {
 	return os.Symlink(filepath.FromSlash(d.LinkSource), d.binPath(targetDir))
 }
 
-func (d *downloader) extract(targetDir string) error {
+func (d *Downloader) extract(targetDir string) error {
 	tarPath := filepath.Join(targetDir, d.downloadableName())
 	_, err := archiver.ByExtension(d.downloadableName())
 	if err != nil {
@@ -77,11 +79,11 @@ func (d *downloader) extract(targetDir string) error {
 	return rm(tarPath)
 }
 
-func (d *downloader) download(targetDir string) error {
+func (d *Downloader) download(targetDir string) error {
 	return downloadFile(d.downloadablePath(targetDir), d.URL)
 }
 
-func (d *downloader) validateChecksum(targetDir string) error {
+func (d *Downloader) validateChecksum(targetDir string) error {
 	targetFile := d.downloadablePath(targetDir)
 	file, err := os.Open(targetFile) //nolint:gosec
 	if err != nil {
@@ -108,7 +110,8 @@ got: %s`, targetFile, d.Checksum, result)
 	return nil
 }
 
-func (d *downloader) install(targetDir string, force bool) error {
+//Install downloads and installs a bin
+func (d *Downloader) Install(targetDir string, force bool) error {
 	if fileExists(d.binPath(targetDir)) && !force {
 		return nil
 	}
@@ -149,4 +152,22 @@ func (d *downloader) install(targetDir string, force bool) error {
 	}
 
 	return nil
+}
+
+func downloadFile(targetPath, url string) error {
+	resp, err := http.Get(url) //nolint:gosec
+	if err != nil {
+		return err
+	}
+	defer logCloseErr(resp.Body)
+	if resp.StatusCode >= 300 {
+		return fmt.Errorf("failed downloading %s", url)
+	}
+	out, err := os.Create(targetPath)
+	if err != nil {
+		return err
+	}
+	defer logCloseErr(out)
+	_, err = io.Copy(out, resp.Body)
+	return err
 }
