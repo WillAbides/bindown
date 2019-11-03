@@ -1,9 +1,10 @@
+name: ci
 on: [push]
 jobs:
   test:
     strategy:
       matrix:
-        go-version: [1.13.x]
+        go-version: [1.12.x, 1.13.x]
         platform: [ubuntu-latest, macos-latest, windows-latest]
     runs-on: ${{ matrix.platform }}
     steps:
@@ -11,11 +12,11 @@ jobs:
       uses: actions/setup-go@v1
       with:
         go-version: ${{ matrix.go-version }}
-      id: go
     - name: Check out code into the Go module directory
       uses: actions/checkout@v1
     - name: Test
       run: script/test
+    - name: Build
+      run: make bin/bindownloader
     - name: Lint
       run: script/lint
-      
