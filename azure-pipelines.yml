@@ -10,5 +10,7 @@ pool:
   vmImage: 'ubuntu-latest'
 
 steps:
-- script: make ci
-  displayName: 'ci'
+- script: script/lint
+  displayName: 'lint'
+- script: script/test
+  displayName: 'test'
