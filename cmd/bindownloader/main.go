@@ -32,7 +32,7 @@ func main() {
 	kctx, err := parser.Parse(os.Args[1:])
 	parser.FatalIfErrorf(err)
 
-	downloaders, err := bindownloader.LoadConfigFile(cli.Config)
+	config, err := bindownloader.LoadConfigFile(cli.Config)
 	if err != nil {
 		kctx.Errorf("error loading config from %q\n", cli.Config)
 		os.Exit(1)
@@ -41,7 +41,7 @@ func main() {
 	binary := path.Base(cli.TargetFile)
 	binDir := path.Dir(cli.TargetFile)
 
-	downloader := downloaders.Downloader(binary, cli.OS, cli.Arch)
+	downloader := config.Downloader(binary, cli.OS, cli.Arch)
 	if downloader == nil {
 		kctx.Errorf(`no downloader configured for:
 bin: %s
