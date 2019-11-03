@@ -1,20 +1,22 @@
-name: Go
-on: [push]
+name: Test
+on: [push, pull_request]
 jobs:
-
-  build:
-    name: Build
-    runs-on: ubuntu-latest
+  test:
+    strategy:
+      matrix:
+        go-version: [1.12.x, 1.13.x]
+        platform: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.platform }}
     steps:
-
-    - name: Set up Go 1.13
+    - name: Install Go
       uses: actions/setup-go@v1
       with:
-        go-version: 1.13
+        go-version: ${{ matrix.go-version }}
       id: go
-
     - name: Check out code into the Go module directory
       uses: actions/checkout@v1
-
-    - name: lint
+    - name: Test
+      run: script/test
+    - name: Lint
       run: script/lint
+      
