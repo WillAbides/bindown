@@ -42,11 +42,11 @@ func TestTmpDir(t *testing.T) {
 	fmt.Println(tt)
 }
 
-func Test_downloaders_install(t *testing.T) {
+func TestDownloaders_InstallTool(t *testing.T) {
 	dir, teardown := testutil.TmpDir(t)
 	defer teardown()
 	ts := serveFile("./testdata/downloadables/foo.tar.gz", "/foo/foo.tar.gz", "")
-	d := downloaders{
+	d := Downloaders{
 		"foo": []*downloader{
 			{
 				Arch:     "amd64",
@@ -58,11 +58,17 @@ func Test_downloaders_install(t *testing.T) {
 			},
 		},
 	}
-	err := d.installTool("foo", dir, true, "darwin", "amd64")
+	err := d.InstallTool(InstallToolConfig{
+		ToolName: "foo",
+		BinDir:   dir,
+		OpSys:    "darwin",
+		Arch:     "amd64",
+		Force:    true,
+	})
 	assert.NoError(t, err)
 }
 
-func Test_fromFile(t *testing.T) {
+func TestFromFile(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
 		dir, teardown := testutil.TmpDir(t)
 		defer teardown()
@@ -93,7 +99,7 @@ func Test_fromFile(t *testing.T) {
 `
 		err := ioutil.WriteFile(file, []byte(content), 0640)
 		require.NoError(t, err)
-		d, err := fromFile(file)
+		d, err := FromFile(file)
 		assert.NoError(t, err)
 		assert.Equal(t, "gobin", d["gobin"][0].BinName)
 	})
