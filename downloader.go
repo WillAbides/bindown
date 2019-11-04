@@ -65,14 +65,28 @@ func (d *Downloader) link(targetDir, extractDir string) error {
 	if d.LinkSource == "" {
 		return nil
 	}
+	var err error
 	if fileExists(d.binPath(targetDir)) {
-		err := rm(d.binPath(targetDir))
+		err = rm(d.binPath(targetDir))
 		if err != nil {
 			return err
 		}
 	}
-	src := filepath.Join(extractDir, filepath.FromSlash(d.LinkSource))
-	return os.Symlink(src, d.binPath(targetDir))
+	extractDir, err = filepath.Abs(extractDir)
+	if err != nil {
+		return err
+	}
+	target := d.binPath(targetDir)
+	targetDir, err = filepath.Abs(filepath.Dir(target))
+	if err != nil {
+		return err
+	}
+
+	dst, err := filepath.Rel(targetDir, filepath.Join(extractDir, filepath.FromSlash(d.LinkSource)))
+	if err != nil {
+		return err
+	}
+	return os.Symlink(dst, d.binPath(targetDir))
 }
 
 func (d *Downloader) extract(downloadDir, extractDir string) error {

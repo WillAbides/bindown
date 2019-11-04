@@ -1,6 +1,7 @@
 package bindownloader
 
 import (
+	"os"
 	"path/filepath"
 	"testing"
 
@@ -118,7 +119,7 @@ func TestDownloader_Install(t *testing.T) {
 		d := &Downloader{
 			URL:        ts.URL + "/foo/foo.tar.gz?foo=bar",
 			Checksum:   "f7fa712caea646575c920af17de3462fe9d08d7fe062b9a17010117d5fa4ed88",
-			BinName:    "foo.txt",
+			BinName:    "foo",
 			LinkSource: "bin/foo.txt",
 			Arch:       "amd64",
 			OS:         "darwin",
@@ -128,5 +129,9 @@ func TestDownloader_Install(t *testing.T) {
 			Force:     true,
 		})
 		assert.NoError(t, err)
+		linksTo, err := os.Readlink(filepath.Join(dir, "foo"))
+		assert.NoError(t, err)
+		absLinkTo := filepath.Join(dir, linksTo)
+		assert.True(t, fileExists(absLinkTo))
 	})
 }
