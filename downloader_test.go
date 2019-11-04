@@ -10,6 +10,11 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func mustCopyFile(t *testing.T, src, dst string) {
+	t.Helper()
+	require.NoError(t, copy.Copy(src, dst))
+}
+
 func Test_downloadFile(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
 		dir, teardown := tmpDir(t)
@@ -52,12 +57,8 @@ func Test_downloader_validateChecksum(t *testing.T) {
 			URL:      "foo/foo.tar.gz",
 			Checksum: "f7fa712caea646575c920af17de3462fe9d08d7fe062b9a17010117d5fa4ed88",
 		}
-		err := copy.Copy(
-			fooPath,
-			filepath.Join(dir, "foo.tar.gz"),
-		)
-		require.NoError(t, err)
-		err = d.validateChecksum(dir)
+		mustCopyFile(t, fooPath, filepath.Join(dir, "foo.tar.gz"))
+		err := d.validateChecksum(dir)
 		assert.NoError(t, err)
 		assert.True(t, fileExists(filepath.Join(dir, "foo.tar.gz")))
 	})
@@ -90,6 +91,20 @@ func Test_downloader_validateChecksum(t *testing.T) {
 		assert.Error(t, err)
 		assert.False(t, fileExists(filepath.Join(dir, "foo.tar.gz")))
 	})
+}
+
+func TestDownloader_extract(t *testing.T) {
+	dir, teardown := tmpDir(t)
+	defer teardown()
+	d := &Downloader{
+		URL:      "foo/foo.tar.gz",
+		Checksum: "f7fa712caea646575c920af17de3462fe9d08d7fe062b9a17010117d5fa4ed88",
+	}
+	downloadDir := filepath.Join(dir, "download")
+	extractDir := filepath.Join(dir, "extract")
+	mustCopyFile(t, fooPath, filepath.Join(downloadDir, "foo.tar.gz"))
+	err := d.extract(downloadDir, extractDir)
+	assert.NoError(t, err)
 }
 
 func TestDownloader_Install(t *testing.T) {
