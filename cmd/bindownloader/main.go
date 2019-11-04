@@ -51,7 +51,10 @@ arch: %s
 		os.Exit(1)
 	}
 
-	err = downloader.Install(binDir, cli.Force)
+	err = downloader.Install(bindownloader.InstallOpts{
+		TargetDir: binDir,
+		Force:     cli.Force,
+	})
 
 	kctx.FatalIfErrorf(err)
 }

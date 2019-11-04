@@ -1,6 +1,7 @@
 package bindownloader
 
 import (
+	"os"
 	"path/filepath"
 	"testing"
 
@@ -92,17 +93,45 @@ func Test_downloader_validateChecksum(t *testing.T) {
 }
 
 func TestDownloader_Install(t *testing.T) {
-	dir, teardown := tmpDir(t)
-	defer teardown()
-	ts := serveFile(fooPath, "/foo/foo.tar.gz", "")
-	d := &Downloader{
-		URL:      ts.URL + "/foo/foo.tar.gz",
-		Checksum: "f7fa712caea646575c920af17de3462fe9d08d7fe062b9a17010117d5fa4ed88",
-		BinName:  "foo.txt",
-		MoveFrom: "bin/foo.txt",
-		Arch:     "amd64",
-		OS:       "darwin",
-	}
-	err := d.Install(dir, true)
-	assert.NoError(t, err)
+	t.Run("move", func(t *testing.T) {
+		dir, teardown := tmpDir(t)
+		defer teardown()
+		ts := serveFile(fooPath, "/foo/foo.tar.gz", "foo=bar")
+		d := &Downloader{
+			URL:      ts.URL + "/foo/foo.tar.gz?foo=bar",
+			Checksum: "f7fa712caea646575c920af17de3462fe9d08d7fe062b9a17010117d5fa4ed88",
+			BinName:  "foo.txt",
+			MoveFrom: "bin/foo.txt",
+			Arch:     "amd64",
+			OS:       "darwin",
+		}
+		err := d.Install(InstallOpts{
+			TargetDir: dir,
+			Force:     true,
+		})
+		assert.NoError(t, err)
+	})
+
+	t.Run("link", func(t *testing.T) {
+		dir, teardown := tmpDir(t)
+		defer teardown()
+		ts := serveFile(fooPath, "/foo/foo.tar.gz", "foo=bar")
+		d := &Downloader{
+			URL:        ts.URL + "/foo/foo.tar.gz?foo=bar",
+			Checksum:   "f7fa712caea646575c920af17de3462fe9d08d7fe062b9a17010117d5fa4ed88",
+			BinName:    "foo",
+			LinkSource: "bin/foo.txt",
+			Arch:       "amd64",
+			OS:         "darwin",
+		}
+		err := d.Install(InstallOpts{
+			TargetDir: dir,
+			Force:     true,
+		})
+		assert.NoError(t, err)
+		linksTo, err := os.Readlink(filepath.Join(dir, "foo"))
+		assert.NoError(t, err)
+		absLinkTo := filepath.Join(dir, linksTo)
+		assert.True(t, fileExists(absLinkTo))
+	})
 }

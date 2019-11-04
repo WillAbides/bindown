@@ -1,11 +1,10 @@
 package bindownloader
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
+	"os"
 	"strings"
 )
 
@@ -21,11 +20,12 @@ func LoadConfig(config io.Reader) (Config, error) {
 
 //LoadConfigFile returns a Config from the path to a config file
 func LoadConfigFile(configFile string) (Config, error) {
-	configBytes, err := ioutil.ReadFile(configFile) //nolint:gosec
+	configReader, err := os.Open(configFile) //nolint:gosec
 	if err != nil {
 		return nil, fmt.Errorf("couldn't read config file: %s", configFile)
 	}
-	return LoadConfig(bytes.NewReader(configBytes))
+	defer logCloseErr(configReader)
+	return LoadConfig(configReader)
 }
 
 // Config map binary names to Config
