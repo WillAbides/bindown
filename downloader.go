@@ -1,13 +1,13 @@
 package bindownloader
 
 import (
-	"crypto/sha256"
-	"encoding/hex"
 	"fmt"
 	"io"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
+	"path"
 	"path/filepath"
 
 	"github.com/mholt/archiver"
@@ -24,12 +24,20 @@ type Downloader struct {
 	Arch       string `json:"arch"`
 }
 
-func (d *Downloader) downloadableName() string {
-	return filepath.Base(filepath.FromSlash(d.URL))
+func (d *Downloader) downloadableName() (string, error) {
+	u, err := url.Parse(d.URL)
+	if err != nil {
+		return "", err
+	}
+	return path.Base(u.Path), nil
 }
 
-func (d *Downloader) downloadablePath(targetDir string) string {
-	return filepath.Join(targetDir, d.downloadableName())
+func (d *Downloader) downloadablePath(targetDir string) (string, error) {
+	name, err := d.downloadableName()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(targetDir, name), nil
 }
 
 func (d *Downloader) binPath(targetDir string) string {
@@ -40,7 +48,7 @@ func (d *Downloader) chmod(targetDir string) error {
 	return os.Chmod(d.binPath(targetDir), 0755) //nolint:gosec
 }
 
-func (d *Downloader) move(targetDir string) error {
+func (d *Downloader) move(targetDir, extractDir string) error {
 	if d.MoveFrom == "" {
 		return nil
 	}
@@ -48,12 +56,12 @@ func (d *Downloader) move(targetDir string) error {
 	if err != nil {
 		return err
 	}
-	from := filepath.Join(targetDir, filepath.FromSlash(d.MoveFrom))
+	from := filepath.Join(extractDir, filepath.FromSlash(d.MoveFrom))
 	to := d.binPath(targetDir)
 	return os.Rename(from, to)
 }
 
-func (d *Downloader) link(targetDir string) error {
+func (d *Downloader) link(targetDir, extractDir string) error {
 	if d.LinkSource == "" {
 		return nil
 	}
@@ -63,39 +71,62 @@ func (d *Downloader) link(targetDir string) error {
 			return err
 		}
 	}
-	return os.Symlink(filepath.FromSlash(d.LinkSource), d.binPath(targetDir))
+	src := filepath.Join(extractDir, filepath.FromSlash(d.LinkSource))
+	return os.Symlink(src, d.binPath(targetDir))
 }
 
-func (d *Downloader) extract(targetDir string) error {
-	tarPath := filepath.Join(targetDir, d.downloadableName())
-	_, err := archiver.ByExtension(d.downloadableName())
+func (d *Downloader) extract(downloadDir, extractDir string) error {
+	dlName, err := d.downloadableName()
 	if err != nil {
-		return nil
+		return err
 	}
-	err = archiver.Unarchive(tarPath, targetDir)
+	err = os.MkdirAll(extractDir, 0750)
+	if err != nil {
+		return err
+	}
+	tarPath := filepath.Join(downloadDir, dlName)
+	_, err = archiver.ByExtension(dlName)
+	if err != nil {
+		err = copyFile(tarPath, filepath.Join(extractDir, dlName))
+	}
+	if err != nil {
+		return err
+	}
+	err = archiver.Unarchive(tarPath, extractDir)
 	if err != nil {
 		return err
 	}
 	return rm(tarPath)
 }
 
-func (d *Downloader) download(targetDir string) error {
-	return downloadFile(d.downloadablePath(targetDir), d.URL)
+func (d *Downloader) download(downloadDir string) error {
+	dlPath, err := d.downloadablePath(downloadDir)
+	if err != nil {
+		return err
+	}
+	err = os.MkdirAll(downloadDir, 0750)
+	if err != nil {
+		return err
+	}
+	ok, err := fileExistsWithChecksum(dlPath, d.Checksum)
+	if err != nil {
+		return err
+	}
+	if ok {
+		return nil
+	}
+	return downloadFile(dlPath, d.URL)
 }
 
 func (d *Downloader) validateChecksum(targetDir string) error {
-	targetFile := d.downloadablePath(targetDir)
-	file, err := os.Open(targetFile) //nolint:gosec
+	targetFile, err := d.downloadablePath(targetDir)
 	if err != nil {
 		return err
 	}
-	defer logCloseErr(file)
-	hash := sha256.New()
-	_, err = io.Copy(hash, file)
+	result, err := fileChecksum(targetFile)
 	if err != nil {
 		return err
 	}
-	result := hex.EncodeToString(hash.Sum(nil))
 	if d.Checksum != result {
 		defer func() {
 			delErr := rm(targetFile)
@@ -114,47 +145,56 @@ got: %s`, targetFile, d.Checksum, result)
 type InstallOpts struct {
 	// TargetDir is the directory where the executable should end up
 	TargetDir string
+	// DownloadDir is the directory where downloaded file will be placed
+	DownloadDir string
+	// ExtractDir is the directory where archives will be extracted
+	ExtractDir string
 	// Force - whether to force the install even if it already exists
 	Force bool
 }
 
 //Install downloads and installs a bin
 func (d *Downloader) Install(opts InstallOpts) error {
-	targetDir := opts.TargetDir
-	if fileExists(d.binPath(targetDir)) && !opts.Force {
+	if opts.DownloadDir == "" {
+		opts.DownloadDir = filepath.Join(opts.TargetDir, ".bindownloader", "downloads", d.Checksum)
+	}
+	if opts.ExtractDir == "" {
+		opts.ExtractDir = filepath.Join(opts.TargetDir, ".bindownloader", "extracts", d.Checksum)
+	}
+	if fileExists(d.binPath(opts.TargetDir)) && !opts.Force {
 		return nil
 	}
-	err := d.download(targetDir)
+	err := d.download(opts.DownloadDir)
 	if err != nil {
 		log.Printf("error downloading: %v", err)
 		return err
 	}
 
-	err = d.validateChecksum(targetDir)
+	err = d.validateChecksum(opts.DownloadDir)
 	if err != nil {
 		log.Printf("error validating: %v", err)
 		return err
 	}
 
-	err = d.extract(targetDir)
+	err = d.extract(opts.DownloadDir, opts.ExtractDir)
 	if err != nil {
 		log.Printf("error extracting: %v", err)
 		return err
 	}
 
-	err = d.link(targetDir)
+	err = d.link(opts.TargetDir, opts.ExtractDir)
 	if err != nil {
 		log.Printf("error linking: %v", err)
 		return err
 	}
 
-	err = d.move(targetDir)
+	err = d.move(opts.TargetDir, opts.ExtractDir)
 	if err != nil {
 		log.Printf("error moving: %v", err)
 		return err
 	}
 
-	err = d.chmod(targetDir)
+	err = d.chmod(opts.TargetDir)
 	if err != nil {
 		log.Printf("error chmodding: %v", err)
 		return err
