@@ -10,13 +10,14 @@ import (
 )
 
 var kongVars = kong.Vars{
-	"arch_help":      `download for this architecture`,
-	"arch_default":   runtime.GOARCH,
-	"os_help":        `download for this operating system`,
-	"os_default":     runtime.GOOS,
-	"config_help":    `file with tool definitions`,
-	"config_default": `buildtools.json`,
-	"force_help":     `force download even if it already exists`,
+	"arch_help":       `download for this architecture`,
+	"arch_default":    runtime.GOARCH,
+	"os_help":         `download for this operating system`,
+	"os_default":      runtime.GOOS,
+	"config_help":     `file with tool definitions`,
+	"config_default":  `buildtools.json`,
+	"force_help":      `force download even if it already exists`,
+	"cellar_dir_help": `directory where downloads will be cached`,
 }
 
 var cli struct {
@@ -25,6 +26,7 @@ var cli struct {
 	Config     string `kong:"type=path,help=${config_help},default=${config_default}"`
 	Force      bool   `kong:"help=${force_help}"`
 	TargetFile string `kong:"arg,help='file to download'"`
+	CellarDir  string `kong:"type=path,help=${cellar_dir_help}"`
 }
 
 func main() {
@@ -51,10 +53,13 @@ arch: %s
 		os.Exit(1)
 	}
 
-	err = downloader.Install(bindownloader.InstallOpts{
+	installOpts := bindownloader.InstallOpts{
 		TargetDir: binDir,
 		Force:     cli.Force,
-	})
+		CellarDir: cli.CellarDir,
+	}
+
+	err = downloader.Install(installOpts)
 
 	kctx.FatalIfErrorf(err)
 }
