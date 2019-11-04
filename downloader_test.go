@@ -5,14 +5,14 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/otiai10/copy"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func mustCopyFile(t *testing.T, src, dst string) {
 	t.Helper()
-	require.NoError(t, copy.Copy(src, dst))
+	require.NoError(t, os.MkdirAll(filepath.Dir(dst), 0750))
+	require.NoError(t, copyFile(src, dst))
 }
 
 func Test_downloadFile(t *testing.T) {
@@ -82,12 +82,8 @@ func Test_downloader_validateChecksum(t *testing.T) {
 			URL:      "foo/foo.tar.gz",
 			Checksum: "deadbeef",
 		}
-		err := copy.Copy(
-			fooPath,
-			filepath.Join(dir, "foo.tar.gz"),
-		)
-		require.NoError(t, err)
-		err = d.validateChecksum(dir)
+		mustCopyFile(t, fooPath, filepath.Join(dir, "foo.tar.gz"))
+		err := d.validateChecksum(dir)
 		assert.Error(t, err)
 		assert.False(t, fileExists(filepath.Join(dir, "foo.tar.gz")))
 	})
