@@ -2,6 +2,7 @@ package bindownloader
 
 import (
 	"fmt"
+	"hash/fnv"
 	"io"
 	"log"
 	"net/http"
@@ -157,52 +158,61 @@ got: %s`, targetFile, d.Checksum, result)
 
 //InstallOpts options for Install
 type InstallOpts struct {
+	// CellarDir is the directory where downloads and extractions will be placed.  Default is a <TargetDir>/.bindownloader
+	CellarDir string
 	// TargetDir is the directory where the executable should end up
 	TargetDir string
-	// DownloadDir is the directory where downloaded file will be placed
-	DownloadDir string
-	// ExtractDir is the directory where archives will be extracted
-	ExtractDir string
 	// Force - whether to force the install even if it already exists
 	Force bool
 }
 
+func (d *Downloader) downloadsSubName() string {
+	return mustHexHash(fnv.New64a(), []byte(d.Checksum))
+}
+
+func (d *Downloader) extractsSubName() string {
+	return mustHexHash(fnv.New64a(), []byte(d.Checksum), []byte(d.BinName))
+}
+
 //Install downloads and installs a bin
 func (d *Downloader) Install(opts InstallOpts) error {
-	if opts.DownloadDir == "" {
-		opts.DownloadDir = filepath.Join(opts.TargetDir, ".bindownloader", "downloads", d.Checksum)
+	cellarDir := opts.CellarDir
+	if cellarDir == "" {
+		cellarDir = filepath.Join(opts.TargetDir, ".bindownloader")
 	}
-	if opts.ExtractDir == "" {
-		opts.ExtractDir = filepath.Join(opts.TargetDir, ".bindownloader", "extracts", d.Checksum)
-	}
+
+	downloadDir := filepath.Join(cellarDir, "downloads", d.downloadsSubName())
+	extractDir := filepath.Join(cellarDir, "extracts", d.extractsSubName())
+
 	if fileExists(d.binPath(opts.TargetDir)) && !opts.Force {
 		return nil
 	}
-	err := d.download(opts.DownloadDir)
+
+	err := d.download(downloadDir)
 	if err != nil {
 		log.Printf("error downloading: %v", err)
 		return err
 	}
 
-	err = d.validateChecksum(opts.DownloadDir)
+	err = d.validateChecksum(downloadDir)
 	if err != nil {
 		log.Printf("error validating: %v", err)
 		return err
 	}
 
-	err = d.extract(opts.DownloadDir, opts.ExtractDir)
+	err = d.extract(downloadDir, extractDir)
 	if err != nil {
 		log.Printf("error extracting: %v", err)
 		return err
 	}
 
-	err = d.link(opts.TargetDir, opts.ExtractDir)
+	err = d.link(opts.TargetDir, extractDir)
 	if err != nil {
 		log.Printf("error linking: %v", err)
 		return err
 	}
 
-	err = d.move(opts.TargetDir, opts.ExtractDir)
+	err = d.move(opts.TargetDir, extractDir)
 	if err != nil {
 		log.Printf("error moving: %v", err)
 		return err

@@ -4,7 +4,9 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+	"hash"
 	"io"
+	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
@@ -17,19 +19,36 @@ func logCloseErr(closer io.Closer) {
 	}
 }
 
+// mustHexHash is like hexHash but panics on err
+// this should only be used with hashers that are guaranteed to return a nil error from Write()
+func mustHexHash(hasher hash.Hash, data ...[]byte) string {
+	hsh, err := hexHash(hasher, data...)
+	if err != nil {
+		panic(err)
+	}
+	return hsh
+}
+
+// hexHash returns a hex representation of data's hash
+// This will only return non-nil error if given a hasher that can return a non-nil error from Write()
+func hexHash(hasher hash.Hash, data ...[]byte) (string, error) {
+	hasher.Reset()
+	for _, datum := range data {
+		_, err := hasher.Write(datum)
+		if err != nil {
+			return "", err
+		}
+	}
+	return hex.EncodeToString(hasher.Sum(nil)), nil
+}
+
 // fileChecksum returns the hex checksum of a file
 func fileChecksum(filename string) (string, error) {
-	file, err := os.Open(filename) //nolint:gosec
+	fileBytes, err := ioutil.ReadFile(filename) //nolint:gosec
 	if err != nil {
 		return "", err
 	}
-	defer logCloseErr(file)
-	hash := sha256.New()
-	_, err = io.Copy(hash, file)
-	if err != nil {
-		return "", err
-	}
-	return hex.EncodeToString(hash.Sum(nil)), nil
+	return mustHexHash(sha256.New(), fileBytes), nil
 }
 
 //fileExistsWithChecksum returns true if the file both exists and has a matching checksum
