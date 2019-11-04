@@ -95,6 +95,10 @@ func (d *Downloader) extract(downloadDir, extractDir string) error {
 	if err != nil {
 		return err
 	}
+	err = os.RemoveAll(extractDir)
+	if err != nil {
+		return err
+	}
 	err = os.MkdirAll(extractDir, 0750)
 	if err != nil {
 		return err
@@ -104,11 +108,7 @@ func (d *Downloader) extract(downloadDir, extractDir string) error {
 	if err != nil {
 		return copyFile(tarPath, filepath.Join(extractDir, dlName))
 	}
-	err = archiver.Unarchive(tarPath, extractDir)
-	if err != nil {
-		return err
-	}
-	return rm(tarPath)
+	return archiver.Unarchive(tarPath, extractDir)
 }
 
 func (d *Downloader) download(downloadDir string) error {
@@ -181,8 +181,11 @@ func (d *Downloader) Install(opts InstallOpts) error {
 	downloadDir := filepath.Join(cellarDir, "downloads", d.downloadsSubName())
 	extractDir := filepath.Join(cellarDir, "extracts", d.extractsSubName())
 
-	if fileExists(d.binPath(opts.TargetDir)) && !opts.Force {
-		return nil
+	if opts.Force {
+		err := os.RemoveAll(downloadDir)
+		if err != nil {
+			return err
+		}
 	}
 
 	err := d.download(downloadDir)
