@@ -102,10 +102,7 @@ func (d *Downloader) extract(downloadDir, extractDir string) error {
 	tarPath := filepath.Join(downloadDir, dlName)
 	_, err = archiver.ByExtension(dlName)
 	if err != nil {
-		err = copyFile(tarPath, filepath.Join(extractDir, dlName))
-	}
-	if err != nil {
-		return err
+		return copyFile(tarPath, filepath.Join(extractDir, dlName))
 	}
 	err = archiver.Unarchive(tarPath, extractDir)
 	if err != nil {
