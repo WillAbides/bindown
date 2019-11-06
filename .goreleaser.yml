@@ -4,11 +4,12 @@ before:
   hooks:
     - script/lint
 builds:
-  - id: bindownloader
-    main: ./cmd/bindownloader
+  - main: ./cmd/bindownloader
     env:
       - CGO_ENABLED=0
 archives:
+  - format: binary
+
 checksum:
   name_template: 'checksums.txt'
 snapshot:
