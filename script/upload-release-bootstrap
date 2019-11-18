@@ -1,0 +1,27 @@
+#!/bin/sh
+
+set -e
+
+CDPATH="" cd -- "$(dirname -- "$(dirname -- "$0")")"
+
+[ -n "$GITHUB_TOKEN" ] || {
+  echo GITHUB_TOKEN must be set
+  exit 1
+}
+
+AUTH_HEADER="Authorization: token $GITHUB_TOKEN"
+
+[ -f "dist/bootstrap-bindownloader.sh" ] || {
+  echo dist/bootstrap-bindownloader.sh is required
+  exit 1
+}
+
+TAG="$(grep "^TAG=" dist/bootstrap-bindownloader.sh | cut -d\" -f2)"
+
+release_id="$(curl -s -H "$AUTH_HEADER" "https://api.github.com/repos/WillAbides/bindownloader/releases/tags/$TAG" | jq .id)"
+upload_url="https://uploads.github.com/repos/WillAbides/bindownloader/releases/$release_id/assets?name=bootstrap-bindownloader.sh"
+echo "$upload_url"
+
+file_content="$(cat dist/bootstrap-bindownloader.sh)"
+
+curl -X POST -H "$AUTH_HEADER" -H "Content-Type: application/text" -d "$file_content" "$upload_url"
