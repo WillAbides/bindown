@@ -6,6 +6,10 @@ before:
 builds:
   - id: bindownloader
     main: ./cmd/bindownloader
+    goos:
+      - linux
+      - darwin
+      - windows
     env:
       - CGO_ENABLED=0
 archives:
