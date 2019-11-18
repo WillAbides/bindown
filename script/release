@@ -7,6 +7,6 @@ CDPATH="" cd -- "$(dirname -- "$(dirname -- "$0")")"
 corecount="$(getconf _NPROCESSORS_ONLN)"
 
 make -s bin/goreleaser
-bin/goreleaser release --rm-dist --parallelism="$corecount" --skip-publish --skip-validate
+bin/goreleaser release --rm-dist --parallelism="$corecount"
 script/build-bootstrapper
 script/upload-release-bootstrap
