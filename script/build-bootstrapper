@@ -1,0 +1,35 @@
+#!/bin/sh
+
+set -e
+
+CDPATH="" cd -- "$(dirname -- "$(dirname -- "$0")")"
+
+[ -f dist/checksums.txt ] || {
+  echo dist/checksums.txt is required
+  exit 1
+}
+
+TAG="v$(grep "_linux_amd64.tar.gz" "dist/checksums.txt" | cut -d "_" -f2)"
+
+CHECKSUMS="$(cat dist/checksums.txt)"
+
+rm -f dist/bootstrap-bindownloader.sh
+touch dist/bootstrap-bindownloader.sh
+chmod +x dist/bootstrap-bindownloader.sh
+
+# write the dynamic part of bootstrap-bindownloader.sh
+cat << EOF > dist/bootstrap-bindownloader.sh
+#!/bin/sh
+set -e
+
+TAG="$TAG"
+
+CHECKSUMS="\$(cat <<EOT
+$CHECKSUMS
+EOT
+)"
+
+EOF
+
+cat bootstrapper/shlib.sh | grep -v "^##/" >> dist/bootstrap-bindownloader.sh
+cat bootstrapper/main.sh | grep -v "^##/" >> dist/bootstrap-bindownloader.sh
