@@ -1,0 +1,19 @@
+#!/bin/sh
+
+set -e
+
+CDPATH="" cd -- "$(dirname -- "$(dirname -- "$0")")"
+
+[ -n "$GITHUB_TOKEN" ] || {
+  echo GITHUB_TOKEN must be set
+  exit 1
+}
+
+AUTH_HEADER="Authorization: token $GITHUB_TOKEN"
+
+make -s bin/semrel bin/jq >/dev/null
+
+LAST_TAG="$(curl -s -H "$AUTH_HEADER" https://api.github.com/repos/WillAbides/bindownloader/releases/latest | bin/jq -r .tag_name)"
+
+next_version="$(bin/semrel WillAbides/bindownloader -t "$LAST_TAG")"
+echo "v$next_version"
