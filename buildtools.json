@@ -70,5 +70,23 @@
       "move-from": "goreleaser",
       "bin": "goreleaser"
     }
+  ],
+  "semver-next": [
+    {
+      "os": "darwin",
+      "arch": "amd64",
+      "url": "https://github.com/WillAbides/semver-next/releases/download/v0.4.0/semver-next_0.4.0_darwin_amd64.tar.gz",
+      "checksum": "a519f2c3bbe8972deb094d56c196fec89496f663431321c22be343ced23839fb",
+      "move-from": "semver-next",
+      "bin": "semver-next"
+    },
+    {
+      "os": "linux",
+      "arch": "amd64",
+      "url": "https://github.com/WillAbides/semver-next/releases/download/v0.4.0/semver-next_0.4.0_linux_amd64.tar.gz",
+      "checksum": "6317c36bec63158038381e8878601151ae996310fef58306f70cb03f1b46ef7f",
+      "move-from": "semver-next",
+      "bin": "semver-next"
+    }
   ]
 }

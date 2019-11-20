@@ -4,9 +4,15 @@ set -e
 
 CDPATH="" cd -- "$(dirname -- "$(dirname -- "$0")")"
 
-corecount="$(getconf _NPROCESSORS_ONLN)"
+make -s bin/goreleaser bin/semver-next
 
-make -s bin/goreleaser
-bin/goreleaser release --rm-dist --parallelism="$corecount"
+GITHUB_SHA="${GITHUB_SHA:-"$(git rev-parse HEAD)"}"
+GITHUB_REPOSITORY="${GITHUB_REPOSITORY:-"WillAbides/bindownloader"}"
+
+bin/semver-next "$GITHUB_REPOSITORY" -r "$GITHUB_SHA" --create-tag
+
+git fetch --tags
+
+bin/goreleaser release
 script/build-bootstrapper
 script/upload-release-bootstrap
