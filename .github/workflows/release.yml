@@ -1,0 +1,22 @@
+name: release
+on:
+  push:
+    branches:
+      - master
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+
+      - name: Set up Go 1.13
+        uses: actions/setup-go@v1
+        with:
+          go-version: 1.13
+
+      - name: check out code
+        uses: actions/checkout@v1
+
+      - name: release
+        run: script/release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
