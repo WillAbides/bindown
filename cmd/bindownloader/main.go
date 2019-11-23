@@ -54,9 +54,10 @@ arch: %s
 	}
 
 	installOpts := bindownloader.InstallOpts{
-		TargetDir: binDir,
-		Force:     cli.Force,
-		CellarDir: cli.CellarDir,
+		DownloaderName: binary,
+		TargetDir:      binDir,
+		Force:          cli.Force,
+		CellarDir:      cli.CellarDir,
 	}
 
 	err = downloader.Install(installOpts)

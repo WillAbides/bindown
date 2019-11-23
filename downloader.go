@@ -164,6 +164,8 @@ got: %s`, targetFile, d.Checksum, result)
 
 //InstallOpts options for Install
 type InstallOpts struct {
+	// DownloaderName is the downloader's key from the config file
+	DownloaderName string
 	// CellarDir is the directory where downloads and extractions will be placed.  Default is a <TargetDir>/.bindownloader
 	CellarDir string
 	// TargetDir is the directory where the executable should end up
@@ -182,6 +184,9 @@ func (d *Downloader) extractsSubName() string {
 
 //Install downloads and installs a bin
 func (d *Downloader) Install(opts InstallOpts) error {
+	if d.BinName == "" {
+		d.BinName = opts.DownloaderName
+	}
 	cellarDir := opts.CellarDir
 	if cellarDir == "" {
 		cellarDir = filepath.Join(opts.TargetDir, ".bindownloader")
