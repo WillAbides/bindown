@@ -18,13 +18,17 @@ import (
 type Downloader struct {
 	URL         string `json:"url"`
 	Checksum    string `json:"checksum"`
-	LinkSource  string `json:"symlink,omitempty"`
 	BinName     string `json:"bin"`
-	MoveFrom    string `json:"move-from"`
 	ArchivePath string `json:"archive_path"`
 	Link        bool   `json:"link"`
 	OS          string `json:"os"`
 	Arch        string `json:"arch"`
+
+	// Deprecated: use ArchivePath
+	MoveFrom string `json:"move-from"`
+
+	// Deprecated: use ArchivePath and Link
+	LinkSource string `json:"symlink,omitempty"`
 }
 
 func (d *Downloader) downloadableName() (string, error) {
@@ -52,10 +56,12 @@ func (d *Downloader) chmod(targetDir string) error {
 }
 
 func (d *Downloader) moveOrLinkBin(targetDir, extractDir string) error {
+	//noinspection GoDeprecation
 	if d.LinkSource != "" {
 		d.ArchivePath = d.LinkSource
 		d.Link = true
 	}
+	//noinspection GoDeprecation
 	if d.MoveFrom != "" {
 		d.ArchivePath = d.MoveFrom
 	}
