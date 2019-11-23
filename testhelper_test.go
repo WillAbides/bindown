@@ -14,7 +14,9 @@ import (
 	"github.com/udhos/equalfile"
 )
 
-var fooPath = projectPath("testdata", "downloadables", "foo.tar.gz")
+func downloadablesPath(path string) string {
+	return filepath.Join(projectPath("testdata", "downloadables"), filepath.FromSlash(path))
+}
 
 // projectPath exchanges a path relative to the project root for an absolute path
 func projectPath(path ...string) string {
