@@ -16,13 +16,19 @@ import (
 
 // Downloader downloads a binary
 type Downloader struct {
-	URL        string `json:"url"`
-	Checksum   string `json:"checksum"`
+	URL         string `json:"url"`
+	Checksum    string `json:"checksum"`
+	BinName     string `json:"bin"`
+	ArchivePath string `json:"archive_path"`
+	Link        bool   `json:"link"`
+	OS          string `json:"os"`
+	Arch        string `json:"arch"`
+
+	// Deprecated: use ArchivePath
+	MoveFrom string `json:"move-from"`
+
+	// Deprecated: use ArchivePath and Link
 	LinkSource string `json:"symlink,omitempty"`
-	BinName    string `json:"bin"`
-	MoveFrom   string `json:"move-from"`
-	OS         string `json:"os"`
-	Arch       string `json:"arch"`
 }
 
 func (d *Downloader) downloadableName() (string, error) {
@@ -49,45 +55,48 @@ func (d *Downloader) chmod(targetDir string) error {
 	return os.Chmod(d.binPath(targetDir), 0755) //nolint:gosec
 }
 
-func (d *Downloader) move(targetDir, extractDir string) error {
-	if d.MoveFrom == "" {
-		return nil
+func (d *Downloader) moveOrLinkBin(targetDir, extractDir string) error {
+	//noinspection GoDeprecation
+	if d.LinkSource != "" {
+		d.ArchivePath = d.LinkSource
+		d.Link = true
 	}
-	err := rm(d.binPath(targetDir))
-	if err != nil {
-		return err
+	//noinspection GoDeprecation
+	if d.MoveFrom != "" {
+		d.ArchivePath = d.MoveFrom
 	}
-	from := filepath.Join(extractDir, filepath.FromSlash(d.MoveFrom))
-	to := d.binPath(targetDir)
-	return os.Rename(from, to)
-}
-
-func (d *Downloader) link(targetDir, extractDir string) error {
-	if d.LinkSource == "" {
-		return nil
+	archivePath := filepath.FromSlash(d.ArchivePath)
+	if archivePath == "" {
+		archivePath = filepath.FromSlash(d.BinName)
 	}
 	var err error
-	if fileExists(d.binPath(targetDir)) {
-		err = rm(d.binPath(targetDir))
+	target := d.binPath(targetDir)
+	if fileExists(target) {
+		err = rm(target)
 		if err != nil {
 			return err
 		}
 	}
+
 	extractDir, err = filepath.Abs(extractDir)
 	if err != nil {
 		return err
 	}
-	target := d.binPath(targetDir)
-	targetDir, err = filepath.Abs(filepath.Dir(target))
-	if err != nil {
-		return err
-	}
+	extractedBin := filepath.Join(extractDir, archivePath)
 
-	dst, err := filepath.Rel(targetDir, filepath.Join(extractDir, filepath.FromSlash(d.LinkSource)))
-	if err != nil {
-		return err
+	if d.Link {
+		targetDir, err = filepath.Abs(filepath.Dir(target))
+		if err != nil {
+			return err
+		}
+
+		dst, err := filepath.Rel(targetDir, extractedBin)
+		if err != nil {
+			return err
+		}
+		return os.Symlink(dst, target)
 	}
-	return os.Symlink(dst, d.binPath(targetDir))
+	return os.Rename(extractedBin, target)
 }
 
 func (d *Downloader) extract(downloadDir, extractDir string) error {
@@ -206,13 +215,7 @@ func (d *Downloader) Install(opts InstallOpts) error {
 		return err
 	}
 
-	err = d.link(opts.TargetDir, extractDir)
-	if err != nil {
-		log.Printf("error linking: %v", err)
-		return err
-	}
-
-	err = d.move(opts.TargetDir, extractDir)
+	err = d.moveOrLinkBin(opts.TargetDir, extractDir)
 	if err != nil {
 		log.Printf("error moving: %v", err)
 		return err
