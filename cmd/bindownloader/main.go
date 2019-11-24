@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"os"
 	"path"
 	"runtime"
@@ -20,47 +21,60 @@ var kongVars = kong.Vars{
 	"cellar_dir_help": `directory where downloads will be cached`,
 }
 
+var version = "unknown"
+
 var cli struct {
-	Arch       string `kong:"help=${arch_help},default=${arch_default}"`
-	OS         string `kong:"help=${os_help},default=${os_default}"`
-	Config     string `kong:"type=path,help=${config_help},default=${config_default}"`
-	Force      bool   `kong:"help=${force_help}"`
-	TargetFile string `kong:"arg,help='file to download'"`
-	CellarDir  string `kong:"type=path,help=${cellar_dir_help}"`
+	Version   versionCmd  `kong:"cmd"`
+	Download  downloadCmd `kong:"cmd"`
+	Config    string      `kong:"type=path,help=${config_help},default=${config_default}"`
+	CellarDir string      `kong:"type=path,help=${cellar_dir_help}"`
 }
 
-func main() {
-	parser := kong.Must(&cli, kongVars, kong.UsageOnError())
-	kctx, err := parser.Parse(os.Args[1:])
-	parser.FatalIfErrorf(err)
+type versionCmd struct{}
 
+func (*versionCmd) Run(k *kong.Context) error {
+	k.Printf("version %s", version)
+	return nil
+}
+
+type downloadCmd struct {
+	Arch       string `kong:"help=${arch_help},default=${arch_default}"`
+	OS         string `kong:"help=${os_help},default=${os_default}"`
+	Force      bool   `kong:"help=${force_help}"`
+	TargetFile string `kong:"required=true,arg,help='file to download'"`
+}
+
+func (d *downloadCmd) Run(*kong.Context) error {
 	config, err := bindownloader.LoadConfigFile(cli.Config)
 	if err != nil {
-		kctx.Errorf("error loading config from %q\n", cli.Config)
-		os.Exit(1)
+		return fmt.Errorf("error loading config from %q\n", cli.Config)
 	}
+	binary := path.Base(d.TargetFile)
+	binDir := path.Dir(d.TargetFile)
 
-	binary := path.Base(cli.TargetFile)
-	binDir := path.Dir(cli.TargetFile)
-
-	downloader := config.Downloader(binary, cli.OS, cli.Arch)
+	downloader := config.Downloader(binary, d.OS, d.Arch)
 	if downloader == nil {
-		kctx.Errorf(`no downloader configured for:
+		return fmt.Errorf(`no downloader configured for:
 bin: %s
 os: %s
 arch: %s
-`, binary, cli.OS, cli.Arch)
-		os.Exit(1)
+`, binary, d.OS, d.Arch)
 	}
 
 	installOpts := bindownloader.InstallOpts{
 		DownloaderName: binary,
 		TargetDir:      binDir,
-		Force:          cli.Force,
+		Force:          d.Force,
 		CellarDir:      cli.CellarDir,
 	}
 
-	err = downloader.Install(installOpts)
+	return downloader.Install(installOpts)
+}
 
-	kctx.FatalIfErrorf(err)
+func main() {
+	parser := kong.Must(&cli, kongVars, kong.UsageOnError())
+
+	kongCtx, err := parser.Parse(os.Args[1:])
+	parser.FatalIfErrorf(err)
+	kongCtx.FatalIfErrorf(kongCtx.Run(kongCtx))
 }
