@@ -8,19 +8,19 @@ bin/bindownloader: gobuildcache
 bins += bin/bindownloader
 
 bin/golangci-lint: bin/bindownloader
-	bin/bindownloader $@
+	bin/bindownloader download $@
 bins += bin/golangci-lint
 
 bin/gobin: bin/bindownloader
-	bin/bindownloader $@
+	bin/bindownloader download $@
 bins += bin/gobin
 
 bin/goreleaser: bin/bindownloader
-	bin/bindownloader $@
+	bin/bindownloader download $@
 bins += bin/goreleaser
 
 bin/semver-next: bin/bindownloader
-	bin/bindownloader $@
+	bin/bindownloader download $@
 bins += bin/semver-next
 
 GOIMPORTS_REF := 8aaa1484dc108aa23dcf2d4a09371c0c9e280f6b
