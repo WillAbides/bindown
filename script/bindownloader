@@ -1,0 +1,10 @@
+#!/bin/sh
+
+set -e
+
+CDPATH="" cd -- "$(dirname -- "$(dirname -- "$0")")"
+
+make -s bin/bindownloader
+
+# shellcheck disable=SC2068
+bin/bindownloader $@
