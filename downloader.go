@@ -16,16 +16,16 @@ import (
 
 // Downloader downloads a binary
 type Downloader struct {
-	URL         string `json:"url"`
-	Checksum    string `json:"checksum"`
-	BinName     string `json:"bin"`
-	ArchivePath string `json:"archive_path"`
-	Link        bool   `json:"link"`
 	OS          string `json:"os"`
 	Arch        string `json:"arch"`
+	URL         string `json:"url"`
+	Checksum    string `json:"checksum,omitempty"`
+	ArchivePath string `json:"archive_path,omitempty"`
+	Link        bool   `json:"link,omitempty"`
+	BinName     string `json:"bin,omitempty"`
 
 	// Deprecated: use ArchivePath
-	MoveFrom string `json:"move-from"`
+	MoveFrom string `json:"move-from,omitempty"`
 
 	// Deprecated: use ArchivePath and Link
 	LinkSource string `json:"symlink,omitempty"`
