@@ -139,6 +139,12 @@ func (d *Downloader) download(downloadDir string) error {
 	return downloadFile(dlPath, d.URL)
 }
 
+func (d *Downloader) setDefaultBinName(defaultName string) {
+	if d.BinName == "" {
+		d.BinName = defaultName
+	}
+}
+
 func (d *Downloader) validateChecksum(targetDir string) error {
 	targetFile, err := d.downloadablePath(targetDir)
 	if err != nil {
@@ -159,6 +165,45 @@ func (d *Downloader) validateChecksum(targetDir string) error {
 wanted: %s
 got: %s`, targetFile, d.Checksum, result)
 	}
+	return nil
+}
+
+//UpdateChecksumOpts options for UpdateChecksum
+type UpdateChecksumOpts struct {
+	// DownloaderName is the downloader's key from the config file
+	DownloaderName string
+	// CellarDir is the directory where downloads and extractions will be placed.  Default is a <TargetDir>/.bindownloader
+	CellarDir string
+	// TargetDir is the directory where the executable should end up
+	TargetDir string
+}
+
+func (d *Downloader) UpdateChecksum(opts UpdateChecksumOpts) error {
+	d.setDefaultBinName(opts.DownloaderName)
+	cellarDir := opts.CellarDir
+	if cellarDir == "" {
+		cellarDir = filepath.Join(opts.TargetDir, ".bindownloader")
+	}
+
+	downloadDir := filepath.Join(cellarDir, "downloads", d.downloadsSubName())
+
+	err := d.download(downloadDir)
+	if err != nil {
+		log.Printf("error downloading: %v", err)
+		return err
+	}
+
+	dlPath, err := d.downloadablePath(downloadDir)
+	if err != nil {
+		return err
+	}
+
+	checkSum, err := fileChecksum(dlPath)
+	if err != nil {
+		return err
+	}
+
+	d.Checksum = checkSum
 	return nil
 }
 
@@ -184,9 +229,7 @@ func (d *Downloader) extractsSubName() string {
 
 //Install downloads and installs a bin
 func (d *Downloader) Install(opts InstallOpts) error {
-	if d.BinName == "" {
-		d.BinName = opts.DownloaderName
-	}
+	d.setDefaultBinName(opts.DownloaderName)
 	cellarDir := opts.CellarDir
 	if cellarDir == "" {
 		cellarDir = filepath.Join(opts.TargetDir, ".bindownloader")
