@@ -7,8 +7,8 @@ import (
 )
 
 var kongVars = kong.Vars{
-	"configfile_help":    `file with tool definitions`,
-	"configfile_default": `buildtools.json`,
+	"configfile_help":    `file with bindown config`,
+	"configfile_default": `bindown.json`,
 	"cellar_dir_help":    `directory where downloads will be cached`,
 	"download_help":      `download a bin`,
 }
