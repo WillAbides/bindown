@@ -52,7 +52,7 @@ func (d *configUpdateChecksumsCmd) Run(*kong.Context) error {
 	binary := path.Base(d.TargetFile)
 	binDir := path.Dir(d.TargetFile)
 
-	downloaders, ok := config[binary]
+	downloaders, ok := config.Downloaders[binary]
 	if !ok {
 		return fmt.Errorf("nothing configured for %q", binary)
 	}
@@ -108,7 +108,7 @@ func (d configValidateCmd) Run(kctx *kong.Context) error {
 		cellarDir = filepath.Join(tmpDir, "cellar")
 	}
 
-	downloaders, ok := config[binary]
+	downloaders, ok := config.Downloaders[binary]
 	if !ok {
 		return fmt.Errorf("nothing configured for %q", binary)
 	}
