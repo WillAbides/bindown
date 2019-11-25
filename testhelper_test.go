@@ -1,4 +1,4 @@
-package bindownloader
+package bindown
 
 import (
 	"io/ioutil"

@@ -1,4 +1,4 @@
-module github.com/willabides/bindownloader
+module github.com/willabides/bindown
 
 go 1.12
 

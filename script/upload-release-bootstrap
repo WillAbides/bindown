@@ -18,8 +18,8 @@ AUTH_HEADER="Authorization: token $GITHUB_TOKEN"
 
 TAG="$(grep "^TAG=" dist/bootstrap-bindown.sh | cut -d\" -f2)"
 
-release_id="$(curl -s -H "$AUTH_HEADER" "https://api.github.com/repos/WillAbides/bindownloader/releases/tags/$TAG" | jq .id)"
-upload_url="https://uploads.github.com/repos/WillAbides/bindownloader/releases/$release_id/assets?name=bootstrap-bindown.sh"
+release_id="$(curl -s -H "$AUTH_HEADER" "https://api.github.com/repos/WillAbides/bindown/releases/tags/$TAG" | jq .id)"
+upload_url="https://uploads.github.com/repos/WillAbides/bindown/releases/$release_id/assets?name=bootstrap-bindown.sh"
 echo "$upload_url"
 
 file_content="$(cat dist/bootstrap-bindown.sh)"
