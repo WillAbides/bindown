@@ -45,7 +45,7 @@ execute() {
   srcdir="${tmpdir}"
   (cd "${tmpdir}" && untar "${TARBALL}")
   test ! -d "${BINDIR}" && install -d "${BINDIR}"
-  binexe="bindownloader"
+  binexe="bindown"
   if [ "$OS" = "windows" ]; then
     binexe="${binexe}.exe"
   fi
@@ -63,7 +63,7 @@ uname_arch_check "$ARCH"
 parse_args "$@"
 
 VERSION=${TAG#v}
-NAME=bindownloader_${VERSION}_${OS}_${ARCH}
+NAME=bindown_${VERSION}_${OS}_${ARCH}
 TARBALL=${NAME}.${FORMAT}
 TARBALL_URL=${GITHUB_DOWNLOAD}/${TAG}/${TARBALL}
 

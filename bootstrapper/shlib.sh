@@ -1,4 +1,4 @@
-##/ this is the part of bootstrap-bindownloader.sh that comes from https://github.com/client9/shlib
+##/ this is the part of bootstrap-bindown.sh that comes from https://github.com/client9/shlib
 ##/ used in script/build-bootstrapper
 
 cat /dev/null <<EOF

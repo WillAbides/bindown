@@ -3,24 +3,24 @@ GOBUILD=$(GOCMD) build
 
 .PHONY: gobuildcache
 
-bin/bindownloader: gobuildcache
-	$(GOBUILD) -o $@ ./cmd/bindownloader
-bins += bin/bindownloader
+bin/bindown: gobuildcache
+	$(GOBUILD) -o $@ ./cmd/bindown
+bins += bin/bindown
 
-bin/golangci-lint: bin/bindownloader
-	bin/bindownloader download $@
+bin/golangci-lint: bin/bindown
+	bin/bindown download $@
 bins += bin/golangci-lint
 
-bin/gobin: bin/bindownloader
-	bin/bindownloader download $@
+bin/gobin: bin/bindown
+	bin/bindown download $@
 bins += bin/gobin
 
-bin/goreleaser: bin/bindownloader
-	bin/bindownloader download $@
+bin/goreleaser: bin/bindown
+	bin/bindown download $@
 bins += bin/goreleaser
 
-bin/semver-next: bin/bindownloader
-	bin/bindownloader download $@
+bin/semver-next: bin/bindown
+	bin/bindown download $@
 bins += bin/semver-next
 
 GOIMPORTS_REF := 8aaa1484dc108aa23dcf2d4a09371c0c9e280f6b
