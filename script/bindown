@@ -4,7 +4,7 @@ set -e
 
 CDPATH="" cd -- "$(dirname -- "$(dirname -- "$0")")"
 
-make -s bin/bindownloader
+make -s bin/bindown
 
 # shellcheck disable=SC2068
-bin/bindownloader $@
+bin/bindown $@

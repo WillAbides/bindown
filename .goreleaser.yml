@@ -8,8 +8,8 @@ before:
   hooks:
     - script/lint
 builds:
-  - id: bindownloader
-    main: ./cmd/bindownloader
+  - id: bindown
+    main: ./cmd/bindown
     goos:
       - linux
       - darwin
