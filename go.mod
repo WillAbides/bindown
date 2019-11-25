@@ -1,4 +1,4 @@
-module github.com/willabides/bindown
+module github.com/willabides/bindown/v2
 
 go 1.12
 
