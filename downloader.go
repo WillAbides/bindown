@@ -90,6 +90,16 @@ func (d *Downloader) moveOrLinkBin(targetDir, extractDir string) error {
 			return err
 		}
 
+		targetDir, err = filepath.EvalSymlinks(targetDir)
+		if err != nil {
+			return err
+		}
+
+		extractedBin, err = filepath.EvalSymlinks(extractedBin)
+		if err != nil {
+			return err
+		}
+
 		dst, err := filepath.Rel(targetDir, extractedBin)
 		if err != nil {
 			return err
