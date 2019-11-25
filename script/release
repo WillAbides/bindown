@@ -7,7 +7,7 @@ CDPATH="" cd -- "$(dirname -- "$(dirname -- "$0")")"
 make -s bin/goreleaser bin/semver-next
 
 GITHUB_SHA="${GITHUB_SHA:-"$(git rev-parse HEAD)"}"
-GITHUB_REPOSITORY="${GITHUB_REPOSITORY:-"WillAbides/bindownloader"}"
+GITHUB_REPOSITORY="${GITHUB_REPOSITORY:-"WillAbides/bindown"}"
 
 bin/semver-next "$GITHUB_REPOSITORY" -r "$GITHUB_SHA" --create-tag
 

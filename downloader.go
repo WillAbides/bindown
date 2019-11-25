@@ -1,4 +1,4 @@
-package bindownloader
+package bindown
 
 import (
 	"fmt"
@@ -182,7 +182,7 @@ got: %s`, targetFile, d.Checksum, result)
 type UpdateChecksumOpts struct {
 	// DownloaderName is the downloader's key from the config file
 	DownloaderName string
-	// CellarDir is the directory where downloads and extractions will be placed.  Default is a <TargetDir>/.bindownloader
+	// CellarDir is the directory where downloads and extractions will be placed.  Default is a <TargetDir>/.bindown
 	CellarDir string
 	// TargetDir is the directory where the executable should end up
 	TargetDir string
@@ -192,7 +192,7 @@ type UpdateChecksumOpts struct {
 func (d *Downloader) UpdateChecksum(opts UpdateChecksumOpts) error {
 	cellarDir := opts.CellarDir
 	if cellarDir == "" {
-		cellarDir = filepath.Join(opts.TargetDir, ".bindownloader")
+		cellarDir = filepath.Join(opts.TargetDir, ".bindown")
 	}
 
 	downloadDir := filepath.Join(cellarDir, "downloads", d.downloadsSubName())
@@ -221,7 +221,7 @@ func (d *Downloader) UpdateChecksum(opts UpdateChecksumOpts) error {
 type InstallOpts struct {
 	// DownloaderName is the downloader's key from the config file
 	DownloaderName string
-	// CellarDir is the directory where downloads and extractions will be placed.  Default is a <TargetDir>/.bindownloader
+	// CellarDir is the directory where downloads and extractions will be placed.  Default is a <TargetDir>/.bindown
 	CellarDir string
 	// TargetDir is the directory where the executable should end up
 	TargetDir string
@@ -242,7 +242,7 @@ func (d *Downloader) Install(opts InstallOpts) error {
 	d.setDefaultBinName(opts.DownloaderName)
 	cellarDir := opts.CellarDir
 	if cellarDir == "" {
-		cellarDir = filepath.Join(opts.TargetDir, ".bindownloader")
+		cellarDir = filepath.Join(opts.TargetDir, ".bindown")
 	}
 
 	downloadDir := filepath.Join(cellarDir, "downloads", d.downloadsSubName())

@@ -1,13 +1,13 @@
-##/ this is the static part of bootstrap-bindownloader.sh
+##/ this is the static part of bootstrap-bindown.sh
 ##/ used in script/build-bootstrapper
 
 FORMAT=tar.gz
-GITHUB_DOWNLOAD=https://github.com/WillAbides/bindownloader/releases/download
+GITHUB_DOWNLOAD=https://github.com/WillAbides/bindown/releases/download
 
 usage() {
   this=$1
   cat <<EOT
-$this: download go binaries for WillAbides/bindownloader
+$this: download go binaries for WillAbides/bindown
 
 Usage: $this [-b] bindir [-d]
   -b sets bindir or installation directory, Defaults to ./bin

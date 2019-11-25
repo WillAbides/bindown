@@ -6,7 +6,7 @@ import (
 	"runtime"
 
 	"github.com/alecthomas/kong"
-	"github.com/willabides/bindownloader"
+	"github.com/willabides/bindown"
 )
 
 var downloadKongVars = kong.Vars{
@@ -26,7 +26,7 @@ type downloadCmd struct {
 }
 
 func (d *downloadCmd) Run(*kong.Context) error {
-	config, err := bindownloader.LoadConfigFile(cli.Configfile)
+	config, err := bindown.LoadConfigFile(cli.Configfile)
 	if err != nil {
 		return fmt.Errorf("error loading config from %q", cli.Configfile)
 	}
@@ -41,7 +41,7 @@ os: %s
 arch: %s`, binary, d.OS, d.Arch)
 	}
 
-	installOpts := bindownloader.InstallOpts{
+	installOpts := bindown.InstallOpts{
 		DownloaderName: binary,
 		TargetDir:      binDir,
 		Force:          d.Force,

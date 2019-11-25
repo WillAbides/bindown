@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 
 	"github.com/alecthomas/kong"
-	"github.com/willabides/bindownloader"
+	"github.com/willabides/bindown"
 )
 
 var configKongVars = kong.Vars{
@@ -29,7 +29,7 @@ type configCmd struct {
 type configFmtCmd struct{}
 
 func (c configFmtCmd) Run() error {
-	config, err := bindownloader.LoadConfigFile(cli.Configfile)
+	config, err := bindown.LoadConfigFile(cli.Configfile)
 	if err != nil {
 		return err
 	}
@@ -45,7 +45,7 @@ type configUpdateChecksumsCmd struct {
 }
 
 func (d *configUpdateChecksumsCmd) Run(*kong.Context) error {
-	config, err := bindownloader.LoadConfigFile(cli.Configfile)
+	config, err := bindown.LoadConfigFile(cli.Configfile)
 	if err != nil {
 		return fmt.Errorf("error loading config from %q", cli.Configfile)
 	}
@@ -58,7 +58,7 @@ func (d *configUpdateChecksumsCmd) Run(*kong.Context) error {
 	}
 
 	for _, downloader := range downloaders {
-		err = downloader.UpdateChecksum(bindownloader.UpdateChecksumOpts{
+		err = downloader.UpdateChecksum(bindown.UpdateChecksumOpts{
 			DownloaderName: binary,
 			CellarDir:      cli.CellarDir,
 			TargetDir:      binDir,
@@ -81,11 +81,11 @@ type configValidateCmd struct {
 }
 
 func (d configValidateCmd) Run(kctx *kong.Context) error {
-	config, err := bindownloader.LoadConfigFile(cli.Configfile)
+	config, err := bindown.LoadConfigFile(cli.Configfile)
 	if err != nil {
 		return fmt.Errorf("error loading config from %q", cli.Configfile)
 	}
-	tmpDir, err := ioutil.TempDir("", "bindownloader")
+	tmpDir, err := ioutil.TempDir("", "bindown")
 	if err != nil {
 		return err
 	}
@@ -119,7 +119,7 @@ func (d configValidateCmd) Run(kctx *kong.Context) error {
 			return err
 		}
 
-		installOpts := bindownloader.InstallOpts{
+		installOpts := bindown.InstallOpts{
 			DownloaderName: binary,
 			TargetDir:      binDir,
 			Force:          true,
