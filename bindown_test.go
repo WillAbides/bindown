@@ -14,7 +14,7 @@ func TestLoadConfig(t *testing.T) {
 	t.Run("current format", func(t *testing.T) {
 		dir, teardown := tmpDir(t)
 		defer teardown()
-		file := filepath.Join(dir, "buildtools.json")
+		file := filepath.Join(dir, "bindown.json")
 
 		// language=json
 		content := `
@@ -56,7 +56,7 @@ func TestLoadConfig(t *testing.T) {
 	t.Run("downloaders only", func(t *testing.T) {
 		dir, teardown := tmpDir(t)
 		defer teardown()
-		file := filepath.Join(dir, "buildtools.json")
+		file := filepath.Join(dir, "bindown.json")
 
 		// language=json
 		content := `
