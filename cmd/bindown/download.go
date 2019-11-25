@@ -6,7 +6,7 @@ import (
 	"runtime"
 
 	"github.com/alecthomas/kong"
-	"github.com/willabides/bindown"
+	"github.com/willabides/bindown/v2"
 )
 
 var downloadKongVars = kong.Vars{
