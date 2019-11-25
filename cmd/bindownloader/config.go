@@ -90,7 +90,7 @@ func (d configValidateCmd) Run(kctx *kong.Context) error {
 		return err
 	}
 	defer func() {
-		err := os.RemoveAll(tmpDir)
+		err = os.RemoveAll(tmpDir)
 		if err != nil {
 			kctx.Errorf("error deleting temp directory, %q", tmpDir)
 		}
