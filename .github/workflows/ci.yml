@@ -16,6 +16,6 @@ jobs:
     - name: Test
       run: script/test
     - name: Build
-      run: make bin/bindownloader
+      run: make bin/bindown
     - name: Lint
       run: script/lint
