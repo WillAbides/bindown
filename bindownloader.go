@@ -48,11 +48,6 @@ func (c Config) Downloader(binary, os, arch string) *Downloader {
 	return nil
 }
 
-//Downloaders returns all downloaders for the given binary
-func (c Config) Downloaders(binary string) []*Downloader {
-	return c[binary]
-}
-
 func eqOS(a, b string) bool {
 	return strings.EqualFold(normalizeOS(a), normalizeOS(b))
 }

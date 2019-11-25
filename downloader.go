@@ -178,8 +178,8 @@ type UpdateChecksumOpts struct {
 	TargetDir string
 }
 
+//UpdateChecksum updates the checksum based on a fresh download
 func (d *Downloader) UpdateChecksum(opts UpdateChecksumOpts) error {
-	d.setDefaultBinName(opts.DownloaderName)
 	cellarDir := opts.CellarDir
 	if cellarDir == "" {
 		cellarDir = filepath.Join(opts.TargetDir, ".bindownloader")
