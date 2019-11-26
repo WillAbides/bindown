@@ -26,11 +26,11 @@ type configCmd struct {
 type configFmtCmd struct{}
 
 func (c configFmtCmd) Run() error {
-	config, err := bindown.LoadConfigFile(cli.Configfile)
+	configFile, err := bindown.NewConfigFile(cli.Configfile)
 	if err != nil {
 		return err
 	}
-	return config.WriteToFile(cli.Configfile)
+	return configFile.WriteFile()
 }
 
 type configUpdateChecksumsCmd struct {
@@ -38,16 +38,16 @@ type configUpdateChecksumsCmd struct {
 }
 
 func (d *configUpdateChecksumsCmd) Run(*kong.Context) error {
-	config, err := bindown.LoadConfigFile(cli.Configfile)
-	if err != nil {
-		return fmt.Errorf("error loading config from %q", cli.Configfile)
-	}
-	binary := filepath.Base(d.TargetFile)
-	err = config.UpdateChecksums(binary, cli.CellarDir)
+	configFile, err := bindown.NewConfigFile(cli.Configfile)
 	if err != nil {
 		return err
 	}
-	return config.WriteToFile(cli.Configfile)
+	binary := filepath.Base(d.TargetFile)
+	err = configFile.UpdateChecksums(binary, cli.CellarDir)
+	if err != nil {
+		return err
+	}
+	return configFile.WriteFile()
 }
 
 type configValidateCmd struct {
@@ -55,9 +55,9 @@ type configValidateCmd struct {
 }
 
 func (d configValidateCmd) Run(kctx *kong.Context) error {
-	config, err := bindown.LoadConfigFile(cli.Configfile)
+	config, err := bindown.NewConfigFile(cli.Configfile)
 	if err != nil {
-		return fmt.Errorf("error loading config from %q", cli.Configfile)
+		return err
 	}
 	err = config.Validate(d.Bin, cli.CellarDir)
 	if err == nil {

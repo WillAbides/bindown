@@ -53,15 +53,6 @@ type Config struct {
 	Downloaders map[string][]*Downloader `json:"downloaders,omitempty"`
 }
 
-//WriteToFile writes the config to a file in json format
-func (c *Config) WriteToFile(filename string) error {
-	b, err := json.MarshalIndent(c, "", "  ")
-	if err != nil {
-		return err
-	}
-	return ioutil.WriteFile(filename, b, 0640)
-}
-
 // Downloader returns a Downloader for the given binary, os and arch.
 func (c *Config) Downloader(binary, opSys, arch string) *Downloader {
 	l, ok := c.Downloaders[binary]
@@ -106,7 +97,7 @@ func (c *Config) UpdateChecksums(binary, cellarDir string) error {
 	return nil
 }
 
-//Validate runs validate on all downloaders for the given binary.
+//Validate runs validate on all Downloaders for the given binary.
 //error may be a multierr. Individual errors can be retrieved with multierr.Errors(err)
 func (c *Config) Validate(binary, cellarDir string) error {
 	downloaders := c.Downloaders[binary]
@@ -142,4 +133,35 @@ func normalizeOS(os string) string {
 		}
 	}
 	return strings.ToLower(os)
+}
+
+//ConfigFile represents a config file
+type ConfigFile struct {
+	filename string
+	*Config
+}
+
+//NewConfigFile creates a *ConfigFile for the file at filename
+func NewConfigFile(filename string) (*ConfigFile, error) {
+	b, err := ioutil.ReadFile(filename) //nolint:gosec
+	if err != nil {
+		return nil, fmt.Errorf("couldn't read config file: %s", filename)
+	}
+	config, err := LoadConfig(bytes.NewReader(b))
+	if err != nil {
+		return nil, fmt.Errorf("couldn't load config: %v", err)
+	}
+	return &ConfigFile{
+		filename: filename,
+		Config:   config,
+	}, nil
+}
+
+//WriteFile writes config back to the file
+func (c *ConfigFile) WriteFile() error {
+	b, err := json.MarshalIndent(c.Config, "", "  ")
+	if err != nil {
+		return err
+	}
+	return ioutil.WriteFile(c.filename, b, 0640)
 }

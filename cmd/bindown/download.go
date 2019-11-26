@@ -26,7 +26,7 @@ type downloadCmd struct {
 }
 
 func (d *downloadCmd) Run(*kong.Context) error {
-	config, err := bindown.LoadConfigFile(cli.Configfile)
+	config, err := bindown.NewConfigFile(cli.Configfile)
 	if err != nil {
 		return fmt.Errorf("error loading config from %q", cli.Configfile)
 	}
