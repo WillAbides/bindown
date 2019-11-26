@@ -10,6 +10,7 @@ import (
 
 	"github.com/alecthomas/kong"
 	"github.com/willabides/bindown/v2"
+	"go.uber.org/multierr"
 )
 
 var configKongVars = kong.Vars{
@@ -96,29 +97,18 @@ type configValidateCmd struct {
 	Bin string `kong:"required=true,arg,help=${config_validate_bin_help}"`
 }
 
-func (d configValidateCmd) Run(*kong.Context) error {
+func (d configValidateCmd) Run(kctx *kong.Context) error {
 	config, err := bindown.LoadConfigFile(cli.Configfile)
 	if err != nil {
 		return fmt.Errorf("error loading config from %q", cli.Configfile)
 	}
-
-	binary := path.Base(d.Bin)
-
-	downloaders, ok := config.Downloaders[binary]
-	if !ok {
-		return fmt.Errorf("nothing configured for %q", binary)
+	err = config.Validate(d.Bin, cli.CellarDir)
+	if err == nil {
+		return nil
 	}
-
-	for _, downloader := range downloaders {
-		dlJSON, err := json.MarshalIndent(downloader, "", "  ")
-		if err != nil {
-			return err
-		}
-
-		err = downloader.Validate(cli.CellarDir)
-		if err != nil {
-			return fmt.Errorf("could not validate downloader:\n%s", string(dlJSON))
-		}
+	errs := multierr.Errors(err)
+	for _, gotErr := range errs {
+		kctx.Printf("%s\n", gotErr.Error())
 	}
-	return nil
+	return fmt.Errorf("could not validate")
 }

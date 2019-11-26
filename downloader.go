@@ -165,6 +165,10 @@ func (d *Downloader) validateChecksum(targetDir string) error {
 	if err != nil {
 		return err
 	}
+	dlName, err := d.downloadableName()
+	if err != nil {
+		return err
+	}
 	if d.Checksum != result {
 		defer func() {
 			delErr := rm(targetFile)
@@ -174,7 +178,7 @@ func (d *Downloader) validateChecksum(targetDir string) error {
 		}()
 		return fmt.Errorf(`checksum mismatch in downloaded file %q 
 wanted: %s
-got: %s`, targetFile, d.Checksum, result)
+got: %s`, dlName, d.Checksum, result)
 	}
 	return nil
 }
@@ -200,7 +204,6 @@ func (d *Downloader) UpdateChecksum(opts UpdateChecksumOpts) error {
 
 	err := d.download(downloadDir)
 	if err != nil {
-		log.Printf("error downloading: %v", err)
 		return err
 	}
 
@@ -258,32 +261,27 @@ func (d *Downloader) Install(opts InstallOpts) error {
 
 	err := d.download(downloadDir)
 	if err != nil {
-		log.Printf("error downloading: %v", err)
-		return err
+		return fmt.Errorf("downloading: %v", err)
 	}
 
 	err = d.validateChecksum(downloadDir)
 	if err != nil {
-		log.Printf("error validating: %v", err)
-		return err
+		return fmt.Errorf("validating: %v", err)
 	}
 
 	err = d.extract(downloadDir, extractDir)
 	if err != nil {
-		log.Printf("error extracting: %v", err)
-		return err
+		return fmt.Errorf("extracting: %v", err)
 	}
 
 	err = d.moveOrLinkBin(opts.TargetDir, extractDir)
 	if err != nil {
-		log.Printf("error moving: %v", err)
-		return err
+		return fmt.Errorf("moving: %v", err)
 	}
 
 	err = d.chmod(opts.TargetDir)
 	if err != nil {
-		log.Printf("error chmodding: %v", err)
-		return err
+		return fmt.Errorf("chmodding: %v", err)
 	}
 
 	return nil

@@ -8,6 +8,8 @@ import (
 	"io/ioutil"
 	"os"
 	"strings"
+
+	"go.uber.org/multierr"
 )
 
 //LoadConfig returns a Config from a config reader
@@ -51,13 +53,13 @@ type Config struct {
 }
 
 // Downloader returns a Downloader for the given binary, os and arch.
-func (c *Config) Downloader(binary, os, arch string) *Downloader {
+func (c *Config) Downloader(binary, opSys, arch string) *Downloader {
 	l, ok := c.Downloaders[binary]
 	if !ok {
 		return nil
 	}
 	for _, d := range l {
-		if !eqOS(os, d.OS) {
+		if !eqOS(opSys, d.OS) {
 			continue
 		}
 		if strings.EqualFold(arch, d.Arch) {
@@ -65,6 +67,26 @@ func (c *Config) Downloader(binary, os, arch string) *Downloader {
 		}
 	}
 	return nil
+}
+
+//Validate runs validate on all downloaders for the given binary.
+//error may be a multierr. Individual errors can be retrieved with multierr.Errors(err)
+func (c *Config) Validate(binary, cellarDir string) error {
+	downloaders := c.Downloaders[binary]
+	if len(downloaders) == 0 {
+		return fmt.Errorf("nothing configured for binary %q", binary)
+	}
+	var resErr error
+	for _, downloader := range downloaders {
+		err := downloader.Validate(cellarDir)
+		if err != nil {
+			resErr = multierr.Combine(
+				resErr,
+				fmt.Errorf("error validating %s - %s - %s: %v", binary, downloader.OS, downloader.Arch, err),
+			)
+		}
+	}
+	return resErr
 }
 
 func eqOS(a, b string) bool {

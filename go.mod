@@ -10,4 +10,8 @@ require (
 	github.com/pierrec/lz4 v2.3.0+incompatible // indirect
 	github.com/stretchr/testify v1.4.0
 	github.com/udhos/equalfile v0.3.0
+	go.uber.org/atomic v1.5.1 // indirect
+	go.uber.org/multierr v1.4.0
+	golang.org/x/lint v0.0.0-20191125180803-fdd1cda4f05f // indirect
+	golang.org/x/tools v0.0.0-20191126055441-b0650ceb63d9 // indirect
 )
