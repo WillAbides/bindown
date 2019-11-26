@@ -53,6 +53,15 @@ type Config struct {
 	Downloaders map[string][]*Downloader `json:"downloaders,omitempty"`
 }
 
+//WriteToFile writes the config to a file in json format
+func (c *Config) WriteToFile(filename string) error {
+	b, err := json.MarshalIndent(c, "", "  ")
+	if err != nil {
+		return err
+	}
+	return ioutil.WriteFile(filename, b, 0640)
+}
+
 // Downloader returns a Downloader for the given binary, os and arch.
 func (c *Config) Downloader(binary, opSys, arch string) *Downloader {
 	l, ok := c.Downloaders[binary]

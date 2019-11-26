@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -34,11 +33,7 @@ func (c configFmtCmd) Run() error {
 	if err != nil {
 		return err
 	}
-	b, err := json.MarshalIndent(&config, "", "  ")
-	if err != nil {
-		return err
-	}
-	return ioutil.WriteFile(cli.Configfile, b, 0600)
+	return config.WriteToFile(cli.Configfile)
 }
 
 type configUpdateChecksumsCmd struct {
@@ -85,12 +80,7 @@ func (d *configUpdateChecksumsCmd) Run(kctx *kong.Context) error {
 		}
 	}
 
-	b, err := json.MarshalIndent(&config, "", "  ")
-	if err != nil {
-		return err
-	}
-
-	return ioutil.WriteFile(cli.Configfile, b, 0600)
+	return config.WriteToFile(cli.Configfile)
 }
 
 type configValidateCmd struct {
