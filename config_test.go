@@ -15,16 +15,16 @@ func TestNewConfigFile(t *testing.T) {
 		filename := testhelper.ProjectPath(filepath.FromSlash("testdata/config/ex1.json"))
 		configFile, err := NewConfigFile(filename)
 		assert.NoError(t, err)
-		assert.Equal(t, "darwin-amd64", configFile.Downloaders["gobin"][0].ArchivePath)
-		assert.True(t, configFile.Downloaders["gobin"][0].Link)
+		assert.True(t, configFile.Downloaders["gobin"][0].
+			HasChecksum("84ed966949e06bebd7d006bc343caf9d736932fd8b37df5cb5b268a28d07bd30"))
 	})
 
-	t.Run("current format", func(t *testing.T) {
+	t.Run("old format", func(t *testing.T) {
 		filename := testhelper.ProjectPath(filepath.FromSlash("testdata/config/oldformat.json"))
 		configFile, err := NewConfigFile(filename)
 		assert.NoError(t, err)
-		assert.Equal(t, "darwin-amd64", configFile.Downloaders["gobin"][0].ArchivePath)
-		assert.True(t, configFile.Downloaders["gobin"][0].Link)
+		assert.True(t, configFile.Downloaders["gobin"][0].
+			HasChecksum("84ed966949e06bebd7d006bc343caf9d736932fd8b37df5cb5b268a28d07bd30"))
 	})
 
 	t.Run("unknown field", func(t *testing.T) {
@@ -48,7 +48,7 @@ func TestConfig_Downloader(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
 		dl := config.Downloader("gobin", "linux", "amd64")
 		assert.NotNil(t, dl)
-		assert.Equal(t, "415266d9af98578067051653f5057ea267c51ebf085408df48b118a8b978bac6", dl.Checksum)
+		assert.True(t, dl.HasChecksum("415266d9af98578067051653f5057ea267c51ebf085408df48b118a8b978bac6"))
 	})
 
 	t.Run("no mapped bin", func(t *testing.T) {

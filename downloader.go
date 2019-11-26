@@ -10,6 +10,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"strings"
 
 	"github.com/mholt/archiver/v3"
 	"github.com/willabides/bindown/v2/internal/util"
@@ -30,6 +31,32 @@ type Downloader struct {
 
 	// Deprecated: use ArchivePath and Link
 	LinkSource string `json:"symlink,omitempty"`
+}
+
+//ErrString string that represents the downloader in error messages
+func (d *Downloader) ErrString(binary string) string {
+	if binary == "" {
+		binary = d.BinName
+	}
+	if d == nil {
+		return ""
+	}
+	return fmt.Sprintf("%s - %s - %s", binary, d.OS, d.Arch)
+}
+
+//MatchesOS has an OS value matching opSys
+func (d *Downloader) MatchesOS(opSys string) bool {
+	return eqOS(opSys, d.OS)
+}
+
+//MatchesArch has an Arch value matching arch
+func (d *Downloader) MatchesArch(arch string) bool {
+	return strings.EqualFold(arch, d.Arch)
+}
+
+//HasChecksum has given checksum
+func (d *Downloader) HasChecksum(checksum string) bool {
+	return checksum == d.Checksum
 }
 
 func (d *Downloader) downloadableName() (string, error) {

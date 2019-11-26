@@ -49,10 +49,7 @@ func (c *Config) Downloader(binary, opSys, arch string) *Downloader {
 		return nil
 	}
 	for _, d := range l {
-		if !eqOS(opSys, d.OS) {
-			continue
-		}
-		if strings.EqualFold(arch, d.Arch) {
+		if d.MatchesOS(opSys) && d.MatchesArch(arch) {
 			return d
 		}
 	}
@@ -96,7 +93,7 @@ func (c *Config) Validate(binary, cellarDir string) error {
 		if err != nil {
 			resErr = multierr.Combine(
 				resErr,
-				fmt.Errorf("error validating %s - %s - %s: %v", binary, downloader.OS, downloader.Arch, err),
+				fmt.Errorf("error validating %s: %v", downloader.ErrString(binary), err),
 			)
 		}
 	}
