@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"os"
 	"strings"
 
 	"github.com/willabides/bindown/v2/internal/util"
@@ -36,16 +35,6 @@ func LoadConfig(config io.Reader) (*Config, error) {
 		return nil, err
 	}
 	return &cfg, err
-}
-
-//LoadConfigFile returns a Config from the path to a config file
-func LoadConfigFile(configFile string) (*Config, error) {
-	configReader, err := os.Open(configFile) //nolint:gosec
-	if err != nil {
-		return nil, fmt.Errorf("couldn't read config file: %s", configFile)
-	}
-	defer util.LogCloseErr(configReader)
-	return LoadConfig(configReader)
 }
 
 //Config is downloaders configuration
@@ -86,10 +75,7 @@ func (c *Config) UpdateChecksums(binary, cellarDir string) error {
 		}()
 	}
 	for _, downloader := range c.Downloaders[binary] {
-		err = downloader.UpdateChecksum(UpdateChecksumOpts{
-			DownloaderName: binary,
-			CellarDir:      cellarDir,
-		})
+		err = downloader.UpdateChecksum(cellarDir)
 		if err != nil {
 			return err
 		}

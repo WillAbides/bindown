@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"hash/fnv"
 	"io"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"net/url"
@@ -184,21 +183,15 @@ got: %s`, dlName, d.Checksum, result)
 	return nil
 }
 
-//UpdateChecksumOpts options for UpdateChecksum
-type UpdateChecksumOpts struct {
-	// DownloaderName is the downloader's key from the config file
-	DownloaderName string
-	// CellarDir is the directory where downloads and extractions will be placed.  Default is a <TargetDir>/.bindown
-	CellarDir string
-	// TargetDir is the directory where the executable should end up
-	TargetDir string
-}
-
 //UpdateChecksum updates the checksum based on a fresh download
-func (d *Downloader) UpdateChecksum(opts UpdateChecksumOpts) error {
-	cellarDir := opts.CellarDir
+func (d *Downloader) UpdateChecksum(cellarDir string) error {
 	if cellarDir == "" {
-		cellarDir = filepath.Join(opts.TargetDir, ".bindown")
+		tmpDir, tmpTeardown, err := util.TmpDir()
+		if err != nil {
+			return err
+		}
+		defer tmpTeardown()
+		cellarDir = filepath.Join(tmpDir, "cellar")
 	}
 
 	downloadDir := filepath.Join(cellarDir, "downloads", d.downloadsSubName())
@@ -308,13 +301,11 @@ func downloadFile(targetPath, url string) error {
 
 //Validate attempts a download to a temp location to validate the download will work as configured.
 func (d *Downloader) Validate(cellarDir string) error {
-	tmpDir, err := ioutil.TempDir("", "bindown")
+	tmpDir, tmpTeardown, err := util.TmpDir()
 	if err != nil {
 		return err
 	}
-	defer func() {
-		_ = util.Rm(tmpDir) //nolint:errcheck
-	}()
+	defer tmpTeardown()
 
 	binDir := filepath.Join(tmpDir, "bin")
 	err = os.MkdirAll(binDir, 0700)

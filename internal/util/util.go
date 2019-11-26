@@ -12,6 +12,17 @@ import (
 	"path/filepath"
 )
 
+//TmpDir returns a temp dir and a function to delete it
+func TmpDir() (string, func(), error) {
+	tmpDir, err := ioutil.TempDir("", "bindown")
+	if err != nil {
+		return "", func() {}, err
+	}
+	return tmpDir, func() {
+		_ = Rm(tmpDir) //nolint:errcheck
+	}, nil
+}
+
 //Rm removes a file and filters out IsNotExist errors
 func Rm(path string) error {
 	err := os.RemoveAll(path)
