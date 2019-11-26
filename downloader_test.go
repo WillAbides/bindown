@@ -1,6 +1,7 @@
 package bindown
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -103,6 +104,112 @@ func TestDownloader_extract(t *testing.T) {
 	assert.NoError(t, err)
 }
 
+func TestDownloader_Validate(t *testing.T) {
+	t.Run("raw file", func(t *testing.T) {
+		servePath := downloadablesPath("rawfile/foo")
+		ts := serveFile(servePath, "/foo/foo", "")
+		d := &Downloader{
+			URL:      ts.URL + "/foo/foo",
+			Checksum: "f044ff8b6007c74bcc1b5a5c92776e5d49d6014f5ff2d551fab115c17f48ac41",
+			BinName:  "foo",
+			Arch:     "amd64",
+			OS:       "darwin",
+		}
+		err := d.Validate("")
+		assert.NoError(t, err)
+	})
+
+	t.Run("bin in root", func(t *testing.T) {
+		servePath := downloadablesPath("fooinroot.tar.gz")
+		ts := serveFile(servePath, "/foo/fooinroot.tar.gz", "")
+		d := &Downloader{
+			URL:      ts.URL + "/foo/fooinroot.tar.gz",
+			Checksum: "27dcce60d1ed72920a84dd4bc01e0bbd013e5a841660e9ee2e964e53fb83c0b3",
+			BinName:  "foo",
+			Arch:     "amd64",
+			OS:       "darwin",
+		}
+		err := d.Validate("")
+		assert.NoError(t, err)
+	})
+
+	t.Run("move", func(t *testing.T) {
+		ts := serveFile(downloadablesPath("foo.tar.gz"), "/foo/foo.tar.gz", "foo=bar")
+		d := &Downloader{
+			URL:         ts.URL + "/foo/foo.tar.gz?foo=bar",
+			Checksum:    "f7fa712caea646575c920af17de3462fe9d08d7fe062b9a17010117d5fa4ed88",
+			BinName:     "foo.txt",
+			ArchivePath: "bin/foo.txt",
+			Arch:        "amd64",
+			OS:          "darwin",
+		}
+		err := d.Validate("")
+		assert.NoError(t, err)
+	})
+
+	t.Run("link", func(t *testing.T) {
+		ts := serveFile(downloadablesPath("foo.tar.gz"), "/foo/foo.tar.gz", "foo=bar")
+		d := &Downloader{
+			URL:         ts.URL + "/foo/foo.tar.gz?foo=bar",
+			Checksum:    "f7fa712caea646575c920af17de3462fe9d08d7fe062b9a17010117d5fa4ed88",
+			BinName:     "foo",
+			ArchivePath: "bin/foo.txt",
+			Link:        true,
+			Arch:        "amd64",
+			OS:          "darwin",
+		}
+		err := d.Validate("")
+		assert.NoError(t, err)
+	})
+
+	t.Run("download error", func(t *testing.T) {
+		ts := serveFile(downloadablesPath("foo.tar.gz"), "/foo/foo.tar.gz", "foo=bar")
+		u := ts.URL + "/foo/wrongpath"
+		d := &Downloader{
+			URL:         u,
+			Checksum:    "f7fa712caea646575c920af17de3462fe9d08d7fe062b9a17010117d5fa4ed88",
+			BinName:     "foo",
+			ArchivePath: "bin/foo.txt",
+			Link:        true,
+			Arch:        "amd64",
+			OS:          "darwin",
+		}
+		err := d.Validate("")
+		wantErr := fmt.Sprintf("downloading: failed downloading %s", u)
+		assert.Error(t, err)
+		assert.Equal(t, wantErr, err.Error())
+	})
+
+	t.Run("checksum error", func(t *testing.T) {
+		ts := serveFile(downloadablesPath("foo.tar.gz"), "/foo/foo.tar.gz", "foo=bar")
+		d := &Downloader{
+			URL:         ts.URL + "/foo/foo.tar.gz?foo=bar",
+			Checksum:    "deadbeef",
+			BinName:     "foo",
+			ArchivePath: "bin/foo.txt",
+			Link:        true,
+			Arch:        "amd64",
+			OS:          "darwin",
+		}
+		err := d.Validate("")
+		assert.Error(t, err)
+	})
+
+	t.Run("wrong archivepath", func(t *testing.T) {
+		ts := serveFile(downloadablesPath("foo.tar.gz"), "/foo/foo.tar.gz", "foo=bar")
+		d := &Downloader{
+			URL:         ts.URL + "/foo/foo.tar.gz?foo=bar",
+			Checksum:    "f7fa712caea646575c920af17de3462fe9d08d7fe062b9a17010117d5fa4ed88",
+			BinName:     "foo.txt",
+			ArchivePath: "bin/wrong",
+			Arch:        "amd64",
+			OS:          "darwin",
+		}
+		err := d.Validate("")
+		assert.Error(t, err)
+	})
+}
+
 func TestDownloader_Install(t *testing.T) {
 	t.Run("raw file", func(t *testing.T) {
 		dir, teardown := tmpDir(t)
@@ -190,7 +297,7 @@ func TestDownloader_Install(t *testing.T) {
 		assert.NoError(t, err)
 	})
 
-	t.Run("link", func(t *testing.T) {
+	t.Run("legacy LinkSource", func(t *testing.T) {
 		dir, teardown := tmpDir(t)
 		defer teardown()
 		ts := serveFile(downloadablesPath("foo.tar.gz"), "/foo/foo.tar.gz", "foo=bar")
@@ -213,7 +320,7 @@ func TestDownloader_Install(t *testing.T) {
 		assert.True(t, fileExists(absLinkTo))
 	})
 
-	t.Run("legacy LinkSource", func(t *testing.T) {
+	t.Run("link", func(t *testing.T) {
 		dir, teardown := tmpDir(t)
 		defer teardown()
 		ts := serveFile(downloadablesPath("foo.tar.gz"), "/foo/foo.tar.gz", "foo=bar")
