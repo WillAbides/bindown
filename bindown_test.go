@@ -8,11 +8,12 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/willabides/bindown/v2/internal/testhelper"
 )
 
 func TestLoadConfig(t *testing.T) {
 	t.Run("current format", func(t *testing.T) {
-		dir, teardown := tmpDir(t)
+		dir, teardown := testhelper.TmpDir(t)
 		defer teardown()
 		file := filepath.Join(dir, "bindown.json")
 
@@ -54,7 +55,7 @@ func TestLoadConfig(t *testing.T) {
 	})
 
 	t.Run("downloaders only", func(t *testing.T) {
-		dir, teardown := tmpDir(t)
+		dir, teardown := testhelper.TmpDir(t)
 		defer teardown()
 		file := filepath.Join(dir, "bindown.json")
 

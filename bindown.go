@@ -9,6 +9,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/willabides/bindown/v2/internal/util"
 	"go.uber.org/multierr"
 )
 
@@ -43,7 +44,7 @@ func LoadConfigFile(configFile string) (*Config, error) {
 	if err != nil {
 		return nil, fmt.Errorf("couldn't read config file: %s", configFile)
 	}
-	defer logCloseErr(configReader)
+	defer util.LogCloseErr(configReader)
 	return LoadConfig(configReader)
 }
 

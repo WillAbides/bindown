@@ -13,6 +13,7 @@ import (
 	"path/filepath"
 
 	"github.com/mholt/archiver/v3"
+	"github.com/willabides/bindown/v2/internal/util"
 )
 
 // Downloader downloads a binary
@@ -72,8 +73,8 @@ func (d *Downloader) moveOrLinkBin(targetDir, extractDir string) error {
 	}
 	var err error
 	target := d.binPath(targetDir)
-	if fileExists(target) {
-		err = rm(target)
+	if util.FileExists(target) {
+		err = util.Rm(target)
 		if err != nil {
 			return err
 		}
@@ -126,7 +127,7 @@ func (d *Downloader) extract(downloadDir, extractDir string) error {
 	tarPath := filepath.Join(downloadDir, dlName)
 	_, err = archiver.ByExtension(dlName)
 	if err != nil {
-		return copyFile(tarPath, filepath.Join(extractDir, dlName))
+		return util.CopyFile(tarPath, filepath.Join(extractDir, dlName))
 	}
 	return archiver.Unarchive(tarPath, extractDir)
 }
@@ -140,7 +141,7 @@ func (d *Downloader) download(downloadDir string) error {
 	if err != nil {
 		return err
 	}
-	ok, err := fileExistsWithChecksum(dlPath, d.Checksum)
+	ok, err := util.FileExistsWithChecksum(dlPath, d.Checksum)
 	if err != nil {
 		return err
 	}
@@ -161,7 +162,7 @@ func (d *Downloader) validateChecksum(targetDir string) error {
 	if err != nil {
 		return err
 	}
-	result, err := fileChecksum(targetFile)
+	result, err := util.FileChecksum(targetFile)
 	if err != nil {
 		return err
 	}
@@ -171,7 +172,7 @@ func (d *Downloader) validateChecksum(targetDir string) error {
 	}
 	if d.Checksum != result {
 		defer func() {
-			delErr := rm(targetFile)
+			delErr := util.Rm(targetFile)
 			if delErr != nil {
 				log.Printf("Error deleting suspicious file at %q. Please delete it manually", targetFile)
 			}
@@ -212,7 +213,7 @@ func (d *Downloader) UpdateChecksum(opts UpdateChecksumOpts) error {
 		return err
 	}
 
-	checkSum, err := fileChecksum(dlPath)
+	checkSum, err := util.FileChecksum(dlPath)
 	if err != nil {
 		return err
 	}
@@ -234,11 +235,11 @@ type InstallOpts struct {
 }
 
 func (d *Downloader) downloadsSubName() string {
-	return mustHexHash(fnv.New64a(), []byte(d.Checksum))
+	return util.MustHexHash(fnv.New64a(), []byte(d.Checksum))
 }
 
 func (d *Downloader) extractsSubName() string {
-	return mustHexHash(fnv.New64a(), []byte(d.Checksum), []byte(d.BinName))
+	return util.MustHexHash(fnv.New64a(), []byte(d.Checksum), []byte(d.BinName))
 }
 
 //Install downloads and installs a bin
@@ -292,7 +293,7 @@ func downloadFile(targetPath, url string) error {
 	if err != nil {
 		return err
 	}
-	defer logCloseErr(resp.Body)
+	defer util.LogCloseErr(resp.Body)
 	if resp.StatusCode >= 300 {
 		return fmt.Errorf("failed downloading %s", url)
 	}
@@ -300,7 +301,7 @@ func downloadFile(targetPath, url string) error {
 	if err != nil {
 		return err
 	}
-	defer logCloseErr(out)
+	defer util.LogCloseErr(out)
 	_, err = io.Copy(out, resp.Body)
 	return err
 }
@@ -312,7 +313,7 @@ func (d *Downloader) Validate(cellarDir string) error {
 		return err
 	}
 	defer func() {
-		_ = rm(tmpDir) //nolint:errcheck
+		_ = util.Rm(tmpDir) //nolint:errcheck
 	}()
 
 	binDir := filepath.Join(tmpDir, "bin")
