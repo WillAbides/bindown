@@ -79,6 +79,33 @@ func (c *Config) Downloader(binary, opSys, arch string) *Downloader {
 	return nil
 }
 
+//UpdateChecksums updates the checksums for binary's downloaders
+func (c *Config) UpdateChecksums(binary, cellarDir string) error {
+	if len(c.Downloaders[binary]) == 0 {
+		return fmt.Errorf("nothing configured for binary %q", binary)
+	}
+	var err error
+	if cellarDir == "" {
+		cellarDir, err = ioutil.TempDir("", "bindown")
+		if err != nil {
+			return err
+		}
+		defer func() {
+			_ = util.Rm(cellarDir) //nolint:errcheck
+		}()
+	}
+	for _, downloader := range c.Downloaders[binary] {
+		err = downloader.UpdateChecksum(UpdateChecksumOpts{
+			DownloaderName: binary,
+			CellarDir:      cellarDir,
+		})
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 //Validate runs validate on all downloaders for the given binary.
 //error may be a multierr. Individual errors can be retrieved with multierr.Errors(err)
 func (c *Config) Validate(binary, cellarDir string) error {

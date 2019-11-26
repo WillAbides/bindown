@@ -2,9 +2,6 @@ package main
 
 import (
 	"fmt"
-	"io/ioutil"
-	"os"
-	"path"
 	"path/filepath"
 
 	"github.com/alecthomas/kong"
@@ -40,46 +37,16 @@ type configUpdateChecksumsCmd struct {
 	TargetFile string `kong:"required=true,arg,help=${config_checksums_bin_help}"`
 }
 
-func (d *configUpdateChecksumsCmd) Run(kctx *kong.Context) error {
+func (d *configUpdateChecksumsCmd) Run(*kong.Context) error {
 	config, err := bindown.LoadConfigFile(cli.Configfile)
 	if err != nil {
 		return fmt.Errorf("error loading config from %q", cli.Configfile)
 	}
-	tmpDir, err := ioutil.TempDir("", "bindown")
+	binary := filepath.Base(d.TargetFile)
+	err = config.UpdateChecksums(binary, cli.CellarDir)
 	if err != nil {
 		return err
 	}
-	defer func() {
-		err = os.RemoveAll(tmpDir)
-		if err != nil {
-			kctx.Errorf("error deleting temp directory, %q", tmpDir)
-		}
-	}()
-
-	binary := path.Base(d.TargetFile)
-	binDir := path.Dir(d.TargetFile)
-
-	cellarDir := cli.CellarDir
-	if cellarDir == "" {
-		cellarDir = filepath.Join(tmpDir, "cellar")
-	}
-
-	downloaders, ok := config.Downloaders[binary]
-	if !ok {
-		return fmt.Errorf("nothing configured for %q", binary)
-	}
-
-	for _, downloader := range downloaders {
-		err = downloader.UpdateChecksum(bindown.UpdateChecksumOpts{
-			DownloaderName: binary,
-			CellarDir:      cellarDir,
-			TargetDir:      binDir,
-		})
-		if err != nil {
-			return err
-		}
-	}
-
 	return config.WriteToFile(cli.Configfile)
 }
 
