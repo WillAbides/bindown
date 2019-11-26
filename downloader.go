@@ -48,15 +48,7 @@ func (d *Downloader) downloadablePath(targetDir string) (string, error) {
 	return filepath.Join(targetDir, name), nil
 }
 
-func (d *Downloader) binPath(targetDir string) string {
-	return filepath.Join(targetDir, d.BinName)
-}
-
-func (d *Downloader) chmod(targetDir string) error {
-	return os.Chmod(d.binPath(targetDir), 0755) //nolint:gosec
-}
-
-func (d *Downloader) moveOrLinkBin(targetDir, extractDir string) error {
+func (d *Downloader) moveOrLinkBin(target, extractDir string) error {
 	//noinspection GoDeprecation
 	if d.LinkSource != "" {
 		d.ArchivePath = d.LinkSource
@@ -68,10 +60,9 @@ func (d *Downloader) moveOrLinkBin(targetDir, extractDir string) error {
 	}
 	archivePath := filepath.FromSlash(d.ArchivePath)
 	if archivePath == "" {
-		archivePath = filepath.FromSlash(d.BinName)
+		archivePath = filepath.Base(target)
 	}
 	var err error
-	target := d.binPath(targetDir)
 	if util.FileExists(target) {
 		err = util.Rm(target)
 		if err != nil {
@@ -86,6 +77,7 @@ func (d *Downloader) moveOrLinkBin(targetDir, extractDir string) error {
 	extractedBin := filepath.Join(extractDir, archivePath)
 
 	if d.Link {
+		var targetDir string
 		targetDir, err = filepath.Abs(filepath.Dir(target))
 		if err != nil {
 			return err
@@ -150,12 +142,6 @@ func (d *Downloader) download(downloadDir string) error {
 	return downloadFile(dlPath, d.URL)
 }
 
-func (d *Downloader) setDefaultBinName(defaultName string) {
-	if d.BinName == "" {
-		d.BinName = defaultName
-	}
-}
-
 func (d *Downloader) validateChecksum(targetDir string) error {
 	targetFile, err := d.downloadablePath(targetDir)
 	if err != nil {
@@ -215,38 +201,25 @@ func (d *Downloader) UpdateChecksum(cellarDir string) error {
 	return nil
 }
 
-//InstallOpts options for Install
-type InstallOpts struct {
-	// DownloaderName is the downloader's key from the config file
-	DownloaderName string
-	// CellarDir is the directory where downloads and extractions will be placed.  Default is a <TargetDir>/.bindown
-	CellarDir string
-	// TargetDir is the directory where the executable should end up
-	TargetDir string
-	// Force - whether to force the install even if it already exists
-	Force bool
-}
-
 func (d *Downloader) downloadsSubName() string {
 	return util.MustHexHash(fnv.New64a(), []byte(d.Checksum))
 }
 
-func (d *Downloader) extractsSubName() string {
-	return util.MustHexHash(fnv.New64a(), []byte(d.Checksum), []byte(d.BinName))
-}
-
 //Install downloads and installs a bin
-func (d *Downloader) Install(opts InstallOpts) error {
-	d.setDefaultBinName(opts.DownloaderName)
-	cellarDir := opts.CellarDir
-	if cellarDir == "" {
-		cellarDir = filepath.Join(opts.TargetDir, ".bindown")
+func (d *Downloader) Install(downloaderName, cellarDir, targetDir string, force bool) error {
+	binName := d.BinName
+	if binName == "" {
+		binName = downloaderName
 	}
+	target := filepath.Join(targetDir, binName)
 
+	if cellarDir == "" {
+		cellarDir = filepath.Join(targetDir, ".bindown")
+	}
 	downloadDir := filepath.Join(cellarDir, "downloads", d.downloadsSubName())
-	extractDir := filepath.Join(cellarDir, "extracts", d.extractsSubName())
+	extractDir := filepath.Join(cellarDir, "extracts", binName)
 
-	if opts.Force {
+	if force {
 		err := os.RemoveAll(downloadDir)
 		if err != nil {
 			return err
@@ -268,12 +241,12 @@ func (d *Downloader) Install(opts InstallOpts) error {
 		return fmt.Errorf("extracting: %v", err)
 	}
 
-	err = d.moveOrLinkBin(opts.TargetDir, extractDir)
+	err = d.moveOrLinkBin(target, extractDir)
 	if err != nil {
 		return fmt.Errorf("moving: %v", err)
 	}
 
-	err = d.chmod(opts.TargetDir)
+	err = os.Chmod(target, 0755) //nolint:gosec
 	if err != nil {
 		return fmt.Errorf("chmodding: %v", err)
 	}
@@ -317,12 +290,5 @@ func (d *Downloader) Validate(cellarDir string) error {
 		cellarDir = filepath.Join(tmpDir, "cellar")
 	}
 
-	installOpts := InstallOpts{
-		DownloaderName: d.BinName,
-		CellarDir:      cellarDir,
-		TargetDir:      binDir,
-		Force:          true,
-	}
-
-	return d.Install(installOpts)
+	return d.Install(d.BinName, cellarDir, binDir, true)
 }

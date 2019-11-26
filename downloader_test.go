@@ -225,10 +225,7 @@ func TestDownloader_Install(t *testing.T) {
 			Arch:     "amd64",
 			OS:       "darwin",
 		}
-		err := d.Install(InstallOpts{
-			TargetDir: dir,
-			Force:     true,
-		})
+		err := d.Install("", "", dir, true)
 		assert.NoError(t, err)
 		assert.True(t, util.FileExists(filepath.Join(dir, "foo")))
 		stat, err := os.Stat(filepath.Join(dir, "foo"))
@@ -249,10 +246,7 @@ func TestDownloader_Install(t *testing.T) {
 			Arch:     "amd64",
 			OS:       "darwin",
 		}
-		err := d.Install(InstallOpts{
-			TargetDir: dir,
-			Force:     true,
-		})
+		err := d.Install("", "", dir, true)
 		assert.NoError(t, err)
 		assert.True(t, util.FileExists(filepath.Join(dir, "foo")))
 		stat, err := os.Stat(filepath.Join(dir, "foo"))
@@ -273,10 +267,7 @@ func TestDownloader_Install(t *testing.T) {
 			Arch:        "amd64",
 			OS:          "darwin",
 		}
-		err := d.Install(InstallOpts{
-			TargetDir: dir,
-			Force:     true,
-		})
+		err := d.Install("", "", dir, true)
 		assert.NoError(t, err)
 	})
 
@@ -292,10 +283,7 @@ func TestDownloader_Install(t *testing.T) {
 			Arch:     "amd64",
 			OS:       "darwin",
 		}
-		err := d.Install(InstallOpts{
-			TargetDir: dir,
-			Force:     true,
-		})
+		err := d.Install("", "", dir, true)
 		assert.NoError(t, err)
 	})
 
@@ -311,10 +299,7 @@ func TestDownloader_Install(t *testing.T) {
 			Arch:       "amd64",
 			OS:         "darwin",
 		}
-		err := d.Install(InstallOpts{
-			TargetDir: dir,
-			Force:     true,
-		})
+		err := d.Install("", "", dir, true)
 		assert.NoError(t, err)
 		linksTo, err := os.Readlink(filepath.Join(dir, "foo"))
 		assert.NoError(t, err)
@@ -335,10 +320,7 @@ func TestDownloader_Install(t *testing.T) {
 			Arch:        "amd64",
 			OS:          "darwin",
 		}
-		err := d.Install(InstallOpts{
-			TargetDir: dir,
-			Force:     true,
-		})
+		err := d.Install("", "", dir, true)
 		assert.NoError(t, err)
 		linksTo, err := os.Readlink(filepath.Join(dir, "foo"))
 		assert.NoError(t, err)

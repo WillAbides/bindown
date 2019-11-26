@@ -41,12 +41,5 @@ os: %s
 arch: %s`, binary, d.OS, d.Arch)
 	}
 
-	installOpts := bindown.InstallOpts{
-		DownloaderName: binary,
-		TargetDir:      binDir,
-		Force:          d.Force,
-		CellarDir:      cli.CellarDir,
-	}
-
-	return downloader.Install(installOpts)
+	return downloader.Install(binary, cli.CellarDir, binDir, d.Force)
 }
