@@ -96,33 +96,13 @@ type configValidateCmd struct {
 	Bin string `kong:"required=true,arg,help=${config_validate_bin_help}"`
 }
 
-func (d configValidateCmd) Run(kctx *kong.Context) error {
+func (d configValidateCmd) Run(*kong.Context) error {
 	config, err := bindown.LoadConfigFile(cli.Configfile)
 	if err != nil {
 		return fmt.Errorf("error loading config from %q", cli.Configfile)
 	}
-	tmpDir, err := ioutil.TempDir("", "bindown")
-	if err != nil {
-		return err
-	}
-	defer func() {
-		err = os.RemoveAll(tmpDir)
-		if err != nil {
-			kctx.Errorf("error deleting temp directory, %q", tmpDir)
-		}
-	}()
 
 	binary := path.Base(d.Bin)
-	binDir := filepath.Join(tmpDir, "bin")
-	err = os.MkdirAll(binDir, 0700)
-	if err != nil {
-		return err
-	}
-
-	cellarDir := cli.CellarDir
-	if cellarDir == "" {
-		cellarDir = filepath.Join(tmpDir, "cellar")
-	}
 
 	downloaders, ok := config.Downloaders[binary]
 	if !ok {
@@ -135,21 +115,9 @@ func (d configValidateCmd) Run(kctx *kong.Context) error {
 			return err
 		}
 
-		installOpts := bindown.InstallOpts{
-			DownloaderName: binary,
-			TargetDir:      binDir,
-			Force:          true,
-			CellarDir:      cellarDir,
-		}
-
-		err = downloader.Install(installOpts)
+		err = downloader.Validate(cli.CellarDir)
 		if err != nil {
 			return fmt.Errorf("could not validate downloader:\n%s", string(dlJSON))
-		}
-
-		err = os.Remove(filepath.Join(binDir, downloader.BinName))
-		if err != nil {
-			return err
 		}
 	}
 	return nil

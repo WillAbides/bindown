@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"hash/fnv"
 	"io"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"net/url"
@@ -304,4 +305,34 @@ func downloadFile(targetPath, url string) error {
 	defer logCloseErr(out)
 	_, err = io.Copy(out, resp.Body)
 	return err
+}
+
+//Validate attempts a download to a temp location to validate the download will work as configured.
+func (d *Downloader) Validate(cellarDir string) error {
+	tmpDir, err := ioutil.TempDir("", "bindown")
+	if err != nil {
+		return err
+	}
+	defer func() {
+		_ = rm(tmpDir) //nolint:errcheck
+	}()
+
+	binDir := filepath.Join(tmpDir, "bin")
+	err = os.MkdirAll(binDir, 0700)
+	if err != nil {
+		return err
+	}
+
+	if cellarDir == "" {
+		cellarDir = filepath.Join(tmpDir, "cellar")
+	}
+
+	installOpts := InstallOpts{
+		DownloaderName: d.BinName,
+		CellarDir:      cellarDir,
+		TargetDir:      binDir,
+		Force:          true,
+	}
+
+	return d.Install(installOpts)
 }
