@@ -14,6 +14,13 @@
         "url": "https://github.com/myitcv/gobin/releases/download/v0.0.10/linux-amd64",
         "checksum": "415266d9af98578067051653f5057ea267c51ebf085408df48b118a8b978bac6",
         "archive_path": "linux-amd64"
+      },
+      {
+        "os": "windows",
+        "arch": "amd64",
+        "url": "https://github.com/myitcv/gobin/releases/download/v0.0.13/windows-amd64",
+        "checksum": "70d3688c652bba96f377eb5d3a8068a07274024876c6e3b8d3785f0a63348905",
+        "archive_path": "windows-amd64"
       }
     ],
     "golangci-lint": [
@@ -32,6 +39,14 @@
         "checksum": "2c861f8dc56b560474aa27cab0c075991628cc01af3451e27ac82f5d10d5106b",
         "archive_path": "golangci-lint-1.21.0-linux-amd64/golangci-lint",
         "link": true
+      },
+      {
+        "os": "windows",
+        "arch": "amd64",
+        "url": "https://github.com/golangci/golangci-lint/releases/download/v1.21.0/golangci-lint-1.21.0-windows-amd64.zip",
+        "checksum": "2e40ded7adcf11e59013cb15c24438b15a86526ca241edfcfdf1abd73a5280a8",
+        "archive_path": "golangci-lint-1.21.0-windows-amd64/golangci-lint.exe",
+        "link": true
       }
     ],
     "goreleaser": [
@@ -46,22 +61,13 @@
         "arch": "amd64",
         "url": "https://github.com/goreleaser/goreleaser/releases/download/v0.120.7/goreleaser_Linux_x86_64.tar.gz",
         "checksum": "771f2ad8219078b16a3e82097e9805309f6516640f0c6ab6b87f9b085a8ad743"
-      }
-    ],
-    "protoc": [
-      {
-        "os": "darwin",
-        "arch": "amd64",
-        "url": "https://github.com/protocolbuffers/protobuf/releases/download/v3.9.1/protoc-3.9.1-osx-x86_64.zip",
-        "checksum": "fd2e8a52b9b173bf90633f346901f4dcf3083769ea24f917809932d29ffa1410",
-        "archive_path": "bin/protoc"
       },
       {
-        "os": "linux",
+        "os": "windows",
         "arch": "amd64",
-        "url": "https://github.com/protocolbuffers/protobuf/releases/download/v3.9.1/protoc-3.9.1-linux-x86_64.zip",
-        "checksum": "77410d08e9a3c1ebb68afc13ee0c0fb4272c01c20bfd289adfb51b1c622bab07",
-        "archive_path": "bin/protoc"
+        "url": "https://github.com/goreleaser/goreleaser/releases/download/v0.120.7/goreleaser_Windows_x86_64.zip",
+        "checksum": "0e06f50e1b2213a84b493d32a805dd6d8e8ad960ec9526edd8ecd96e2ab91743",
+        "archive_path": "goreleaser.exe"
       }
     ],
     "semver-next": [
@@ -76,6 +82,13 @@
         "arch": "amd64",
         "url": "https://github.com/WillAbides/semver-next/releases/download/v0.4.0/semver-next_0.4.0_linux_amd64.tar.gz",
         "checksum": "6317c36bec63158038381e8878601151ae996310fef58306f70cb03f1b46ef7f"
+      },
+      {
+        "os": "windows",
+        "arch": "amd64",
+        "url": "https://github.com/WillAbides/semver-next/releases/download/v0.4.0/semver-next_0.4.0_windows_amd64.tar.gz",
+        "checksum": "573ea65ef3b40442626fbb19d07880bb4929e7b12fd7161e41732a03f23b2c95",
+        "archive_path": "semver-next.exe"
       }
     ]
   }
