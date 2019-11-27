@@ -1,0 +1,10 @@
+#!/bin/sh
+
+set -e
+
+CDPATH="" cd -- "$(dirname -- "$(dirname -- "$0")")"
+
+[ -f bin/mockgen ] || make -s bin/mockgen
+
+PATH="$(pwd)/bin:$PATH"
+go generate ./...

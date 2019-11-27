@@ -4,6 +4,6 @@ set -e
 
 CDPATH="" cd -- "$(dirname -- "$(dirname -- "$0")")"
 
-[ -f bin/goimports ] || make -s bin/goimports
+[ -f bin/golangci-lint ] || make -s bin/golangci-lint
 
-bin/goimports -w .
+bin/golangci-lint run --disable-all --no-config -E goimports --fix

@@ -10,8 +10,10 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"strings"
 
 	"github.com/mholt/archiver/v3"
+	"github.com/willabides/bindown/v2/internal/util"
 )
 
 // Downloader downloads a binary
@@ -31,6 +33,32 @@ type Downloader struct {
 	LinkSource string `json:"symlink,omitempty"`
 }
 
+//ErrString string that represents the downloader in error messages
+func (d *Downloader) ErrString(binary string) string {
+	if binary == "" {
+		binary = d.BinName
+	}
+	if d == nil {
+		return ""
+	}
+	return fmt.Sprintf("%s - %s - %s", binary, d.OS, d.Arch)
+}
+
+//MatchesOS has an OS value matching opSys
+func (d *Downloader) MatchesOS(opSys string) bool {
+	return eqOS(opSys, d.OS)
+}
+
+//MatchesArch has an Arch value matching arch
+func (d *Downloader) MatchesArch(arch string) bool {
+	return strings.EqualFold(arch, d.Arch)
+}
+
+//HasChecksum has given checksum
+func (d *Downloader) HasChecksum(checksum string) bool {
+	return checksum == d.Checksum
+}
+
 func (d *Downloader) downloadableName() (string, error) {
 	u, err := url.Parse(d.URL)
 	if err != nil {
@@ -47,15 +75,7 @@ func (d *Downloader) downloadablePath(targetDir string) (string, error) {
 	return filepath.Join(targetDir, name), nil
 }
 
-func (d *Downloader) binPath(targetDir string) string {
-	return filepath.Join(targetDir, d.BinName)
-}
-
-func (d *Downloader) chmod(targetDir string) error {
-	return os.Chmod(d.binPath(targetDir), 0755) //nolint:gosec
-}
-
-func (d *Downloader) moveOrLinkBin(targetDir, extractDir string) error {
+func (d *Downloader) moveOrLinkBin(target, extractDir string) error {
 	//noinspection GoDeprecation
 	if d.LinkSource != "" {
 		d.ArchivePath = d.LinkSource
@@ -67,12 +87,11 @@ func (d *Downloader) moveOrLinkBin(targetDir, extractDir string) error {
 	}
 	archivePath := filepath.FromSlash(d.ArchivePath)
 	if archivePath == "" {
-		archivePath = filepath.FromSlash(d.BinName)
+		archivePath = filepath.Base(target)
 	}
 	var err error
-	target := d.binPath(targetDir)
-	if fileExists(target) {
-		err = rm(target)
+	if util.FileExists(target) {
+		err = util.Rm(target)
 		if err != nil {
 			return err
 		}
@@ -85,6 +104,7 @@ func (d *Downloader) moveOrLinkBin(targetDir, extractDir string) error {
 	extractedBin := filepath.Join(extractDir, archivePath)
 
 	if d.Link {
+		var targetDir string
 		targetDir, err = filepath.Abs(filepath.Dir(target))
 		if err != nil {
 			return err
@@ -125,7 +145,7 @@ func (d *Downloader) extract(downloadDir, extractDir string) error {
 	tarPath := filepath.Join(downloadDir, dlName)
 	_, err = archiver.ByExtension(dlName)
 	if err != nil {
-		return copyFile(tarPath, filepath.Join(extractDir, dlName))
+		return util.CopyFile(tarPath, filepath.Join(extractDir, dlName))
 	}
 	return archiver.Unarchive(tarPath, extractDir)
 }
@@ -139,7 +159,7 @@ func (d *Downloader) download(downloadDir string) error {
 	if err != nil {
 		return err
 	}
-	ok, err := fileExistsWithChecksum(dlPath, d.Checksum)
+	ok, err := util.FileExistsWithChecksum(dlPath, d.Checksum)
 	if err != nil {
 		return err
 	}
@@ -149,57 +169,48 @@ func (d *Downloader) download(downloadDir string) error {
 	return downloadFile(dlPath, d.URL)
 }
 
-func (d *Downloader) setDefaultBinName(defaultName string) {
-	if d.BinName == "" {
-		d.BinName = defaultName
-	}
-}
-
 func (d *Downloader) validateChecksum(targetDir string) error {
 	targetFile, err := d.downloadablePath(targetDir)
 	if err != nil {
 		return err
 	}
-	result, err := fileChecksum(targetFile)
+	result, err := util.FileChecksum(targetFile)
+	if err != nil {
+		return err
+	}
+	dlName, err := d.downloadableName()
 	if err != nil {
 		return err
 	}
 	if d.Checksum != result {
 		defer func() {
-			delErr := rm(targetFile)
+			delErr := util.Rm(targetFile)
 			if delErr != nil {
 				log.Printf("Error deleting suspicious file at %q. Please delete it manually", targetFile)
 			}
 		}()
 		return fmt.Errorf(`checksum mismatch in downloaded file %q 
 wanted: %s
-got: %s`, targetFile, d.Checksum, result)
+got: %s`, dlName, d.Checksum, result)
 	}
 	return nil
 }
 
-//UpdateChecksumOpts options for UpdateChecksum
-type UpdateChecksumOpts struct {
-	// DownloaderName is the downloader's key from the config file
-	DownloaderName string
-	// CellarDir is the directory where downloads and extractions will be placed.  Default is a <TargetDir>/.bindown
-	CellarDir string
-	// TargetDir is the directory where the executable should end up
-	TargetDir string
-}
-
 //UpdateChecksum updates the checksum based on a fresh download
-func (d *Downloader) UpdateChecksum(opts UpdateChecksumOpts) error {
-	cellarDir := opts.CellarDir
+func (d *Downloader) UpdateChecksum(cellarDir string) error {
 	if cellarDir == "" {
-		cellarDir = filepath.Join(opts.TargetDir, ".bindown")
+		tmpDir, tmpTeardown, err := util.TmpDir()
+		if err != nil {
+			return err
+		}
+		defer tmpTeardown()
+		cellarDir = filepath.Join(tmpDir, "cellar")
 	}
 
 	downloadDir := filepath.Join(cellarDir, "downloads", d.downloadsSubName())
 
 	err := d.download(downloadDir)
 	if err != nil {
-		log.Printf("error downloading: %v", err)
 		return err
 	}
 
@@ -208,7 +219,7 @@ func (d *Downloader) UpdateChecksum(opts UpdateChecksumOpts) error {
 		return err
 	}
 
-	checkSum, err := fileChecksum(dlPath)
+	checkSum, err := util.FileChecksum(dlPath)
 	if err != nil {
 		return err
 	}
@@ -217,38 +228,25 @@ func (d *Downloader) UpdateChecksum(opts UpdateChecksumOpts) error {
 	return nil
 }
 
-//InstallOpts options for Install
-type InstallOpts struct {
-	// DownloaderName is the downloader's key from the config file
-	DownloaderName string
-	// CellarDir is the directory where downloads and extractions will be placed.  Default is a <TargetDir>/.bindown
-	CellarDir string
-	// TargetDir is the directory where the executable should end up
-	TargetDir string
-	// Force - whether to force the install even if it already exists
-	Force bool
-}
-
 func (d *Downloader) downloadsSubName() string {
-	return mustHexHash(fnv.New64a(), []byte(d.Checksum))
-}
-
-func (d *Downloader) extractsSubName() string {
-	return mustHexHash(fnv.New64a(), []byte(d.Checksum), []byte(d.BinName))
+	return util.MustHexHash(fnv.New64a(), []byte(d.Checksum))
 }
 
 //Install downloads and installs a bin
-func (d *Downloader) Install(opts InstallOpts) error {
-	d.setDefaultBinName(opts.DownloaderName)
-	cellarDir := opts.CellarDir
-	if cellarDir == "" {
-		cellarDir = filepath.Join(opts.TargetDir, ".bindown")
+func (d *Downloader) Install(downloaderName, cellarDir, targetDir string, force bool) error {
+	binName := d.BinName
+	if binName == "" {
+		binName = downloaderName
 	}
+	target := filepath.Join(targetDir, binName)
 
+	if cellarDir == "" {
+		cellarDir = filepath.Join(targetDir, ".bindown")
+	}
 	downloadDir := filepath.Join(cellarDir, "downloads", d.downloadsSubName())
-	extractDir := filepath.Join(cellarDir, "extracts", d.extractsSubName())
+	extractDir := filepath.Join(cellarDir, "extracts", binName)
 
-	if opts.Force {
+	if force {
 		err := os.RemoveAll(downloadDir)
 		if err != nil {
 			return err
@@ -257,32 +255,27 @@ func (d *Downloader) Install(opts InstallOpts) error {
 
 	err := d.download(downloadDir)
 	if err != nil {
-		log.Printf("error downloading: %v", err)
-		return err
+		return fmt.Errorf("downloading: %v", err)
 	}
 
 	err = d.validateChecksum(downloadDir)
 	if err != nil {
-		log.Printf("error validating: %v", err)
-		return err
+		return fmt.Errorf("validating: %v", err)
 	}
 
 	err = d.extract(downloadDir, extractDir)
 	if err != nil {
-		log.Printf("error extracting: %v", err)
-		return err
+		return fmt.Errorf("extracting: %v", err)
 	}
 
-	err = d.moveOrLinkBin(opts.TargetDir, extractDir)
+	err = d.moveOrLinkBin(target, extractDir)
 	if err != nil {
-		log.Printf("error moving: %v", err)
-		return err
+		return fmt.Errorf("moving: %v", err)
 	}
 
-	err = d.chmod(opts.TargetDir)
+	err = os.Chmod(target, 0755) //nolint:gosec
 	if err != nil {
-		log.Printf("error chmodding: %v", err)
-		return err
+		return fmt.Errorf("chmodding: %v", err)
 	}
 
 	return nil
@@ -293,7 +286,7 @@ func downloadFile(targetPath, url string) error {
 	if err != nil {
 		return err
 	}
-	defer logCloseErr(resp.Body)
+	defer util.LogCloseErr(resp.Body)
 	if resp.StatusCode >= 300 {
 		return fmt.Errorf("failed downloading %s", url)
 	}
@@ -301,7 +294,46 @@ func downloadFile(targetPath, url string) error {
 	if err != nil {
 		return err
 	}
-	defer logCloseErr(out)
+	defer util.LogCloseErr(out)
 	_, err = io.Copy(out, resp.Body)
 	return err
+}
+
+//Validate attempts a download to a temp location to validate the download will work as configured.
+func (d *Downloader) Validate(cellarDir string) error {
+	tmpDir, tmpTeardown, err := util.TmpDir()
+	if err != nil {
+		return err
+	}
+	defer tmpTeardown()
+
+	binDir := filepath.Join(tmpDir, "bin")
+	err = os.MkdirAll(binDir, 0700)
+	if err != nil {
+		return err
+	}
+
+	if cellarDir == "" {
+		cellarDir = filepath.Join(tmpDir, "cellar")
+	}
+
+	return d.Install(d.BinName, cellarDir, binDir, true)
+}
+
+func eqOS(a, b string) bool {
+	return strings.EqualFold(normalizeOS(a), normalizeOS(b))
+}
+
+var osAliases = map[string]string{
+	"osx":   "darwin",
+	"macos": "darwin",
+}
+
+func normalizeOS(os string) string {
+	for alias, aliasedOs := range osAliases {
+		if strings.EqualFold(alias, os) {
+			return aliasedOs
+		}
+	}
+	return strings.ToLower(os)
 }
