@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 
 	"github.com/alecthomas/kong"
-	"github.com/willabides/bindown/v2"
+	"github.com/willabides/bindown/v2/pkg/config"
 	"go.uber.org/multierr"
 )
 
@@ -26,7 +26,7 @@ type configCmd struct {
 type configFmtCmd struct{}
 
 func (c configFmtCmd) Run() error {
-	configFile, err := bindown.NewConfigFile(cli.Configfile)
+	configFile, err := config.NewConfigFile(cli.Configfile)
 	if err != nil {
 		return err
 	}
@@ -38,7 +38,7 @@ type configUpdateChecksumsCmd struct {
 }
 
 func (d *configUpdateChecksumsCmd) Run(*kong.Context) error {
-	configFile, err := bindown.NewConfigFile(cli.Configfile)
+	configFile, err := config.NewConfigFile(cli.Configfile)
 	if err != nil {
 		return err
 	}
@@ -55,7 +55,7 @@ type configValidateCmd struct {
 }
 
 func (d configValidateCmd) Run(kctx *kong.Context) error {
-	config, err := bindown.NewConfigFile(cli.Configfile)
+	config, err := config.NewConfigFile(cli.Configfile)
 	if err != nil {
 		return err
 	}

@@ -319,3 +319,21 @@ func (d *Downloader) Validate(cellarDir string) error {
 
 	return d.Install(d.BinName, cellarDir, binDir, true)
 }
+
+func eqOS(a, b string) bool {
+	return strings.EqualFold(normalizeOS(a), normalizeOS(b))
+}
+
+var osAliases = map[string]string{
+	"osx":   "darwin",
+	"macos": "darwin",
+}
+
+func normalizeOS(os string) string {
+	for alias, aliasedOs := range osAliases {
+		if strings.EqualFold(alias, os) {
+			return aliasedOs
+		}
+	}
+	return strings.ToLower(os)
+}

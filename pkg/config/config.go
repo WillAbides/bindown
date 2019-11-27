@@ -1,4 +1,4 @@
-package bindown
+package config
 
 import (
 	"bytes"
@@ -6,44 +6,81 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"strings"
 
+	"github.com/willabides/bindown/v2"
 	"github.com/willabides/bindown/v2/internal/util"
 	"go.uber.org/multierr"
 )
 
+//go:generate mockgen -source config.go -destination internal/mocks/mock_config.go -package mocks
+
+//Downloader interface for *bindown.Downloader
+type Downloader interface {
+	ErrString(binary string) string
+	MatchesOS(opSys string) bool
+	MatchesArch(arch string) bool
+	HasChecksum(checksum string) bool
+	UpdateChecksum(cellarDir string) error
+	Install(downloaderName, cellarDir, targetDir string, force bool) error
+	Validate(cellarDir string) error
+}
+
+func unmarshalDownloaders(p []byte) (map[string][]*bindown.Downloader, error) {
+	downloaders := map[string][]*bindown.Downloader{}
+	decoder := json.NewDecoder(bytes.NewReader(p))
+	decoder.DisallowUnknownFields()
+	err := decoder.Decode(&downloaders)
+	if err != nil {
+		return nil, err
+	}
+	return downloaders, nil
+}
+
 //LoadConfig returns a Config from a config reader
 func LoadConfig(config io.Reader) (*Config, error) {
-	configBytes, err := ioutil.ReadAll(config)
-	if err != nil {
-		return nil, err
-	}
-	decoder := json.NewDecoder(bytes.NewReader(configBytes))
-	decoder.DisallowUnknownFields()
 	var cfg Config
-	err = decoder.Decode(&cfg)
-	if err != nil {
-		decoder = json.NewDecoder(bytes.NewReader(configBytes))
-		decoder.DisallowUnknownFields()
-		dls := cfg.Downloaders
-		err = decoder.Decode(&dls)
-		if err == nil {
-			cfg.Downloaders = dls
-		}
-	}
-	if err != nil {
-		return nil, err
-	}
+	err := json.NewDecoder(config).Decode(&cfg)
 	return &cfg, err
 }
 
 //Config is downloaders configuration
 type Config struct {
-	Downloaders map[string][]*Downloader `json:"downloaders,omitempty"`
+	Downloaders map[string][]Downloader `json:"downloaders,omitempty"`
+}
+
+func downloadersToInterface(dls map[string][]*bindown.Downloader) map[string][]Downloader {
+	result := make(map[string][]Downloader, len(dls))
+	for key, downloaders := range dls {
+		result[key] = make([]Downloader, len(downloaders))
+		for i, downloader := range downloaders {
+			result[key][i] = downloader
+		}
+	}
+	return result
+}
+
+//UnmarshalJSON implements json.Unmarshaler
+func (c *Config) UnmarshalJSON(p []byte) error {
+	jsm := struct {
+		Downloaders map[string][]*bindown.Downloader `json:"downloaders,omitempty"`
+	}{}
+	decoder := json.NewDecoder(bytes.NewReader(p))
+	decoder.DisallowUnknownFields()
+	err := decoder.Decode(&jsm)
+	if err == nil {
+		c.Downloaders = downloadersToInterface(jsm.Downloaders)
+		return nil
+	}
+	dls, err := unmarshalDownloaders(p)
+	if err != nil {
+		return err
+	}
+	c.Downloaders = downloadersToInterface(dls)
+	return nil
 }
 
 // Downloader returns a Downloader for the given binary, os and arch.
-func (c *Config) Downloader(binary, opSys, arch string) *Downloader {
+func (c *Config) Downloader(binary, opSys, arch string) Downloader {
 	l, ok := c.Downloaders[binary]
 	if !ok {
 		return nil
@@ -100,32 +137,14 @@ func (c *Config) Validate(binary, cellarDir string) error {
 	return resErr
 }
 
-func eqOS(a, b string) bool {
-	return strings.EqualFold(normalizeOS(a), normalizeOS(b))
-}
-
-var osAliases = map[string]string{
-	"osx":   "darwin",
-	"macos": "darwin",
-}
-
-func normalizeOS(os string) string {
-	for alias, aliasedOs := range osAliases {
-		if strings.EqualFold(alias, os) {
-			return aliasedOs
-		}
-	}
-	return strings.ToLower(os)
-}
-
-//ConfigFile represents a config file
-type ConfigFile struct {
+//File represents a config file
+type File struct {
 	filename string
 	*Config
 }
 
-//NewConfigFile creates a *ConfigFile for the file at filename
-func NewConfigFile(filename string) (*ConfigFile, error) {
+//NewConfigFile creates a *File for the file at filename
+func NewConfigFile(filename string) (*File, error) {
 	b, err := ioutil.ReadFile(filename) //nolint:gosec
 	if err != nil {
 		return nil, fmt.Errorf("couldn't read config file: %s", filename)
@@ -134,14 +153,14 @@ func NewConfigFile(filename string) (*ConfigFile, error) {
 	if err != nil {
 		return nil, fmt.Errorf("couldn't load config: %v", err)
 	}
-	return &ConfigFile{
+	return &File{
 		filename: filename,
 		Config:   config,
 	}, nil
 }
 
 //WriteFile writes config back to the file
-func (c *ConfigFile) WriteFile() error {
+func (c *File) WriteFile() error {
 	b, err := json.MarshalIndent(c.Config, "", "  ")
 	if err != nil {
 		return err
