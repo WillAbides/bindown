@@ -19,16 +19,16 @@ type Downloader struct {
 	OS          string `json:"os"`
 	Arch        string `json:"arch"`
 	URL         string `json:"url"`
-	Checksum    string `json:"checksum,omitempty"`
-	ArchivePath string `json:"archive_path,omitempty"`
-	Link        bool   `json:"link,omitempty"`
-	BinName     string `json:"bin,omitempty"`
+	Checksum    string `json:"checksum,omitempty" yaml:",omitempty"`
+	ArchivePath string `json:"archive_path,omitempty" yaml:"archive_path,omitempty"`
+	Link        bool   `json:"link,omitempty" yaml:",omitempty"`
+	BinName     string `json:"bin,omitempty" yaml:"bin,omitempty"`
 
 	// Deprecated: use ArchivePath
-	MoveFrom string `json:"move-from,omitempty"`
+	MoveFrom string `json:"move-from,omitempty" yaml:"move-from,omitempty"`
 
 	// Deprecated: use ArchivePath and Link
-	LinkSource string `json:"symlink,omitempty"`
+	LinkSource string `json:"symlink,omitempty" yaml:"symlink,omitempty"`
 }
 
 func (d *Downloader) downloadableName() (string, error) {
