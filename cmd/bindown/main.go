@@ -20,8 +20,8 @@ var cli struct {
 	Version    versionCmd  `kong:"cmd"`
 	Download   downloadCmd `kong:"cmd,help=${download_help}"`
 	Config     configCmd   `kong:"cmd"`
-	Configfile string      `kong:"type=multipath,help=${configfile_help},default=${configfile_default}"`
-	CellarDir  string      `kong:"type=path,help=${cellar_dir_help}"`
+	Configfile string      `kong:"type=multipath,help=${configfile_help},default=${configfile_default},env='BINDOWN_CONFIG_FILE'"`
+	CellarDir  string      `kong:"type=path,help=${cellar_dir_help},env='BINDOWN_CELLAR'"`
 }
 
 func multipathMapper(ctx *kong.DecodeContext, target reflect.Value) error {
