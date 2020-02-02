@@ -1,5 +1,8 @@
 # bindown
 
+[![](https://godoc.org/github.com/WillAbides/bindown?status.svg)](http://godoc.org/github.com/WillAbides/bindown)
+[![Go Report Card](https://goreportcard.com/badge/github.com/WillAbides/bindown)](https://goreportcard.com/report/github.com/WillAbides/bindown)
+
 **bindown** is a command-line utility to download, verify and install binary files. It is intended to be used in
 development and ci environments where it is important to guarantee the same version of the same binary is downloaded
 every time.
