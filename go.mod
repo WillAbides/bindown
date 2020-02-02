@@ -10,4 +10,5 @@ require (
 	github.com/pierrec/lz4 v2.3.0+incompatible // indirect
 	github.com/stretchr/testify v1.4.0
 	github.com/udhos/equalfile v0.3.0
+	gopkg.in/yaml.v2 v2.2.2
 )
