@@ -1,6 +1,6 @@
 # bindown
 
-[![godoc](https://godoc.org/github.com/WillAbides/bindown?status.svg)](http://godoc.org/github.com/WillAbides/bindown)
+[![godoc](https://godoc.org/github.com/WillAbides/bindown?status.svg)](https://pkg.go.dev/github.com/willabides/bindown/v2)
 [![Go Report Card](https://goreportcard.com/badge/github.com/WillAbides/bindown)](https://goreportcard.com/report/github.com/WillAbides/bindown)
 [![ci](https://github.com/WillAbides/bindown/workflows/ci/badge.svg)](https://github.com/WillAbides/bindown/actions?query=workflow%3Aci+branch%3Amaster+event%3Apush)
 
@@ -16,7 +16,8 @@ This is the preferred method for ci or development environments. Each release
 contains a shell script `bootstrap-bindown.sh` that will download bindown for
 the current os. Place `bootstrap-bindown.sh` from the
 [latest release](https://github.com/WillAbides/bindown/releases/latest) in your
-project's repository. Don't forget to make it executable first (`chmod +x bootstrap-bindown.sh` on most systems). Then you can call `bootstrap-bindown.sh`
+project's repository. Don't forget to make it executable first (`chmod +x
+bootstrap-bindown.sh` on most systems). Then you can call `bootstrap-bindown.sh`
 before `bindown` in the projects bootstrap script or Makefile.
 
 #### Usage
