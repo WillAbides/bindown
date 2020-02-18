@@ -40,7 +40,7 @@ func (c configFmtCmd) Run() error {
 }
 
 type configUpdateChecksumsCmd struct {
-	TargetFile string `kong:"required=true,arg,help=${config_checksums_bin_help}"`
+	TargetFile string `kong:"required=true,arg,help=${config_checksums_bin_help},predictor=bin"`
 }
 
 func (d *configUpdateChecksumsCmd) Run(kctx *kong.Context) error {
@@ -87,7 +87,7 @@ func (d *configUpdateChecksumsCmd) Run(kctx *kong.Context) error {
 }
 
 type configValidateCmd struct {
-	Bin string `kong:"required=true,arg,help=${config_validate_bin_help}"`
+	Bin string `kong:"required=true,arg,help=${config_validate_bin_help},predictor=bin"`
 }
 
 func (d configValidateCmd) Run(kctx *kong.Context) error {
