@@ -142,5 +142,8 @@ Commands:
   config validate <bin>
     validate that downloads work
 
+  config install-completions
+    install shell completions
+
 Run "bindown <command> --help" for more information on a command.
 ```

@@ -26,7 +26,7 @@ type configCmd struct {
 	Format             configFmtCmd                 `kong:"cmd,help=${config_format_help}"`
 	UpdateChecksums    configUpdateChecksumsCmd     `kong:"cmd,help=${config_checksums_bin_help}"`
 	Validate           configValidateCmd            `kong:"cmd,help=${config_validate_help}"`
-	InstallCompletions kongplete.InstallCompletions `kong:"cmd,help="`
+	InstallCompletions kongplete.InstallCompletions `kong:"cmd,help=${config_install_completions_help}"`
 }
 
 type configFmtCmd struct{}
