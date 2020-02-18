@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/alecthomas/kong"
+	"github.com/willabides/kongplete"
 )
 
 var kongVars = kong.Vars{
@@ -58,6 +59,8 @@ func main() {
 		kong.UsageOnError(),
 		kong.NamedMapper("multipath", kong.MapperFunc(multipathMapper)),
 	)
+
+	kongplete.Complete(parser)
 
 	kongCtx, err := parser.Parse(os.Args[1:])
 	parser.FatalIfErrorf(err)
