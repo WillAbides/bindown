@@ -10,20 +10,23 @@ import (
 
 	"github.com/alecthomas/kong"
 	"github.com/willabides/bindown/v2"
+	"github.com/willabides/kongplete"
 )
 
 var configKongVars = kong.Vars{
-	"config_format_help":        `formats the config file`,
-	"config_checksums_help":     `update checksums in the config file`,
-	"config_checksums_bin_help": `name of the binary to update`,
-	"config_validate_bin_help":  `name of the binary to validate`,
-	"config_validate_help":      `validate that downloads work`,
+	"config_format_help":              `formats the config file`,
+	"config_checksums_help":           `update checksums in the config file`,
+	"config_checksums_bin_help":       `name of the binary to update`,
+	"config_validate_bin_help":        `name of the binary to validate`,
+	"config_validate_help":            `validate that downloads work`,
+	"config_install_completions_help": `install shell completions`,
 }
 
 type configCmd struct {
-	Format          configFmtCmd             `kong:"cmd,help=${config_format_help}"`
-	UpdateChecksums configUpdateChecksumsCmd `kong:"cmd,help=${config_checksums_bin_help}"`
-	Validate        configValidateCmd        `kong:"cmd,help=${config_validate_help}"`
+	Format             configFmtCmd                 `kong:"cmd,help=${config_format_help}"`
+	UpdateChecksums    configUpdateChecksumsCmd     `kong:"cmd,help=${config_checksums_bin_help}"`
+	Validate           configValidateCmd            `kong:"cmd,help=${config_validate_help}"`
+	InstallCompletions kongplete.InstallCompletions `kong:"cmd,help=${config_install_completions_help}"`
 }
 
 type configFmtCmd struct{}
@@ -37,7 +40,7 @@ func (c configFmtCmd) Run() error {
 }
 
 type configUpdateChecksumsCmd struct {
-	TargetFile string `kong:"required=true,arg,help=${config_checksums_bin_help}"`
+	TargetFile string `kong:"required=true,arg,help=${config_checksums_bin_help},predictor=bin"`
 }
 
 func (d *configUpdateChecksumsCmd) Run(kctx *kong.Context) error {
@@ -84,7 +87,7 @@ func (d *configUpdateChecksumsCmd) Run(kctx *kong.Context) error {
 }
 
 type configValidateCmd struct {
-	Bin string `kong:"required=true,arg,help=${config_validate_bin_help}"`
+	Bin string `kong:"required=true,arg,help=${config_validate_bin_help},predictor=bin"`
 }
 
 func (d configValidateCmd) Run(kctx *kong.Context) error {

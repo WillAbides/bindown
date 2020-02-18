@@ -19,10 +19,10 @@ var downloadKongVars = kong.Vars{
 }
 
 type downloadCmd struct {
-	Arch       string `kong:"help=${download_arch_help},default=${download_arch_default}"`
-	OS         string `kong:"help=${download_os_help},default=${download_os_default}"`
+	Arch       string `kong:"help=${download_arch_help},default=${download_arch_default},predictor=arch"`
+	OS         string `kong:"help=${download_os_help},default=${download_os_default},predictor=os"`
 	Force      bool   `kong:"help=${download_force_help}"`
-	TargetFile string `kong:"required=true,arg,help=${download_target_file_help}"`
+	TargetFile string `kong:"required=true,arg,help=${download_target_file_help},predictor=binpath"`
 }
 
 func (d *downloadCmd) Run(*kong.Context) error {
