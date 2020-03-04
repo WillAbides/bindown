@@ -17,33 +17,29 @@ func mustCopyFile(t *testing.T, src, dst string) {
 
 func Test_downloadFile(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
-		dir, teardown := tmpDir(t)
-		defer teardown()
-		ts := serveFile(downloadablesPath("foo.tar.gz"), "/foo/foo.tar.gz", "")
+		dir := tmpDir(t)
+		ts := serveFile(t, downloadablesPath("foo.tar.gz"), "/foo/foo.tar.gz", "")
 		err := downloadFile(filepath.Join(dir, "bar.tar.gz"), ts.URL+"/foo/foo.tar.gz")
 		assert.NoError(t, err)
 		assertEqualFiles(t, downloadablesPath("foo.tar.gz"), filepath.Join(dir, "bar.tar.gz"))
 	})
 
 	t.Run("404", func(t *testing.T) {
-		dir, teardown := tmpDir(t)
-		defer teardown()
-		ts := serveFile(downloadablesPath("foo.tar.gz"), "/foo/foo.tar.gz", "")
+		dir := tmpDir(t)
+		ts := serveFile(t, downloadablesPath("foo.tar.gz"), "/foo/foo.tar.gz", "")
 		err := downloadFile(filepath.Join(dir, "bar.tar.gz"), ts.URL+"/wrongpath")
 		assert.Error(t, err)
 	})
 
 	t.Run("bad url", func(t *testing.T) {
-		dir, teardown := tmpDir(t)
-		defer teardown()
+		dir := tmpDir(t)
 		err := downloadFile(filepath.Join(dir, "bar.tar.gz"), "https://bad/url")
 		assert.Error(t, err)
 	})
 
 	t.Run("bad target", func(t *testing.T) {
-		dir, teardown := tmpDir(t)
-		defer teardown()
-		ts := serveFile(downloadablesPath("foo.tar.gz"), "/foo/foo.tar.gz", "")
+		dir := tmpDir(t)
+		ts := serveFile(t, downloadablesPath("foo.tar.gz"), "/foo/foo.tar.gz", "")
 		err := downloadFile(filepath.Join(dir, "notreal", "bar.tar.gz"), ts.URL+"/foo/foo.tar.gz")
 		assert.Error(t, err)
 	})
@@ -51,8 +47,7 @@ func Test_downloadFile(t *testing.T) {
 
 func Test_downloader_validateChecksum(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
-		dir, teardown := tmpDir(t)
-		defer teardown()
+		dir := tmpDir(t)
 		d := &Downloader{
 			URL:      "foo/foo.tar.gz",
 			Checksum: "f7fa712caea646575c920af17de3462fe9d08d7fe062b9a17010117d5fa4ed88",
@@ -64,8 +59,7 @@ func Test_downloader_validateChecksum(t *testing.T) {
 	})
 
 	t.Run("missing file", func(t *testing.T) {
-		dir, teardown := tmpDir(t)
-		defer teardown()
+		dir := tmpDir(t)
 		d := &Downloader{
 			URL:      "foo/foo.tar.gz",
 			Checksum: "f7fa712caea646575c920af17de3462fe9d08d7fe062b9a17010117d5fa4ed88",
@@ -76,8 +70,7 @@ func Test_downloader_validateChecksum(t *testing.T) {
 	})
 
 	t.Run("mismatch", func(t *testing.T) {
-		dir, teardown := tmpDir(t)
-		defer teardown()
+		dir := tmpDir(t)
 		d := &Downloader{
 			URL:      "foo/foo.tar.gz",
 			Checksum: "deadbeef",
@@ -90,8 +83,7 @@ func Test_downloader_validateChecksum(t *testing.T) {
 }
 
 func TestDownloader_extract(t *testing.T) {
-	dir, teardown := tmpDir(t)
-	defer teardown()
+	dir := tmpDir(t)
 	d := &Downloader{
 		URL:      "foo/foo.tar.gz",
 		Checksum: "f7fa712caea646575c920af17de3462fe9d08d7fe062b9a17010117d5fa4ed88",
@@ -105,10 +97,9 @@ func TestDownloader_extract(t *testing.T) {
 
 func TestDownloader_Install(t *testing.T) {
 	t.Run("raw file", func(t *testing.T) {
-		dir, teardown := tmpDir(t)
-		defer teardown()
+		dir := tmpDir(t)
 		servePath := downloadablesPath("rawfile/foo")
-		ts := serveFile(servePath, "/foo/foo", "")
+		ts := serveFile(t, servePath, "/foo/foo", "")
 		d := &Downloader{
 			URL:      ts.URL + "/foo/foo",
 			Checksum: "f044ff8b6007c74bcc1b5a5c92776e5d49d6014f5ff2d551fab115c17f48ac41",
@@ -129,10 +120,9 @@ func TestDownloader_Install(t *testing.T) {
 	})
 
 	t.Run("bin in root", func(t *testing.T) {
-		dir, teardown := tmpDir(t)
-		defer teardown()
+		dir := tmpDir(t)
 		servePath := downloadablesPath("fooinroot.tar.gz")
-		ts := serveFile(servePath, "/foo/fooinroot.tar.gz", "")
+		ts := serveFile(t, servePath, "/foo/fooinroot.tar.gz", "")
 		d := &Downloader{
 			URL:      ts.URL + "/foo/fooinroot.tar.gz",
 			Checksum: "27dcce60d1ed72920a84dd4bc01e0bbd013e5a841660e9ee2e964e53fb83c0b3",
@@ -153,9 +143,8 @@ func TestDownloader_Install(t *testing.T) {
 	})
 
 	t.Run("move", func(t *testing.T) {
-		dir, teardown := tmpDir(t)
-		defer teardown()
-		ts := serveFile(downloadablesPath("foo.tar.gz"), "/foo/foo.tar.gz", "foo=bar")
+		dir := tmpDir(t)
+		ts := serveFile(t, downloadablesPath("foo.tar.gz"), "/foo/foo.tar.gz", "foo=bar")
 		d := &Downloader{
 			URL:         ts.URL + "/foo/foo.tar.gz?foo=bar",
 			Checksum:    "f7fa712caea646575c920af17de3462fe9d08d7fe062b9a17010117d5fa4ed88",
@@ -172,9 +161,8 @@ func TestDownloader_Install(t *testing.T) {
 	})
 
 	t.Run("legacy MoveFrom", func(t *testing.T) {
-		dir, teardown := tmpDir(t)
-		defer teardown()
-		ts := serveFile(downloadablesPath("foo.tar.gz"), "/foo/foo.tar.gz", "foo=bar")
+		dir := tmpDir(t)
+		ts := serveFile(t, downloadablesPath("foo.tar.gz"), "/foo/foo.tar.gz", "foo=bar")
 		d := &Downloader{
 			URL:      ts.URL + "/foo/foo.tar.gz?foo=bar",
 			Checksum: "f7fa712caea646575c920af17de3462fe9d08d7fe062b9a17010117d5fa4ed88",
@@ -191,9 +179,8 @@ func TestDownloader_Install(t *testing.T) {
 	})
 
 	t.Run("link", func(t *testing.T) {
-		dir, teardown := tmpDir(t)
-		defer teardown()
-		ts := serveFile(downloadablesPath("foo.tar.gz"), "/foo/foo.tar.gz", "foo=bar")
+		dir := tmpDir(t)
+		ts := serveFile(t, downloadablesPath("foo.tar.gz"), "/foo/foo.tar.gz", "foo=bar")
 		d := &Downloader{
 			URL:        ts.URL + "/foo/foo.tar.gz?foo=bar",
 			Checksum:   "f7fa712caea646575c920af17de3462fe9d08d7fe062b9a17010117d5fa4ed88",
@@ -214,9 +201,8 @@ func TestDownloader_Install(t *testing.T) {
 	})
 
 	t.Run("legacy LinkSource", func(t *testing.T) {
-		dir, teardown := tmpDir(t)
-		defer teardown()
-		ts := serveFile(downloadablesPath("foo.tar.gz"), "/foo/foo.tar.gz", "foo=bar")
+		dir := tmpDir(t)
+		ts := serveFile(t, downloadablesPath("foo.tar.gz"), "/foo/foo.tar.gz", "foo=bar")
 		d := &Downloader{
 			URL:         ts.URL + "/foo/foo.tar.gz?foo=bar",
 			Checksum:    "f7fa712caea646575c920af17de3462fe9d08d7fe062b9a17010117d5fa4ed88",

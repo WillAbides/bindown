@@ -30,19 +30,21 @@ func projectRoot() string {
 }
 
 // tmpDir returns the path to a newly created tmp dir and a function for deleting that dir
-func tmpDir(t *testing.T) (string, func()) {
+func tmpDir(t *testing.T) string {
 	t.Helper()
 	projectTmp := projectPath("tmp")
 	err := os.MkdirAll(projectTmp, 0750)
 	require.NoError(t, err)
 	tmpdir, err := ioutil.TempDir(projectTmp, "")
 	require.NoError(t, err)
-	return tmpdir, func() {
+	t.Cleanup(func() {
 		require.NoError(t, os.RemoveAll(tmpdir))
-	}
+	})
+	return tmpdir
 }
 
-func serveFile(file, path, query string) *httptest.Server {
+func serveFile(t *testing.T, file, path, query string) *httptest.Server {
+	t.Helper()
 	file = filepath.FromSlash(file)
 	mux := http.NewServeMux()
 	mux.HandleFunc(path, func(w http.ResponseWriter, req *http.Request) {
@@ -52,7 +54,9 @@ func serveFile(file, path, query string) *httptest.Server {
 		}
 		http.ServeFile(w, req, file)
 	})
-	return httptest.NewServer(mux)
+	ts := httptest.NewServer(mux)
+	t.Cleanup(ts.Close)
+	return ts
 }
 
 func assertEqualFiles(t testing.TB, want, actual string) bool {
