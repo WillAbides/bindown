@@ -48,7 +48,7 @@ func fileChecksum(filename string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return mustHexHash(sha256.New(), fileBytes), nil
+	return hexHash(sha256.New(), fileBytes)
 }
 
 //fileExistsWithChecksum returns true if the file both exists and has a matching checksum
@@ -94,12 +94,4 @@ func copyFile(src, dst string) error {
 
 	_, err = io.Copy(writer, rdr)
 	return err
-}
-
-func rm(path string) error {
-	err := os.RemoveAll(path)
-	if err == nil || os.IsNotExist(err) {
-		return nil
-	}
-	return fmt.Errorf(`failed to remove %s: %v`, path, err)
 }

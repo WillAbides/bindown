@@ -72,7 +72,7 @@ func (d *Downloader) moveOrLinkBin(targetDir, extractDir string) error {
 	var err error
 	target := d.binPath(targetDir)
 	if fileExists(target) {
-		err = rm(target)
+		err = os.RemoveAll(target)
 		if err != nil {
 			return err
 		}
@@ -166,7 +166,7 @@ func (d *Downloader) validateChecksum(targetDir string) error {
 	}
 	if d.Checksum != result {
 		defer func() {
-			delErr := rm(targetFile)
+			delErr := os.RemoveAll(targetFile)
 			if delErr != nil {
 				log.Printf("Error deleting suspicious file at %q. Please delete it manually", targetFile)
 			}

@@ -14,6 +14,28 @@ import (
 	"github.com/udhos/equalfile"
 )
 
+// the checksum of downloadablesPath("foo.tar.gz")
+const fooChecksum = "f7fa712caea646575c920af17de3462fe9d08d7fe062b9a17010117d5fa4ed88"
+
+func mustCopyFile(t *testing.T, src, dst string) {
+	t.Helper()
+	require.NoError(t, os.MkdirAll(filepath.Dir(dst), 0750))
+	require.NoError(t, copyFile(src, dst))
+}
+
+func mustWriteFile(t *testing.T, filename string, content []byte) {
+	t.Helper()
+	err := ioutil.WriteFile(filename, content, 0600)
+	require.NoError(t, err)
+}
+
+func mustReadFile(t *testing.T, filename string) []byte {
+	t.Helper()
+	got, err := ioutil.ReadFile(filename)
+	require.NoError(t, err)
+	return got
+}
+
 func downloadablesPath(path string) string {
 	return filepath.Join(projectPath("testdata", "downloadables"), filepath.FromSlash(path))
 }

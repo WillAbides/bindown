@@ -3,17 +3,12 @@ package bindown
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
-
-func mustCopyFile(t *testing.T, src, dst string) {
-	t.Helper()
-	require.NoError(t, os.MkdirAll(filepath.Dir(dst), 0750))
-	require.NoError(t, copyFile(src, dst))
-}
 
 func Test_downloadFile(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
@@ -50,7 +45,7 @@ func Test_downloader_validateChecksum(t *testing.T) {
 		dir := tmpDir(t)
 		d := &Downloader{
 			URL:      "foo/foo.tar.gz",
-			Checksum: "f7fa712caea646575c920af17de3462fe9d08d7fe062b9a17010117d5fa4ed88",
+			Checksum: fooChecksum,
 		}
 		mustCopyFile(t, downloadablesPath("foo.tar.gz"), filepath.Join(dir, "foo.tar.gz"))
 		err := d.validateChecksum(dir)
@@ -62,7 +57,7 @@ func Test_downloader_validateChecksum(t *testing.T) {
 		dir := tmpDir(t)
 		d := &Downloader{
 			URL:      "foo/foo.tar.gz",
-			Checksum: "f7fa712caea646575c920af17de3462fe9d08d7fe062b9a17010117d5fa4ed88",
+			Checksum: fooChecksum,
 		}
 
 		err := d.validateChecksum(dir)
@@ -86,7 +81,7 @@ func TestDownloader_extract(t *testing.T) {
 	dir := tmpDir(t)
 	d := &Downloader{
 		URL:      "foo/foo.tar.gz",
-		Checksum: "f7fa712caea646575c920af17de3462fe9d08d7fe062b9a17010117d5fa4ed88",
+		Checksum: fooChecksum,
 	}
 	downloadDir := filepath.Join(dir, "download")
 	extractDir := filepath.Join(dir, "extract")
@@ -142,12 +137,31 @@ func TestDownloader_Install(t *testing.T) {
 		assert.Equal(t, os.FileMode(0755), stat.Mode().Perm())
 	})
 
+	t.Run("invalid url", func(t *testing.T) {
+		d := &Downloader{
+			URL: "://foo.com",
+		}
+		err := d.Install(InstallOpts{})
+		assert.Error(t, err)
+		assert.True(t, strings.Contains(err.Error(), "parse"))
+	})
+
+	t.Run("invalid target dir", func(t *testing.T) {
+		dir := tmpDir(t) + "/" + string(byte(0)) + "/"
+		d := &Downloader{}
+		err := d.Install(InstallOpts{
+			TargetDir: dir,
+		})
+		assert.Error(t, err)
+		assert.True(t, strings.Contains(err.Error(), "mkdir"))
+	})
+
 	t.Run("move", func(t *testing.T) {
 		dir := tmpDir(t)
 		ts := serveFile(t, downloadablesPath("foo.tar.gz"), "/foo/foo.tar.gz", "foo=bar")
 		d := &Downloader{
 			URL:         ts.URL + "/foo/foo.tar.gz?foo=bar",
-			Checksum:    "f7fa712caea646575c920af17de3462fe9d08d7fe062b9a17010117d5fa4ed88",
+			Checksum:    fooChecksum,
 			BinName:     "foo.txt",
 			ArchivePath: "bin/foo.txt",
 			Arch:        "amd64",
@@ -160,12 +174,32 @@ func TestDownloader_Install(t *testing.T) {
 		assert.NoError(t, err)
 	})
 
+	t.Run("tar file exists", func(t *testing.T) {
+		dir := tmpDir(t)
+		d := &Downloader{
+			URL:         "http://invalid/foo/foo.tar.gz?foo=bar",
+			Checksum:    fooChecksum,
+			BinName:     "foo.txt",
+			ArchivePath: "bin/foo.txt",
+			Arch:        "amd64",
+			OS:          "darwin",
+		}
+		downloadsDir := filepath.Join(dir, ".bindown", "downloads", d.downloadsSubName())
+		err := os.MkdirAll(downloadsDir, 0750)
+		require.NoError(t, err)
+		mustCopyFile(t, downloadablesPath("foo.tar.gz"), filepath.Join(downloadsDir, "foo.tar.gz"))
+		err = d.Install(InstallOpts{
+			TargetDir: dir,
+		})
+		require.NoError(t, err)
+	})
+
 	t.Run("legacy MoveFrom", func(t *testing.T) {
 		dir := tmpDir(t)
 		ts := serveFile(t, downloadablesPath("foo.tar.gz"), "/foo/foo.tar.gz", "foo=bar")
 		d := &Downloader{
 			URL:      ts.URL + "/foo/foo.tar.gz?foo=bar",
-			Checksum: "f7fa712caea646575c920af17de3462fe9d08d7fe062b9a17010117d5fa4ed88",
+			Checksum: fooChecksum,
 			BinName:  "foo.txt",
 			MoveFrom: "bin/foo.txt",
 			Arch:     "amd64",
@@ -183,7 +217,7 @@ func TestDownloader_Install(t *testing.T) {
 		ts := serveFile(t, downloadablesPath("foo.tar.gz"), "/foo/foo.tar.gz", "foo=bar")
 		d := &Downloader{
 			URL:        ts.URL + "/foo/foo.tar.gz?foo=bar",
-			Checksum:   "f7fa712caea646575c920af17de3462fe9d08d7fe062b9a17010117d5fa4ed88",
+			Checksum:   fooChecksum,
 			BinName:    "foo",
 			LinkSource: "bin/foo.txt",
 			Arch:       "amd64",
@@ -205,7 +239,7 @@ func TestDownloader_Install(t *testing.T) {
 		ts := serveFile(t, downloadablesPath("foo.tar.gz"), "/foo/foo.tar.gz", "foo=bar")
 		d := &Downloader{
 			URL:         ts.URL + "/foo/foo.tar.gz?foo=bar",
-			Checksum:    "f7fa712caea646575c920af17de3462fe9d08d7fe062b9a17010117d5fa4ed88",
+			Checksum:    fooChecksum,
 			BinName:     "foo",
 			ArchivePath: "bin/foo.txt",
 			Link:        true,
