@@ -3,6 +3,7 @@
 [![godoc](https://godoc.org/github.com/WillAbides/bindown?status.svg)](https://pkg.go.dev/github.com/willabides/bindown/v2)
 [![Go Report Card](https://goreportcard.com/badge/github.com/WillAbides/bindown)](https://goreportcard.com/report/github.com/WillAbides/bindown)
 [![ci](https://github.com/WillAbides/bindown/workflows/ci/badge.svg)](https://github.com/WillAbides/bindown/actions?query=workflow%3Aci+branch%3Amaster+event%3Apush)
+[![Coverage Status](https://coveralls.io/repos/github/WillAbides/bindown/badge.svg?branch)](https://coveralls.io/github/WillAbides/bindown)
 
 **bindown** is a command-line utility to download, verify and install binary files. It is intended to be used in
 development and ci environments where it is important to guarantee the same version of the same binary is downloaded

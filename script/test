@@ -4,4 +4,5 @@ set -e
 
 CDPATH="" cd -- "$(dirname -- "$(dirname -- "$0")")"
 
-go test -race ./...
+mkdir -p tmp
+go test -race -covermode=atomic -coverprofile=tmp/coverage.out ./...
