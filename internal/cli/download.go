@@ -1,4 +1,4 @@
-package main
+package cli
 
 import (
 	"fmt"
@@ -19,16 +19,17 @@ var downloadKongVars = kong.Vars{
 }
 
 type downloadCmd struct {
-	Arch       string `kong:"help=${download_arch_help},default=${download_arch_default},predictor=arch"`
-	OS         string `kong:"help=${download_os_help},default=${download_os_default},predictor=os"`
-	Force      bool   `kong:"help=${download_force_help}"`
-	TargetFile string `kong:"required=true,arg,help=${download_target_file_help},predictor=binpath"`
+	Arch       string     `kong:"help=${download_arch_help},default=${download_arch_default},predictor=arch"`
+	OS         string     `kong:"help=${download_os_help},default=${download_os_default},predictor=os"`
+	Force      bool       `kong:"help=${download_force_help}"`
+	TargetFile string     `kong:"required=true,arg,help=${download_target_file_help},predictor=binpath"`
+	ConfigOpts configOpts `kong:"embed"`
 }
 
 func (d *downloadCmd) Run(*kong.Context) error {
-	config, err := bindown.LoadConfigFile(cli.Configfile)
+	config, err := bindown.LoadConfigFile(d.ConfigOpts.Configfile)
 	if err != nil {
-		return fmt.Errorf("error loading config from %q", cli.Configfile)
+		return fmt.Errorf("error loading config from %q", d.ConfigOpts.Configfile)
 	}
 	binary := path.Base(d.TargetFile)
 	binDir := path.Dir(d.TargetFile)
@@ -45,7 +46,7 @@ arch: %s`, binary, d.OS, d.Arch)
 		DownloaderName: binary,
 		TargetDir:      binDir,
 		Force:          d.Force,
-		CellarDir:      cli.CellarDir,
+		CellarDir:      d.ConfigOpts.CellarDir,
 	}
 
 	return downloader.Install(installOpts)

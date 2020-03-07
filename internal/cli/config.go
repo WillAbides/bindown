@@ -1,4 +1,4 @@
-package main
+package cli
 
 import (
 	"encoding/json"
@@ -27,14 +27,15 @@ type configCmd struct {
 	UpdateChecksums    configUpdateChecksumsCmd     `kong:"cmd,help=${config_checksums_bin_help}"`
 	Validate           configValidateCmd            `kong:"cmd,help=${config_validate_help}"`
 	InstallCompletions kongplete.InstallCompletions `kong:"cmd,help=${config_install_completions_help}"`
+	ConfigOpts         configOpts                   `kong:"embed"`
 }
 
 type configFmtCmd struct{}
 
 func (c configFmtCmd) Run() error {
-	config, err := bindown.LoadConfigFile(cli.Configfile)
+	config, err := bindown.LoadConfigFile(cli.Config.ConfigOpts.Configfile)
 	if err != nil {
-		return err
+		return fmt.Errorf("could not load config file %q", cli.Config.ConfigOpts.Configfile)
 	}
 	return config.Write()
 }
@@ -44,9 +45,9 @@ type configUpdateChecksumsCmd struct {
 }
 
 func (d *configUpdateChecksumsCmd) Run(kctx *kong.Context) error {
-	config, err := bindown.LoadConfigFile(cli.Configfile)
+	config, err := bindown.LoadConfigFile(cli.Config.ConfigOpts.Configfile)
 	if err != nil {
-		return fmt.Errorf("error loading config from %q", cli.Configfile)
+		return fmt.Errorf("error loading config from %q", cli.Config.ConfigOpts.Configfile)
 	}
 	tmpDir, err := ioutil.TempDir("", "bindown")
 	if err != nil {
@@ -62,7 +63,7 @@ func (d *configUpdateChecksumsCmd) Run(kctx *kong.Context) error {
 	binary := path.Base(d.TargetFile)
 	binDir := path.Dir(d.TargetFile)
 
-	cellarDir := cli.CellarDir
+	cellarDir := cli.Config.ConfigOpts.CellarDir
 	if cellarDir == "" {
 		cellarDir = filepath.Join(tmpDir, "cellar")
 	}
@@ -91,9 +92,9 @@ type configValidateCmd struct {
 }
 
 func (d configValidateCmd) Run(kctx *kong.Context) error {
-	config, err := bindown.LoadConfigFile(cli.Configfile)
+	config, err := bindown.LoadConfigFile(cli.Config.ConfigOpts.Configfile)
 	if err != nil {
-		return fmt.Errorf("error loading config from %q", cli.Configfile)
+		return fmt.Errorf("error loading config from %q", cli.Config.ConfigOpts.Configfile)
 	}
 	tmpDir, err := ioutil.TempDir("", "bindown")
 	if err != nil {
@@ -113,7 +114,7 @@ func (d configValidateCmd) Run(kctx *kong.Context) error {
 		return err
 	}
 
-	cellarDir := cli.CellarDir
+	cellarDir := cli.Config.ConfigOpts.CellarDir
 	if cellarDir == "" {
 		cellarDir = filepath.Join(tmpDir, "cellar")
 	}

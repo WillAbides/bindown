@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 
 	"github.com/mholt/archiver/v3"
+	"github.com/willabides/bindown/v2/internal/util"
 )
 
 // Downloader downloads a binary
@@ -72,7 +73,7 @@ func (d *Downloader) moveOrLinkBin(targetDir, extractDir string) error {
 	var err error
 	target := d.binPath(targetDir)
 	if fileExists(target) {
-		err = rm(target)
+		err = os.RemoveAll(target)
 		if err != nil {
 			return err
 		}
@@ -125,7 +126,7 @@ func (d *Downloader) extract(downloadDir, extractDir string) error {
 	tarPath := filepath.Join(downloadDir, dlName)
 	_, err = archiver.ByExtension(dlName)
 	if err != nil {
-		return copyFile(tarPath, filepath.Join(extractDir, dlName))
+		return util.CopyFile(tarPath, filepath.Join(extractDir, dlName), logCloseErr)
 	}
 	return archiver.Unarchive(tarPath, extractDir)
 }
@@ -166,7 +167,7 @@ func (d *Downloader) validateChecksum(targetDir string) error {
 	}
 	if d.Checksum != result {
 		defer func() {
-			delErr := rm(targetFile)
+			delErr := os.RemoveAll(targetFile)
 			if delErr != nil {
 				log.Printf("Error deleting suspicious file at %q. Please delete it manually", targetFile)
 			}

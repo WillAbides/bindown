@@ -7,15 +7,19 @@ jobs:
         platform: [ubuntu-latest, macos-latest, windows-latest]
     runs-on: ${{ matrix.platform }}
     steps:
-    - name: Install Go
-      uses: actions/setup-go@v1
-      with:
-        go-version: 1.13.x
-    - name: Check out code into the Go module directory
-      uses: actions/checkout@v1
-    - name: Test
-      run: script/test
-    - name: Build
-      run: make bin/bindown
-    - name: Lint
-      run: script/lint
+      - uses: actions/setup-go@v1
+        with:
+          go-version: 1.14.x
+      - uses: actions/checkout@v1
+      - run: script/test
+      - if: success() && matrix.platform == 'ubuntu-latest'
+        run: |
+          make bin/gcov2lcov
+          bin/gcov2lcov -infile tmp/coverage.out -outfile tmp/coverage.lcov
+      - run: make bin/bindown
+      - run: script/lint
+      - if: success() && matrix.platform == 'ubuntu-latest'
+        uses: coverallsapp/github-action@master
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path-to-lcov: ./tmp/coverage.lcov

@@ -1,9 +1,9 @@
 module github.com/willabides/bindown/v2
 
-go 1.12
+go 1.14
 
 require (
-	github.com/alecthomas/kong v0.2.2
+	github.com/alecthomas/kong v0.2.3
 	github.com/andybalholm/brotli v1.0.0 // indirect
 	github.com/frankban/quicktest v1.4.2 // indirect
 	github.com/killa-beez/gopkgs/sets/builtins v0.0.0-20191206232703-3018f97f77a9
