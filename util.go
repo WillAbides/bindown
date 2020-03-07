@@ -3,7 +3,6 @@ package bindown
 import (
 	"crypto/sha256"
 	"encoding/hex"
-	"fmt"
 	"hash"
 	"io"
 	"io/ioutil"
@@ -69,29 +68,4 @@ func fileExists(path string) bool {
 		return true
 	}
 	return false
-}
-
-func copyFile(src, dst string) error {
-	srcStat, err := os.Stat(src)
-	if err != nil {
-		return err
-	}
-	if !srcStat.Mode().IsRegular() {
-		return fmt.Errorf("not a regular file")
-	}
-
-	rdr, err := os.Open(src) //nolint:gosec
-	if err != nil {
-		return err
-	}
-	defer logCloseErr(rdr)
-
-	writer, err := os.OpenFile(dst, os.O_RDWR|os.O_CREATE|os.O_TRUNC, srcStat.Mode())
-	if err != nil {
-		return err
-	}
-	defer logCloseErr(writer)
-
-	_, err = io.Copy(writer, rdr)
-	return err
 }

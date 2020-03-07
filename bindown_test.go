@@ -8,6 +8,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/willabides/bindown/v2/internal/testutil"
 	"gopkg.in/yaml.v2"
 )
 
@@ -28,7 +29,7 @@ func TestConfigFile_Write(t *testing.T) {
 		},
 	}
 	t.Run("json", func(t *testing.T) {
-		dir := tmpDir(t)
+		dir := testutil.TmpDir(t)
 		file := filepath.Join(dir, "bindown.json")
 		err := ioutil.WriteFile(file, []byte("overwrite me"), 0600)
 		require.NoError(t, err)
@@ -48,7 +49,7 @@ func TestConfigFile_Write(t *testing.T) {
 	})
 
 	t.Run("yaml", func(t *testing.T) {
-		dir := tmpDir(t)
+		dir := testutil.TmpDir(t)
 		file := filepath.Join(dir, "bindown.json")
 		err := ioutil.WriteFile(file, []byte("overwrite me"), 0600)
 		require.NoError(t, err)
@@ -70,7 +71,7 @@ func TestConfigFile_Write(t *testing.T) {
 
 func TestLoadConfigFile(t *testing.T) {
 	t.Run("json1", func(t *testing.T) {
-		cfgPath := projectPath("testdata", "configs", "ex1.json")
+		cfgPath := testutil.ProjectPath("testdata", "configs", "ex1.json")
 		cfg, err := LoadConfigFile(cfgPath)
 		assert.NoError(t, err)
 		assert.Equal(t, "darwin-amd64", cfg.Downloaders["gobin"][0].ArchivePath)
@@ -80,7 +81,7 @@ func TestLoadConfigFile(t *testing.T) {
 	})
 
 	t.Run("yaml1", func(t *testing.T) {
-		cfgPath := projectPath("testdata", "configs", "ex1.yaml")
+		cfgPath := testutil.ProjectPath("testdata", "configs", "ex1.yaml")
 		cfg, err := LoadConfigFile(cfgPath)
 		assert.NoError(t, err)
 		assert.Equal(t, "darwin-amd64", cfg.Downloaders["gobin"][0].ArchivePath)
@@ -90,7 +91,7 @@ func TestLoadConfigFile(t *testing.T) {
 	})
 
 	t.Run("downloadersonly", func(t *testing.T) {
-		cfgPath := projectPath("testdata", "configs", "downloadersonly.json")
+		cfgPath := testutil.ProjectPath("testdata", "configs", "downloadersonly.json")
 		cfg, err := LoadConfigFile(cfgPath)
 		assert.NoError(t, err)
 		assert.Equal(t, "darwin-amd64", cfg.Downloaders["gobin"][0].ArchivePath)

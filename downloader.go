@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 
 	"github.com/mholt/archiver/v3"
+	"github.com/willabides/bindown/v2/internal/util"
 )
 
 // Downloader downloads a binary
@@ -125,7 +126,7 @@ func (d *Downloader) extract(downloadDir, extractDir string) error {
 	tarPath := filepath.Join(downloadDir, dlName)
 	_, err = archiver.ByExtension(dlName)
 	if err != nil {
-		return copyFile(tarPath, filepath.Join(extractDir, dlName))
+		return util.CopyFile(tarPath, filepath.Join(extractDir, dlName), logCloseErr)
 	}
 	return archiver.Unarchive(tarPath, extractDir)
 }

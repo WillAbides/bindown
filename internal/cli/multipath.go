@@ -1,4 +1,4 @@
-package main
+package cli
 
 import (
 	"fmt"
@@ -9,12 +9,12 @@ import (
 	"github.com/alecthomas/kong"
 )
 
-func multipathMapper(ctx *kong.DecodeContext, target reflect.Value) error {
+func multipathMapper(d *kong.DecodeContext, target reflect.Value) error {
 	if target.Kind() != reflect.String {
 		return fmt.Errorf("\"multipath\" type must be applied to a string not %s", target.Type())
 	}
 	var path string
-	err := ctx.Scan.PopValueInto("file", &path)
+	err := d.Scan.PopValueInto("file", &path)
 	if err != nil {
 		return err
 	}
