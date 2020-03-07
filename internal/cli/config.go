@@ -35,7 +35,7 @@ type configFmtCmd struct{}
 func (c configFmtCmd) Run() error {
 	config, err := bindown.LoadConfigFile(cli.Config.ConfigOpts.Configfile)
 	if err != nil {
-		return err
+		return fmt.Errorf("could not load config file %q", cli.Config.ConfigOpts.Configfile)
 	}
 	return config.Write()
 }
@@ -63,7 +63,7 @@ func (d *configUpdateChecksumsCmd) Run(kctx *kong.Context) error {
 	binary := path.Base(d.TargetFile)
 	binDir := path.Dir(d.TargetFile)
 
-	cellarDir := cli.Config.ConfigOpts.Configfile
+	cellarDir := cli.Config.ConfigOpts.CellarDir
 	if cellarDir == "" {
 		cellarDir = filepath.Join(tmpDir, "cellar")
 	}

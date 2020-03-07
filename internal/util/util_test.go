@@ -10,7 +10,7 @@ import (
 	"github.com/willabides/bindown/v2/internal/testutil"
 )
 
-func Test_copyFile(t *testing.T) {
+func TestCopyFile(t *testing.T) {
 	t.Run("doesn't exist", func(t *testing.T) {
 		dir := testutil.TmpDir(t)
 		src := filepath.Join(dir, "file1")
