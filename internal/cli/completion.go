@@ -5,12 +5,12 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/alecthomas/kong"
 	"github.com/killa-beez/gopkgs/sets/builtins"
-	"github.com/posener/complete"
 	"github.com/willabides/bindown/v2"
 )
 
-func findConfigFileForPredictor(args []string) string {
+func findConfigFileForCompletion(args []string) string {
 	for i, arg := range args {
 		if len(args) == i+1 {
 			continue
@@ -27,8 +27,8 @@ func findConfigFileForPredictor(args []string) string {
 	return multifileFindExisting(kongVars["configfile_default"])
 }
 
-func predictorConfig(args []string) *bindown.ConfigFile {
-	path := findConfigFileForPredictor(args)
+func completionConfig(args []string) *bindown.ConfigFile {
+	path := findConfigFileForCompletion(args)
 	if path == "" {
 		return nil
 	}
@@ -56,25 +56,25 @@ func allBins(cfg *bindown.ConfigFile) []string {
 	return bins.Values()
 }
 
-var binPredictor = complete.PredictFunc(func(a complete.Args) []string {
-	cfg := predictorConfig(a.Completed)
-	return complete.PredictSet(allBins(cfg)...).Predict(a)
+var binCompleter = kong.CompleterFunc(func(a kong.CompleterArgs) []string {
+	cfg := completionConfig(a.Completed())
+	return kong.CompleteSet(allBins(cfg)...).Options(a)
 })
 
-var binPathPredictor = complete.PredictFunc(func(a complete.Args) []string {
-	cfg := predictorConfig(a.Completed)
+var binPathCompleter = kong.CompleterFunc(func(a kong.CompleterArgs) []string {
+	cfg := completionConfig(a.Completed())
 	bins := allBins(cfg)
-	dir, _ := filepath.Split(a.Last)
+	dir, _ := filepath.Split(a.Last())
 	for i, bin := range bins {
 		bins[i] = filepath.Join(dir, bin)
 	}
-	return complete.PredictOr(
-		complete.PredictDirs("*"),
-		complete.PredictSet(bins...),
-	).Predict(a)
+	return kong.CompleteOr(
+		kong.CompleteDirs(),
+		kong.CompleteSet(bins...),
+	).Options(a)
 })
 
-var osPredictor = complete.PredictSet(strings.Split(goosVals, "\n")...)
+var osCompleter = kong.CompleteSet(strings.Split(goosVals, "\n")...)
 
 //from `go tool dist list | cut -f 1 -d '/' | sort | uniq`
 const goosVals = `aix
@@ -92,7 +92,7 @@ plan9
 solaris
 windows`
 
-var archPredictor = complete.PredictSet(strings.Split(goarchVals, "\n")...)
+var archCompleter = kong.CompleteSet(strings.Split(goarchVals, "\n")...)
 
 //from `go tool dist list | cut -f 2 -d '/' | sort | uniq`
 const goarchVals = `386

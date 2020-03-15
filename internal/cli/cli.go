@@ -2,8 +2,6 @@ package cli
 
 import (
 	"github.com/alecthomas/kong"
-	"github.com/posener/complete"
-	"github.com/willabides/kongplete"
 )
 
 var kongVars = kong.Vars{
@@ -14,8 +12,8 @@ var kongVars = kong.Vars{
 }
 
 type configOpts struct {
-	Configfile string `kong:"type=path,help=${configfile_help},default=${configfile_default},env='BINDOWN_CONFIG_FILE',predictor=file"`
-	CellarDir  string `kong:"type=path,help=${cellar_dir_help},env='BINDOWN_CELLAR',predictor=dir"`
+	Configfile string `kong:"type=path,help=${configfile_help},default=${configfile_default},env='BINDOWN_CONFIG_FILE'"`
+	CellarDir  string `kong:"type=path,help=${cellar_dir_help},env='BINDOWN_CELLAR'"`
 }
 
 var cli struct {
@@ -26,6 +24,12 @@ var cli struct {
 
 func newParser(kongOptions ...kong.Option) *kong.Kong {
 	kongOptions = append(kongOptions,
+		kong.Completers{
+			"binpath": binPathCompleter,
+			"arch":    archCompleter,
+			"os":      osCompleter,
+			"bin":     binCompleter,
+		},
 		kongVars,
 		downloadKongVars,
 		configKongVars,
@@ -38,17 +42,6 @@ func newParser(kongOptions ...kong.Option) *kong.Kong {
 //Run let's light this candle
 func Run(args []string, kongOptions ...kong.Option) {
 	parser := newParser(kongOptions...)
-
-	kongplete.Complete(parser,
-		kongplete.WithPredictors(map[string]complete.Predictor{
-			"file":    complete.PredictFiles("*"),
-			"dir":     complete.PredictDirs("*"),
-			"binpath": binPathPredictor,
-			"arch":    archPredictor,
-			"os":      osPredictor,
-			"bin":     binPredictor,
-		}),
-	)
 
 	kongCtx, err := parser.Parse(args)
 	parser.FatalIfErrorf(err)
