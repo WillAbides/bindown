@@ -2,6 +2,7 @@ package cli
 
 import (
 	"github.com/alecthomas/kong"
+	"github.com/willabides/bindown/v2"
 )
 
 var kongVars = kong.Vars{
@@ -20,6 +21,12 @@ var cli struct {
 	Version  versionCmd  `kong:"cmd"`
 	Download downloadCmd `kong:"cmd,help=${download_help}"`
 	Config   configCmd   `kong:"cmd"`
+}
+
+func configFile(kctx *kong.Context) *bindown.ConfigFile {
+	config, err := bindown.LoadConfigFile(cli.Config.ConfigOpts.Configfile)
+	kctx.FatalIfErrorf(err, "error loading config from %q", cli.Config.ConfigOpts.Configfile)
+	return config
 }
 
 func newParser(kongOptions ...kong.Option) *kong.Kong {

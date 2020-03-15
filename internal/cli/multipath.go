@@ -10,6 +10,9 @@ import (
 )
 
 func multipathMapper(d *kong.DecodeContext, target reflect.Value) error {
+	if d == nil || d.Scan == nil || d.Scan.Len() == 0 {
+		return fmt.Errorf("nothing to scan")
+	}
 	if target.Kind() != reflect.String {
 		return fmt.Errorf("\"multipath\" type must be applied to a string not %s", target.Type())
 	}

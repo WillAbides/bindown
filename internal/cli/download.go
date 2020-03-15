@@ -26,11 +26,8 @@ type downloadCmd struct {
 	ConfigOpts configOpts `kong:"embed"`
 }
 
-func (d *downloadCmd) Run(*kong.Context) error {
-	config, err := bindown.LoadConfigFile(d.ConfigOpts.Configfile)
-	if err != nil {
-		return fmt.Errorf("error loading config from %q", d.ConfigOpts.Configfile)
-	}
+func (d *downloadCmd) Run(kctx *kong.Context) error {
+	config := configFile(kctx)
 	binary := path.Base(d.TargetFile)
 	binDir := path.Dir(d.TargetFile)
 

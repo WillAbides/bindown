@@ -3,7 +3,9 @@ package bindown
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
+	"path/filepath"
 	"strings"
 
 	"gopkg.in/yaml.v2"
@@ -100,6 +102,63 @@ func (c *Config) Downloader(binary, os, arch string) *Downloader {
 		}
 		if strings.EqualFold(arch, d.Arch) {
 			return d
+		}
+	}
+	return nil
+}
+
+//UpdateChecksums updates checksums
+func (c *Config) UpdateChecksums(downloaderName, cellarDir string) error {
+	names := c.allDownloaderNames()
+	if downloaderName != "" {
+		names = []string{downloaderName}
+	}
+	for _, name := range names {
+		binary := filepath.Base(name)
+		downloaders, ok := c.Downloaders[binary]
+		if !ok {
+			return fmt.Errorf("nothing configured for %q", binary)
+		}
+		for _, downloader := range downloaders {
+			err := downloader.UpdateChecksum(UpdateChecksumOpts{
+				DownloaderName: binary,
+				CellarDir:      cellarDir,
+			})
+			if err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+func (c *Config) allDownloaderNames() []string {
+	names := make([]string, 0, len(c.Downloaders))
+	for name := range c.Downloaders {
+		names = append(names, name)
+	}
+	return names
+}
+
+//Validate installs downloaders to a temp directory and returns an error if it was unsuccessful.
+// If cellarDir is empty, it uses a temp directory.
+// If downloaderName is empty, it validates all downloaders.
+func (c *Config) Validate(downloaderName string, cellarDir string) error {
+	names := c.allDownloaderNames()
+	if downloaderName != "" {
+		names = []string{downloaderName}
+	}
+	for _, name := range names {
+		binary := filepath.Base(name)
+		dls, ok := c.Downloaders[binary]
+		if !ok {
+			return fmt.Errorf("nothing configured for %q", binary)
+		}
+		for _, downloader := range dls {
+			err := downloader.Validate(binary, cellarDir)
+			if err != nil {
+				return err
+			}
 		}
 	}
 	return nil

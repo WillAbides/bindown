@@ -62,6 +62,18 @@ func TmpDir(t *testing.T) string {
 	return tmpdir
 }
 
+//ChDir changes the working directory for the duration of the test
+func ChDir(t *testing.T, dir string) {
+	t.Helper()
+	wd, err := os.Getwd()
+	require.NoError(t, err)
+	require.NoError(t, os.Chdir(dir))
+	t.Cleanup(func() {
+		t.Helper()
+		require.NoError(t, os.Chdir(wd))
+	})
+}
+
 //ServeFile starts an http server
 func ServeFile(t *testing.T, file, path, query string) *httptest.Server {
 	t.Helper()

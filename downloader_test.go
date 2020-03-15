@@ -289,7 +289,7 @@ func TestDownloader_UpdateChecksum(t *testing.T) {
 		Checksum: "wrongchecksum",
 	}
 	err := d.UpdateChecksum(UpdateChecksumOpts{
-		TargetDir: dir,
+		CellarDir: dir,
 	})
 	require.NoError(t, err)
 	require.Equal(t, testutil.FooChecksum, d.Checksum)
