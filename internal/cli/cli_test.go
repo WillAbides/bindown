@@ -92,6 +92,6 @@ func TestRun(t *testing.T) {
 		result := runCmd("config", "format")
 		assert.NotZero(t, result.exitVal)
 		result.assertStdOut(t, "")
-		result.assertError(t, "could not load config file")
+		result.assertError(t, "error loading config")
 	})
 }

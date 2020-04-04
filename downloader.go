@@ -1,9 +1,11 @@
 package bindown
 
 import (
+	"encoding/json"
 	"fmt"
 	"hash/fnv"
 	"io"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"net/url"
@@ -101,11 +103,16 @@ func (d *Downloader) moveOrLinkBin(targetDir, extractDir string) error {
 			return err
 		}
 
-		dst, err := filepath.Rel(targetDir, extractedBin)
+		var dst string
+		dst, err = filepath.Rel(targetDir, extractedBin)
 		if err != nil {
 			return err
 		}
 		return os.Symlink(dst, target)
+	}
+	err = os.MkdirAll(filepath.Dir(target), 0750)
+	if err != nil {
+		return err
 	}
 	return os.Rename(extractedBin, target)
 }
@@ -181,24 +188,27 @@ got: %s`, targetFile, d.Checksum, result)
 
 //UpdateChecksumOpts options for UpdateChecksum
 type UpdateChecksumOpts struct {
-	// DownloaderName is the downloader's key from the config file
-	DownloaderName string
-	// CellarDir is the directory where downloads and extractions will be placed.  Default is a <TargetDir>/.bindown
+	// CellarDir is the directory where downloads and extractions will be placed.  Default is a temp directory.
 	CellarDir string
-	// TargetDir is the directory where the executable should end up
-	TargetDir string
 }
 
 //UpdateChecksum updates the checksum based on a fresh download
 func (d *Downloader) UpdateChecksum(opts UpdateChecksumOpts) error {
 	cellarDir := opts.CellarDir
+	var err error
 	if cellarDir == "" {
-		cellarDir = filepath.Join(opts.TargetDir, ".bindown")
+		cellarDir, err = ioutil.TempDir("", "bindown")
+		if err != nil {
+			return err
+		}
+		defer func() {
+			_ = os.RemoveAll(cellarDir) //nolint:errcheck
+		}()
 	}
 
 	downloadDir := filepath.Join(cellarDir, "downloads", d.downloadsSubName())
 
-	err := d.download(downloadDir)
+	err = d.download(downloadDir)
 	if err != nil {
 		log.Printf("error downloading: %v", err)
 		return err
@@ -286,6 +296,52 @@ func (d *Downloader) Install(opts InstallOpts) error {
 		return err
 	}
 
+	return nil
+}
+
+//ValidateOpts is options for Validate
+type ValidateOpts struct {
+	// DownloaderName is the downloader's key from the config file
+	DownloaderName string
+	// CellarDir is the directory where downloads and extractions will be placed.  Default is a temp directory.
+	CellarDir string
+}
+
+//Validate installs the downloader to a temporary directory and returns an error if it was unsuccessful.
+// If cellarDir is "", it will use a temp directory
+func (d *Downloader) Validate(opts ValidateOpts) error {
+	tmpDir, err := ioutil.TempDir("", "bindown")
+	if err != nil {
+		return err
+	}
+	defer func() {
+		_ = os.RemoveAll(tmpDir) //nolint:errcheck
+	}()
+	binDir := filepath.Join(tmpDir, "bin")
+	err = os.MkdirAll(binDir, 0700)
+	if err != nil {
+		return err
+	}
+	if opts.CellarDir == "" {
+		opts.CellarDir = filepath.Join(tmpDir, "cellar")
+	}
+
+	dlJSON, err := json.MarshalIndent(d, "", "  ")
+	if err != nil {
+		return err
+	}
+
+	installOpts := InstallOpts{
+		DownloaderName: opts.DownloaderName,
+		TargetDir:      binDir,
+		Force:          true,
+		CellarDir:      opts.CellarDir,
+	}
+
+	err = d.Install(installOpts)
+	if err != nil {
+		return fmt.Errorf("could not validate downloader:\n%s", string(dlJSON))
+	}
 	return nil
 }
 

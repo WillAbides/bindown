@@ -19,18 +19,15 @@ var downloadKongVars = kong.Vars{
 }
 
 type downloadCmd struct {
-	Arch       string     `kong:"help=${download_arch_help},default=${download_arch_default},predictor=arch"`
-	OS         string     `kong:"help=${download_os_help},default=${download_os_default},predictor=os"`
+	Arch       string     `kong:"help=${download_arch_help},default=${download_arch_default},completer=arch"`
+	OS         string     `kong:"help=${download_os_help},default=${download_os_default},completer=os"`
 	Force      bool       `kong:"help=${download_force_help}"`
-	TargetFile string     `kong:"required=true,arg,help=${download_target_file_help},predictor=binpath"`
+	TargetFile string     `kong:"required=true,arg,help=${download_target_file_help},completer=binpath"`
 	ConfigOpts configOpts `kong:"embed"`
 }
 
-func (d *downloadCmd) Run(*kong.Context) error {
-	config, err := bindown.LoadConfigFile(d.ConfigOpts.Configfile)
-	if err != nil {
-		return fmt.Errorf("error loading config from %q", d.ConfigOpts.Configfile)
-	}
+func (d *downloadCmd) Run(kctx *kong.Context) error {
+	config := configFile(kctx)
 	binary := path.Base(d.TargetFile)
 	binDir := path.Dir(d.TargetFile)
 

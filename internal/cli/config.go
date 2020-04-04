@@ -1,16 +1,7 @@
 package cli
 
 import (
-	"encoding/json"
-	"fmt"
-	"io/ioutil"
-	"os"
-	"path"
-	"path/filepath"
-
 	"github.com/alecthomas/kong"
-	"github.com/willabides/bindown/v2"
-	"github.com/willabides/kongplete"
 )
 
 var configKongVars = kong.Vars{
@@ -23,129 +14,41 @@ var configKongVars = kong.Vars{
 }
 
 type configCmd struct {
-	Format             configFmtCmd                 `kong:"cmd,help=${config_format_help}"`
-	UpdateChecksums    configUpdateChecksumsCmd     `kong:"cmd,help=${config_checksums_bin_help}"`
-	Validate           configValidateCmd            `kong:"cmd,help=${config_validate_help}"`
-	InstallCompletions kongplete.InstallCompletions `kong:"cmd,help=${config_install_completions_help}"`
-	ConfigOpts         configOpts                   `kong:"embed"`
+	Format             configFmtCmd               `kong:"cmd,help=${config_format_help}"`
+	UpdateChecksums    configUpdateChecksumsCmd   `kong:"cmd,help=${config_checksums_bin_help}"`
+	Validate           configValidateCmd          `kong:"cmd,help=${config_validate_help}"`
+	InstallCompletions kong.InstallCompletionFlag `kong:"help=${config_install_completions_help}"`
+	ConfigOpts         configOpts                 `kong:"embed"`
 }
 
 type configFmtCmd struct{}
 
-func (c configFmtCmd) Run() error {
-	config, err := bindown.LoadConfigFile(cli.Config.ConfigOpts.Configfile)
-	if err != nil {
-		return fmt.Errorf("could not load config file %q", cli.Config.ConfigOpts.Configfile)
+func (c configFmtCmd) Run(kctx *kong.Context) error {
+	config := configFile(kctx)
+	if config != nil {
+		return config.Write()
 	}
-	return config.Write()
+	return nil
 }
 
 type configUpdateChecksumsCmd struct {
-	TargetFile string `kong:"required=true,arg,help=${config_checksums_bin_help},predictor=bin"`
+	TargetFile string `kong:"required=true,arg,help=${config_checksums_bin_help},completer=bin"`
 }
 
 func (d *configUpdateChecksumsCmd) Run(kctx *kong.Context) error {
-	config, err := bindown.LoadConfigFile(cli.Config.ConfigOpts.Configfile)
-	if err != nil {
-		return fmt.Errorf("error loading config from %q", cli.Config.ConfigOpts.Configfile)
-	}
-	tmpDir, err := ioutil.TempDir("", "bindown")
+	config := configFile(kctx)
+	err := config.UpdateChecksums(d.TargetFile, cli.Config.ConfigOpts.CellarDir)
 	if err != nil {
 		return err
 	}
-	defer func() {
-		err = os.RemoveAll(tmpDir)
-		if err != nil {
-			kctx.Errorf("error deleting temp directory, %q", tmpDir)
-		}
-	}()
-
-	binary := path.Base(d.TargetFile)
-	binDir := path.Dir(d.TargetFile)
-
-	cellarDir := cli.Config.ConfigOpts.CellarDir
-	if cellarDir == "" {
-		cellarDir = filepath.Join(tmpDir, "cellar")
-	}
-
-	downloaders, ok := config.Downloaders[binary]
-	if !ok {
-		return fmt.Errorf("nothing configured for %q", binary)
-	}
-
-	for _, downloader := range downloaders {
-		err = downloader.UpdateChecksum(bindown.UpdateChecksumOpts{
-			DownloaderName: binary,
-			CellarDir:      cellarDir,
-			TargetDir:      binDir,
-		})
-		if err != nil {
-			return err
-		}
-	}
-
 	return config.Write()
 }
 
 type configValidateCmd struct {
-	Bin string `kong:"required=true,arg,help=${config_validate_bin_help},predictor=bin"`
+	Bin string `kong:"required=true,arg,help=${config_validate_bin_help},completer=bin"`
 }
 
 func (d configValidateCmd) Run(kctx *kong.Context) error {
-	config, err := bindown.LoadConfigFile(cli.Config.ConfigOpts.Configfile)
-	if err != nil {
-		return fmt.Errorf("error loading config from %q", cli.Config.ConfigOpts.Configfile)
-	}
-	tmpDir, err := ioutil.TempDir("", "bindown")
-	if err != nil {
-		return err
-	}
-	defer func() {
-		err = os.RemoveAll(tmpDir)
-		if err != nil {
-			kctx.Errorf("error deleting temp directory, %q", tmpDir)
-		}
-	}()
-
-	binary := path.Base(d.Bin)
-	binDir := filepath.Join(tmpDir, "bin")
-	err = os.MkdirAll(binDir, 0700)
-	if err != nil {
-		return err
-	}
-
-	cellarDir := cli.Config.ConfigOpts.CellarDir
-	if cellarDir == "" {
-		cellarDir = filepath.Join(tmpDir, "cellar")
-	}
-
-	downloaders, ok := config.Downloaders[binary]
-	if !ok {
-		return fmt.Errorf("nothing configured for %q", binary)
-	}
-
-	for _, downloader := range downloaders {
-		dlJSON, err := json.MarshalIndent(downloader, "", "  ")
-		if err != nil {
-			return err
-		}
-
-		installOpts := bindown.InstallOpts{
-			DownloaderName: binary,
-			TargetDir:      binDir,
-			Force:          true,
-			CellarDir:      cellarDir,
-		}
-
-		err = downloader.Install(installOpts)
-		if err != nil {
-			return fmt.Errorf("could not validate downloader:\n%s", string(dlJSON))
-		}
-
-		err = os.Remove(filepath.Join(binDir, downloader.BinName))
-		if err != nil {
-			return err
-		}
-	}
-	return nil
+	config := configFile(kctx)
+	return config.Validate(d.Bin, cli.Config.ConfigOpts.CellarDir)
 }

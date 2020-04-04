@@ -22,10 +22,15 @@ func logCloseErr(closer io.Closer) {
 // this should only be used with hashers that are guaranteed to return a nil error from Write()
 func mustHexHash(hasher hash.Hash, data ...[]byte) string {
 	hsh, err := hexHash(hasher, data...)
+	must(err)
+	return hsh
+}
+
+// must is a single place to do all our error panics
+func must(err error) {
 	if err != nil {
 		panic(err)
 	}
-	return hsh
 }
 
 // hexHash returns a hex representation of data's hash

@@ -1,11 +1,15 @@
 package bindown
 
 import (
+	"bytes"
 	"crypto/sha256"
 	"hash/fnv"
+	"log"
 	"path/filepath"
+	"strings"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/willabides/bindown/v2/internal/testutil"
 	"github.com/willabides/bindown/v2/internal/util"
@@ -65,4 +69,33 @@ func Test_hexHash(t *testing.T) {
 	got, err = hexHash(sha256.New(), content)
 	require.NoError(t, err)
 	require.Equal(t, testutil.FooChecksum, got)
+}
+
+func Test_must(t *testing.T) {
+	require.Panics(t, func() {
+		must(assert.AnError)
+	})
+}
+
+func Test_logCloseErr(t *testing.T) {
+	oldLogWriter := log.Writer()
+	var buf bytes.Buffer
+	log.SetOutput(&buf)
+	t.Cleanup(func() {
+		log.SetOutput(oldLogWriter)
+	})
+	logCloseErr(&dummyCloser{})
+	require.Empty(t, buf.String())
+	logCloseErr(&dummyCloser{
+		err: assert.AnError,
+	})
+	require.True(t, strings.Contains(buf.String(), assert.AnError.Error()))
+}
+
+type dummyCloser struct {
+	err error
+}
+
+func (d *dummyCloser) Close() error {
+	return d.err
 }
