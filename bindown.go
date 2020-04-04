@@ -121,8 +121,7 @@ func (c *Config) UpdateChecksums(downloaderName, cellarDir string) error {
 		}
 		for _, downloader := range downloaders {
 			err := downloader.UpdateChecksum(UpdateChecksumOpts{
-				DownloaderName: binary,
-				CellarDir:      cellarDir,
+				CellarDir: cellarDir,
 			})
 			if err != nil {
 				return err
@@ -155,7 +154,10 @@ func (c *Config) Validate(downloaderName string, cellarDir string) error {
 			return fmt.Errorf("nothing configured for %q", binary)
 		}
 		for _, downloader := range dls {
-			err := downloader.Validate(binary, cellarDir)
+			err := downloader.Validate(ValidateOpts{
+				DownloaderName: binary,
+				CellarDir:      cellarDir,
+			})
 			if err != nil {
 				return err
 			}

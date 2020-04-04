@@ -103,11 +103,16 @@ func (d *Downloader) moveOrLinkBin(targetDir, extractDir string) error {
 			return err
 		}
 
-		dst, err := filepath.Rel(targetDir, extractedBin)
+		var dst string
+		dst, err = filepath.Rel(targetDir, extractedBin)
 		if err != nil {
 			return err
 		}
 		return os.Symlink(dst, target)
+	}
+	err = os.MkdirAll(filepath.Dir(target), 0750)
+	if err != nil {
+		return err
 	}
 	return os.Rename(extractedBin, target)
 }
@@ -183,9 +188,7 @@ got: %s`, targetFile, d.Checksum, result)
 
 //UpdateChecksumOpts options for UpdateChecksum
 type UpdateChecksumOpts struct {
-	// DownloaderName is the downloader's key from the config file
-	DownloaderName string
-	// CellarDir is the directory where downloads and extractions will be placed.  Default is a <TargetDir>/.bindown
+	// CellarDir is the directory where downloads and extractions will be placed.  Default is a temp directory.
 	CellarDir string
 }
 
@@ -296,9 +299,17 @@ func (d *Downloader) Install(opts InstallOpts) error {
 	return nil
 }
 
+//ValidateOpts is options for Validate
+type ValidateOpts struct {
+	// DownloaderName is the downloader's key from the config file
+	DownloaderName string
+	// CellarDir is the directory where downloads and extractions will be placed.  Default is a temp directory.
+	CellarDir string
+}
+
 //Validate installs the downloader to a temporary directory and returns an error if it was unsuccessful.
 // If cellarDir is "", it will use a temp directory
-func (d *Downloader) Validate(downloaderName, cellarDir string) error {
+func (d *Downloader) Validate(opts ValidateOpts) error {
 	tmpDir, err := ioutil.TempDir("", "bindown")
 	if err != nil {
 		return err
@@ -311,8 +322,8 @@ func (d *Downloader) Validate(downloaderName, cellarDir string) error {
 	if err != nil {
 		return err
 	}
-	if cellarDir == "" {
-		cellarDir = filepath.Join(tmpDir, "cellar")
+	if opts.CellarDir == "" {
+		opts.CellarDir = filepath.Join(tmpDir, "cellar")
 	}
 
 	dlJSON, err := json.MarshalIndent(d, "", "  ")
@@ -321,10 +332,10 @@ func (d *Downloader) Validate(downloaderName, cellarDir string) error {
 	}
 
 	installOpts := InstallOpts{
-		DownloaderName: downloaderName,
+		DownloaderName: opts.DownloaderName,
 		TargetDir:      binDir,
 		Force:          true,
-		CellarDir:      cellarDir,
+		CellarDir:      opts.CellarDir,
 	}
 
 	err = d.Install(installOpts)

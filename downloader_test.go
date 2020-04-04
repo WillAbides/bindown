@@ -282,15 +282,43 @@ func TestDownloader_Install(t *testing.T) {
 }
 
 func TestDownloader_UpdateChecksum(t *testing.T) {
-	dir := testutil.TmpDir(t)
 	ts := testutil.ServeFile(t, testutil.DownloadablesPath("foo.tar.gz"), "/foo/foo.tar.gz", "foo=bar")
 	d := &Downloader{
 		URL:      ts.URL + "/foo/foo.tar.gz?foo=bar",
 		Checksum: "wrongchecksum",
 	}
-	err := d.UpdateChecksum(UpdateChecksumOpts{
-		CellarDir: dir,
-	})
+	err := d.UpdateChecksum(UpdateChecksumOpts{})
 	require.NoError(t, err)
 	require.Equal(t, testutil.FooChecksum, d.Checksum)
+}
+
+func TestDownloader_Validate(t *testing.T) {
+	t.Run("invalid", func(t *testing.T) {
+		ts := testutil.ServeFile(t, testutil.DownloadablesPath("foo.tar.gz"), "/foo/foo.tar.gz", "foo=bar")
+		d := &Downloader{
+			URL:      ts.URL + "/foo/foo.tar.gz?foo=bar",
+			Checksum: "wrongchecksum",
+			OS:       "darwin",
+			Arch:     "amd64",
+		}
+		err := d.Validate(ValidateOpts{
+			DownloaderName: "foo",
+		})
+		assert.Error(t, err)
+		assert.True(t, strings.HasPrefix(err.Error(), "could not validate downloader"))
+	})
+
+	t.Run("valid", func(t *testing.T) {
+		ts := testutil.ServeFile(t, testutil.DownloadablesPath("foo.tar.gz"), "/foo/foo.tar.gz", "foo=bar")
+		d := &Downloader{
+			URL:      ts.URL + "/foo/foo.tar.gz?foo=bar",
+			Checksum: testutil.FooChecksum,
+			OS:       "darwin",
+			Arch:     "amd64",
+		}
+		err := d.Validate(ValidateOpts{
+			DownloaderName: "bin/foo.txt",
+		})
+		assert.NoError(t, err)
+	})
 }
