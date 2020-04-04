@@ -2,7 +2,7 @@ package cli
 
 import (
 	"github.com/alecthomas/kong"
-	"github.com/willabides/bindown/v2"
+	"github.com/willabides/bindown/v3"
 )
 
 var kongVars = kong.Vars{

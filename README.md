@@ -1,6 +1,6 @@
 # bindown
 
-[![godoc](https://godoc.org/github.com/WillAbides/bindown?status.svg)](https://pkg.go.dev/github.com/willabides/bindown/v2)
+[![godoc](https://godoc.org/github.com/WillAbides/bindown?status.svg)](https://pkg.go.dev/github.com/willabides/bindown/v3)
 [![Go Report Card](https://goreportcard.com/badge/github.com/WillAbides/bindown)](https://goreportcard.com/report/github.com/WillAbides/bindown)
 [![ci](https://github.com/WillAbides/bindown/workflows/ci/badge.svg)](https://github.com/WillAbides/bindown/actions?query=workflow%3Aci+branch%3Amaster+event%3Apush)
 [![Coverage Status](https://coveralls.io/repos/github/WillAbides/bindown/badge.svg?branch)](https://coveralls.io/github/WillAbides/bindown)
@@ -37,7 +37,7 @@ If you happen to already have go installed on your system, you can install
 bindown with:
 
 ```
-GO111MODULE=on go get -u github.com/willabides/bindown/v2/cmd/bindown 
+GO111MODULE=on go get -u github.com/willabides/bindown/v3/cmd/bindown 
 ```
 
 Note the lowercase `willabides`. Pro tip: Your life will be easier with a

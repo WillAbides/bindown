@@ -7,7 +7,7 @@ import (
 
 	"github.com/alecthomas/kong"
 	"github.com/killa-beez/gopkgs/sets/builtins"
-	"github.com/willabides/bindown/v2"
+	"github.com/willabides/bindown/v3"
 )
 
 func findConfigFileForCompletion(args []string) string {

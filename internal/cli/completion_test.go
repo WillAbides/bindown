@@ -9,8 +9,8 @@ import (
 	"github.com/alecthomas/kong"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/willabides/bindown/v2"
-	"github.com/willabides/bindown/v2/internal/testutil"
+	"github.com/willabides/bindown/v3"
+	"github.com/willabides/bindown/v3/internal/testutil"
 )
 
 func Test_findConfigFileForCompletion(t *testing.T) {

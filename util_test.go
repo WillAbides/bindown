@@ -11,8 +11,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/willabides/bindown/v2/internal/testutil"
-	"github.com/willabides/bindown/v2/internal/util"
+	"github.com/willabides/bindown/v3/internal/testutil"
+	"github.com/willabides/bindown/v3/internal/util"
 )
 
 func Test_fileExistsWithChecksum(t *testing.T) {

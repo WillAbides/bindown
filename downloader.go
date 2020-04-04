@@ -13,7 +13,7 @@ import (
 	"path/filepath"
 
 	"github.com/mholt/archiver/v3"
-	"github.com/willabides/bindown/v2/internal/util"
+	"github.com/willabides/bindown/v3/internal/util"
 	"gopkg.in/yaml.v2"
 )
 
