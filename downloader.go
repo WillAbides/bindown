@@ -26,12 +26,6 @@ type Downloader struct {
 	ArchivePath string `json:"archive_path,omitempty" yaml:"archive_path,omitempty"`
 	Link        bool   `json:"link,omitempty" yaml:",omitempty"`
 	BinName     string `json:"bin,omitempty" yaml:"bin,omitempty"`
-
-	// Deprecated: use ArchivePath
-	MoveFrom string `json:"move-from,omitempty" yaml:"move-from,omitempty"`
-
-	// Deprecated: use ArchivePath and Link
-	LinkSource string `json:"symlink,omitempty" yaml:"symlink,omitempty"`
 }
 
 func (d *Downloader) downloadableName() (string, error) {
@@ -59,15 +53,6 @@ func (d *Downloader) chmod(targetDir string) error {
 }
 
 func (d *Downloader) moveOrLinkBin(targetDir, extractDir string) error {
-	//noinspection GoDeprecation
-	if d.LinkSource != "" {
-		d.ArchivePath = d.LinkSource
-		d.Link = true
-	}
-	//noinspection GoDeprecation
-	if d.MoveFrom != "" {
-		d.ArchivePath = d.MoveFrom
-	}
 	archivePath := filepath.FromSlash(d.ArchivePath)
 	if archivePath == "" {
 		archivePath = filepath.FromSlash(d.BinName)
