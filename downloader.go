@@ -1,7 +1,6 @@
 package bindown
 
 import (
-	"encoding/json"
 	"fmt"
 	"hash/fnv"
 	"io"
@@ -15,6 +14,7 @@ import (
 
 	"github.com/mholt/archiver/v3"
 	"github.com/willabides/bindown/v2/internal/util"
+	"gopkg.in/yaml.v2"
 )
 
 // Downloader downloads a binary
@@ -326,7 +326,7 @@ func (d *Downloader) Validate(opts ValidateOpts) error {
 		opts.CellarDir = filepath.Join(tmpDir, "cellar")
 	}
 
-	dlJSON, err := json.MarshalIndent(d, "", "  ")
+	dlYAML, err := yaml.Marshal(d)
 	if err != nil {
 		return err
 	}
@@ -340,7 +340,7 @@ func (d *Downloader) Validate(opts ValidateOpts) error {
 
 	err = d.Install(installOpts)
 	if err != nil {
-		return fmt.Errorf("could not validate downloader:\n%s", string(dlJSON))
+		return fmt.Errorf("could not validate downloader:\n%s", string(dlYAML))
 	}
 	return nil
 }
