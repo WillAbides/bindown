@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/willabides/bindown/v2/internal/testutil"
 	"github.com/willabides/bindown/v2/internal/util"
@@ -65,4 +66,10 @@ func Test_hexHash(t *testing.T) {
 	got, err = hexHash(sha256.New(), content)
 	require.NoError(t, err)
 	require.Equal(t, testutil.FooChecksum, got)
+}
+
+func Test_must(t *testing.T) {
+	require.Panics(t, func() {
+		must(assert.AnError)
+	})
 }

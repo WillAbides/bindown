@@ -31,11 +31,10 @@ func (c *ConfigFile) Write() error {
 	switch c.format {
 	case formatJSON:
 		data, err = json.MarshalIndent(&c.Config, "", "  ")
+		must(err)
 	case formatYAML:
 		data, err = yaml.Marshal(&c.Config)
-	}
-	if err != nil {
-		return err
+		must(err)
 	}
 	return ioutil.WriteFile(c.file, data, 0600)
 }
