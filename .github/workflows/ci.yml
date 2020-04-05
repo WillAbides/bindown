@@ -18,8 +18,3 @@ jobs:
           bin/gcov2lcov -infile tmp/coverage.out -outfile tmp/coverage.lcov
       - run: make bin/bindown
       - run: script/lint
-      - if: success() && matrix.platform == 'ubuntu-latest'
-        uses: coverallsapp/github-action@master
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          path-to-lcov: ./tmp/coverage.lcov
