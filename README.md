@@ -94,6 +94,8 @@ _default_: the downloader name
 
 ### Example
 
+#### Simple config without templates
+
 ```yaml
 downloaders:
   golangci-lint:
@@ -117,6 +119,42 @@ downloaders:
     link: true
 ```
 
+#### With templates
+
+```yaml
+downloaders:  
+  golangci-lint:
+  - os: darwin
+    arch: amd64
+    url: https://github.com/golangci/golangci-lint/releases/download/v{{.version}}/golangci-lint-{{.version}}-{{.os}}-{{.arch}}{{.urlsuffix}}
+    archive_path: golangci-lint-{{.version}}-{{.os}}-{{.arch}}/golangci-lint{{.archivepathsuffix}}
+    link: true
+    checksum: 7536c375997cca3d2e1f063958ad0344108ce23aed6bd372b69153bdbda82d13
+    vars:
+      archivepathsuffix: ""
+      urlsuffix: .tar.gz
+      version: 1.23.7
+  - os: linux
+    arch: amd64
+    url: https://github.com/golangci/golangci-lint/releases/download/v{{.version}}/golangci-lint-{{.version}}-{{.os}}-{{.arch}}{{.urlsuffix}}
+    archive_path: golangci-lint-{{.version}}-{{.os}}-{{.arch}}/golangci-lint{{.archivepathsuffix}}
+    link: true
+    checksum: 34df1794a2ea8e168b3c98eed3cc0f3e13ed4cba735e4e40ef141df5c41bc086
+    vars:
+      archivepathsuffix: ""
+      urlsuffix: .tar.gz
+      version: 1.23.7
+  - os: windows
+    arch: amd64
+    url: https://github.com/golangci/golangci-lint/releases/download/v{{.version}}/golangci-lint-{{.version}}-{{.os}}-{{.arch}}{{.urlsuffix}}
+    archive_path: golangci-lint-{{.version}}-{{.os}}-{{.arch}}/golangci-lint{{.archivepathsuffix}}
+    link: true
+    checksum: 8ccb76466e4cdaebfc1633c137043c0bec23173749a6bca42846c7350402dcfe
+    vars:
+      archivepathsuffix: .exe
+      urlsuffix: .zip
+      version: 1.23.7
+```
 
 ## Usage
 
