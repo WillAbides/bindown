@@ -48,6 +48,11 @@ lowercase GitHub username.
 `bindown` is configured with a yaml file. By default it uses a file named
 `bindown.yml` in the current directory.
 
+### Templates
+
+Some fields below are marked with "_allows templates_". These fields allow you to use simple go templates that will be 
+evaluated by bindown using the `os`, `arch` and `vars` values.
+
 ### Downloader values
 
 #### os 
@@ -62,7 +67,7 @@ _required_
 The system architecture this binary is build for. Common values are `amd64`, `386` and `arm`.
 
 #### url
-_required_
+_required_, _allows templates_
 
 The url to download from. The url can point to either the binary itself or an archive containing the binary.
 
@@ -74,6 +79,7 @@ can get the value from there or run `bindown config update-checksums <bin-name>`
 automatically.
 
 #### archive path
+_allows templates_
 
 The path to the binary once the downloaded archive has been extracted. If the download is just the unarchived binary,
 this should just be the downloaded file name.
@@ -87,10 +93,15 @@ Whether bindown should create a symlink instead of moving the binary to its fina
 _default_: false
 
 #### bin
+_allows templates_
 
 What you want the final binary to be called if different from the downloader name.
 
 _default_: the downloader name
+
+#### vars
+
+A map of string values to use in templated values.
 
 ### Example
 
