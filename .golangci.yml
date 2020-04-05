@@ -17,7 +17,6 @@ linters:
     - gocyclo
     - goconst
     - goimports
-    - maligned
     - gocritic
 linters-settings:
   errcheck:

@@ -46,8 +46,9 @@ func Test_Downloader_validateChecksum(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
 		dir := testutil.TmpDir(t)
 		d := &Downloader{
-			URL:      "foo/foo.tar.gz",
-			Checksum: testutil.FooChecksum,
+			URL:         "foo/foo.tar.gz",
+			Checksum:    testutil.FooChecksum,
+			tmplApplied: true,
 		}
 		require.NoError(t, util.CopyFile(testutil.DownloadablesPath("foo.tar.gz"), filepath.Join(dir, "foo.tar.gz"), nil))
 		err := d.validateChecksum(dir)
@@ -58,8 +59,9 @@ func Test_Downloader_validateChecksum(t *testing.T) {
 	t.Run("missing file", func(t *testing.T) {
 		dir := testutil.TmpDir(t)
 		d := &Downloader{
-			URL:      "foo/foo.tar.gz",
-			Checksum: testutil.FooChecksum,
+			URL:         "foo/foo.tar.gz",
+			Checksum:    testutil.FooChecksum,
+			tmplApplied: true,
 		}
 
 		err := d.validateChecksum(dir)
@@ -69,8 +71,9 @@ func Test_Downloader_validateChecksum(t *testing.T) {
 	t.Run("mismatch", func(t *testing.T) {
 		dir := testutil.TmpDir(t)
 		d := &Downloader{
-			URL:      "foo/foo.tar.gz",
-			Checksum: "deadbeef",
+			URL:         "foo/foo.tar.gz",
+			Checksum:    "deadbeef",
+			tmplApplied: true,
 		}
 		require.NoError(t, util.CopyFile(testutil.DownloadablesPath("foo.tar.gz"), filepath.Join(dir, "foo.tar.gz"), nil))
 		err := d.validateChecksum(dir)
@@ -82,8 +85,9 @@ func Test_Downloader_validateChecksum(t *testing.T) {
 func TestDownloader_extract(t *testing.T) {
 	dir := testutil.TmpDir(t)
 	d := &Downloader{
-		URL:      "foo/foo.tar.gz",
-		Checksum: testutil.FooChecksum,
+		URL:         "foo/foo.tar.gz",
+		Checksum:    testutil.FooChecksum,
+		tmplApplied: true,
 	}
 	downloadDir := filepath.Join(dir, "download")
 	extractDir := filepath.Join(dir, "extract")

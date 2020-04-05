@@ -48,6 +48,11 @@ lowercase GitHub username.
 `bindown` is configured with a yaml file. By default it uses a file named
 `bindown.yml` in the current directory.
 
+### Templates
+
+Some fields below are marked with "_allows templates_". These fields allow you to use simple go templates that will be 
+evaluated by bindown using the `os`, `arch` and `vars` values.
+
 ### Downloader values
 
 #### os 
@@ -62,7 +67,7 @@ _required_
 The system architecture this binary is build for. Common values are `amd64`, `386` and `arm`.
 
 #### url
-_required_
+_required_, _allows templates_
 
 The url to download from. The url can point to either the binary itself or an archive containing the binary.
 
@@ -74,6 +79,7 @@ can get the value from there or run `bindown config update-checksums <bin-name>`
 automatically.
 
 #### archive path
+_allows templates_
 
 The path to the binary once the downloaded archive has been extracted. If the download is just the unarchived binary,
 this should just be the downloaded file name.
@@ -87,12 +93,19 @@ Whether bindown should create a symlink instead of moving the binary to its fina
 _default_: false
 
 #### bin
+_allows templates_
 
 What you want the final binary to be called if different from the downloader name.
 
 _default_: the downloader name
 
+#### vars
+
+A map of string values to use in templated values.
+
 ### Example
+
+#### Simple config without templates
 
 ```yaml
 downloaders:
@@ -117,6 +130,42 @@ downloaders:
     link: true
 ```
 
+#### With templates
+
+```yaml
+downloaders:  
+  golangci-lint:
+  - os: darwin
+    arch: amd64
+    url: https://github.com/golangci/golangci-lint/releases/download/v{{.version}}/golangci-lint-{{.version}}-{{.os}}-{{.arch}}{{.urlsuffix}}
+    archive_path: golangci-lint-{{.version}}-{{.os}}-{{.arch}}/golangci-lint{{.archivepathsuffix}}
+    link: true
+    checksum: 7536c375997cca3d2e1f063958ad0344108ce23aed6bd372b69153bdbda82d13
+    vars:
+      archivepathsuffix: ""
+      urlsuffix: .tar.gz
+      version: 1.23.7
+  - os: linux
+    arch: amd64
+    url: https://github.com/golangci/golangci-lint/releases/download/v{{.version}}/golangci-lint-{{.version}}-{{.os}}-{{.arch}}{{.urlsuffix}}
+    archive_path: golangci-lint-{{.version}}-{{.os}}-{{.arch}}/golangci-lint{{.archivepathsuffix}}
+    link: true
+    checksum: 34df1794a2ea8e168b3c98eed3cc0f3e13ed4cba735e4e40ef141df5c41bc086
+    vars:
+      archivepathsuffix: ""
+      urlsuffix: .tar.gz
+      version: 1.23.7
+  - os: windows
+    arch: amd64
+    url: https://github.com/golangci/golangci-lint/releases/download/v{{.version}}/golangci-lint-{{.version}}-{{.os}}-{{.arch}}{{.urlsuffix}}
+    archive_path: golangci-lint-{{.version}}-{{.os}}-{{.arch}}/golangci-lint{{.archivepathsuffix}}
+    link: true
+    checksum: 8ccb76466e4cdaebfc1633c137043c0bec23173749a6bca42846c7350402dcfe
+    vars:
+      archivepathsuffix: .exe
+      urlsuffix: .zip
+      version: 1.23.7
+```
 
 ## Usage
 
