@@ -194,9 +194,17 @@ func (d *Downloader) setDefaultBinName(defaultName string) {
 	}
 }
 
-func (d *Downloader) validateChecksum(targetDir string) error {
+func (d *Downloader) validateChecksum(targetDir string, knownChecksums map[string]string) error {
 	d.requireApplyTemplates()
-	targetFile, err := d.downloadablePath(targetDir)
+	dl := d.clone()
+	u, err := dl.url()
+	if err != nil {
+		return err
+	}
+	if knownChecksums != nil && dl.Checksum == "" {
+		dl.Checksum = knownChecksums[u]
+	}
+	targetFile, err := dl.downloadablePath(targetDir)
 	if err != nil {
 		return err
 	}
@@ -204,7 +212,7 @@ func (d *Downloader) validateChecksum(targetDir string) error {
 	if err != nil {
 		return err
 	}
-	if d.Checksum != result {
+	if dl.Checksum != result {
 		defer func() {
 			delErr := os.RemoveAll(targetFile)
 			if delErr != nil {
@@ -213,7 +221,7 @@ func (d *Downloader) validateChecksum(targetDir string) error {
 		}()
 		return fmt.Errorf(`checksum mismatch in downloaded file %q 
 wanted: %s
-got: %s`, targetFile, d.Checksum, result)
+got: %s`, targetFile, dl.Checksum, result)
 	}
 	return nil
 }
@@ -234,10 +242,19 @@ func (d *Downloader) UpdateChecksum(opts UpdateChecksumOpts) error {
 	return nil
 }
 
+func (d *Downloader) url() (string, error) {
+	dl := d.clone()
+	err := dl.applyTemplates()
+	if err != nil {
+		return "", err
+	}
+	return dl.URL, nil
+}
+
 //getUpdatedChecksum downloads the archive and returns its actual checksum.
 func (d *Downloader) getUpdatedChecksum(opts UpdateChecksumOpts) (string, error) {
-	d = d.clone()
-	err := d.applyTemplates()
+	dl := d.clone()
+	err := dl.applyTemplates()
 	if err != nil {
 		return "", err
 	}
@@ -252,15 +269,15 @@ func (d *Downloader) getUpdatedChecksum(opts UpdateChecksumOpts) (string, error)
 		}()
 	}
 
-	downloadDir := filepath.Join(cellarDir, "downloads", d.downloadsSubName())
+	downloadDir := filepath.Join(cellarDir, "downloads", dl.downloadsSubName())
 
-	err = d.download(downloadDir)
+	err = dl.download(downloadDir)
 	if err != nil {
 		log.Printf("error downloading: %v", err)
 		return "", err
 	}
 
-	dlPath, err := d.downloadablePath(downloadDir)
+	dlPath, err := dl.downloadablePath(downloadDir)
 	if err != nil {
 		return "", err
 	}
@@ -278,6 +295,8 @@ type InstallOpts struct {
 	TargetDir string
 	// Force - whether to force the install even if it already exists
 	Force bool
+	// Map of known checksums to validate against
+	URLChecksums map[string]string
 }
 
 func (d *Downloader) downloadsSubName() string {
@@ -316,7 +335,7 @@ func (d *Downloader) Install(opts InstallOpts) error {
 		return err
 	}
 
-	err = d.validateChecksum(downloadDir)
+	err = d.validateChecksum(downloadDir, opts.URLChecksums)
 	if err != nil {
 		log.Printf("error validating: %v", err)
 		return err

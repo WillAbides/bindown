@@ -86,7 +86,15 @@ func loadConfigFromJSON(data []byte) (*Config, error) {
 
 //Config is downloaders configuration
 type Config struct {
-	Downloaders map[string][]*Downloader `json:"downloaders,omitempty" yaml:"downloaders"`
+	Downloaders  map[string][]*Downloader `json:"downloaders,omitempty" yaml:"downloaders"`
+	URLChecksums map[string]string        `json:"url_checksums,omitempty" yaml:"url_checksums,omitempty"`
+}
+
+func (c *Config) urlChecksum(url string) string {
+	if c.URLChecksums == nil {
+		c.URLChecksums = map[string]string{}
+	}
+	return c.URLChecksums[url]
 }
 
 // Downloader returns a Downloader for the given binary, os and arch.
@@ -106,8 +114,11 @@ func (c *Config) Downloader(binary, os, arch string) *Downloader {
 	return nil
 }
 
-//UpdateChecksums updates checksums
-func (c *Config) UpdateChecksums(downloaderName, cellarDir string) error {
+//AddDownloaderChecksums adds checksums to c.URLChecksums
+func (c *Config) AddDownloaderChecksums(downloaderName, cellarDir string) error {
+	if c.URLChecksums == nil {
+		c.URLChecksums = make(map[string]string, 1)
+	}
 	names := c.allDownloaderNames()
 	if downloaderName != "" {
 		names = []string{downloaderName}
@@ -118,14 +129,25 @@ func (c *Config) UpdateChecksums(downloaderName, cellarDir string) error {
 		if !ok {
 			return fmt.Errorf("nothing configured for %q", binary)
 		}
-		for _, downloader := range downloaders {
-			err := downloader.UpdateChecksum(UpdateChecksumOpts{
+		for i := range downloaders {
+			url, err := downloaders[i].url()
+			if err != nil {
+				return err
+			}
+			if c.URLChecksums[url] != "" {
+				downloaders[i].Checksum = ""
+				continue
+			}
+			sum, err := downloaders[i].getUpdatedChecksum(UpdateChecksumOpts{
 				CellarDir: cellarDir,
 			})
 			if err != nil {
 				return err
 			}
+			downloaders[i].Checksum = ""
+			c.URLChecksums[url] = sum
 		}
+		c.Downloaders[binary] = downloaders
 	}
 	return nil
 }
@@ -153,7 +175,15 @@ func (c *Config) Validate(downloaderName string, cellarDir string) error {
 			return fmt.Errorf("nothing configured for %q", binary)
 		}
 		for _, downloader := range dls {
-			err := downloader.Validate(ValidateOpts{
+			dl := downloader.clone()
+			url, err := downloader.url()
+			if err != nil {
+				return err
+			}
+			if dl.Checksum == "" {
+				dl.Checksum = c.urlChecksum(url)
+			}
+			err = dl.Validate(ValidateOpts{
 				DownloaderName: binary,
 				CellarDir:      cellarDir,
 			})
