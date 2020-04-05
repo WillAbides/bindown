@@ -44,6 +44,7 @@ arch: %s`, binary, d.OS, d.Arch)
 		TargetDir:      binDir,
 		Force:          d.Force,
 		CellarDir:      d.ConfigOpts.CellarDir,
+		URLChecksums:   config.URLChecksums,
 	}
 
 	return downloader.Install(installOpts)

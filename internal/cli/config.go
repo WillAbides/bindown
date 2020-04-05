@@ -37,7 +37,7 @@ type configUpdateChecksumsCmd struct {
 
 func (d *configUpdateChecksumsCmd) Run(kctx *kong.Context) error {
 	config := configFile(kctx)
-	err := config.UpdateChecksums(d.TargetFile, cli.Config.ConfigOpts.CellarDir)
+	err := config.AddDownloaderChecksums(d.TargetFile, cli.Config.ConfigOpts.CellarDir)
 	if err != nil {
 		return err
 	}

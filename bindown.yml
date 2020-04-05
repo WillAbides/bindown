@@ -4,24 +4,20 @@ downloaders:
     arch: amd64
     url: https://github.com/myitcv/gobin/releases/download/v0.0.10/darwin-amd64
     archive_path: darwin-amd64
-    checksum: 84ed966949e06bebd7d006bc343caf9d736932fd8b37df5cb5b268a28d07bd30
   - os: linux
     arch: amd64
     url: https://github.com/myitcv/gobin/releases/download/v0.0.10/linux-amd64
     archive_path: linux-amd64
-    checksum: 415266d9af98578067051653f5057ea267c51ebf085408df48b118a8b978bac6
   - os: windows
     arch: amd64
     url: https://github.com/myitcv/gobin/releases/download/v0.0.13/windows-amd64
     archive_path: windows-amd64
-    checksum: 70d3688c652bba96f377eb5d3a8068a07274024876c6e3b8d3785f0a63348905
   golangci-lint:
   - os: darwin
     arch: amd64
     url: https://github.com/golangci/golangci-lint/releases/download/v{{.version}}/golangci-lint-{{.version}}-{{.os}}-{{.arch}}{{.urlsuffix}}
     archive_path: golangci-lint-{{.version}}-{{.os}}-{{.arch}}/golangci-lint{{.archivepathsuffix}}
     link: true
-    checksum: 7536c375997cca3d2e1f063958ad0344108ce23aed6bd372b69153bdbda82d13
     vars:
       archivepathsuffix: ""
       urlsuffix: .tar.gz
@@ -31,7 +27,6 @@ downloaders:
     url: https://github.com/golangci/golangci-lint/releases/download/v{{.version}}/golangci-lint-{{.version}}-{{.os}}-{{.arch}}{{.urlsuffix}}
     archive_path: golangci-lint-{{.version}}-{{.os}}-{{.arch}}/golangci-lint{{.archivepathsuffix}}
     link: true
-    checksum: 34df1794a2ea8e168b3c98eed3cc0f3e13ed4cba735e4e40ef141df5c41bc086
     vars:
       archivepathsuffix: ""
       urlsuffix: .tar.gz
@@ -41,7 +36,6 @@ downloaders:
     url: https://github.com/golangci/golangci-lint/releases/download/v{{.version}}/golangci-lint-{{.version}}-{{.os}}-{{.arch}}{{.urlsuffix}}
     archive_path: golangci-lint-{{.version}}-{{.os}}-{{.arch}}/golangci-lint{{.archivepathsuffix}}
     link: true
-    checksum: 8ccb76466e4cdaebfc1633c137043c0bec23173749a6bca42846c7350402dcfe
     vars:
       archivepathsuffix: .exe
       urlsuffix: .zip
@@ -50,27 +44,34 @@ downloaders:
   - os: darwin
     arch: amd64
     url: https://github.com/goreleaser/goreleaser/releases/download/v0.120.7/goreleaser_Darwin_x86_64.tar.gz
-    checksum: 2ec8bb354cca2936d0722e7da770c37e2ba6cc90de4a1cea186e20968c47b663
   - os: linux
     arch: amd64
     url: https://github.com/goreleaser/goreleaser/releases/download/v0.120.7/goreleaser_Linux_x86_64.tar.gz
-    checksum: 771f2ad8219078b16a3e82097e9805309f6516640f0c6ab6b87f9b085a8ad743
   - os: windows
     arch: amd64
     url: https://github.com/goreleaser/goreleaser/releases/download/v0.120.7/goreleaser_Windows_x86_64.zip
     archive_path: goreleaser.exe
-    checksum: 0e06f50e1b2213a84b493d32a805dd6d8e8ad960ec9526edd8ecd96e2ab91743
   semver-next:
   - os: darwin
     arch: amd64
     url: https://github.com/WillAbides/semver-next/releases/download/v0.4.0/semver-next_0.4.0_darwin_amd64.tar.gz
-    checksum: a519f2c3bbe8972deb094d56c196fec89496f663431321c22be343ced23839fb
   - os: linux
     arch: amd64
     url: https://github.com/WillAbides/semver-next/releases/download/v0.4.0/semver-next_0.4.0_linux_amd64.tar.gz
-    checksum: 6317c36bec63158038381e8878601151ae996310fef58306f70cb03f1b46ef7f
   - os: windows
     arch: amd64
     url: https://github.com/WillAbides/semver-next/releases/download/v0.4.0/semver-next_0.4.0_windows_amd64.tar.gz
     archive_path: semver-next.exe
-    checksum: 573ea65ef3b40442626fbb19d07880bb4929e7b12fd7161e41732a03f23b2c95
+url_checksums:
+  https://github.com/WillAbides/semver-next/releases/download/v0.4.0/semver-next_0.4.0_darwin_amd64.tar.gz: a519f2c3bbe8972deb094d56c196fec89496f663431321c22be343ced23839fb
+  https://github.com/WillAbides/semver-next/releases/download/v0.4.0/semver-next_0.4.0_linux_amd64.tar.gz: 6317c36bec63158038381e8878601151ae996310fef58306f70cb03f1b46ef7f
+  https://github.com/WillAbides/semver-next/releases/download/v0.4.0/semver-next_0.4.0_windows_amd64.tar.gz: 573ea65ef3b40442626fbb19d07880bb4929e7b12fd7161e41732a03f23b2c95
+  https://github.com/golangci/golangci-lint/releases/download/v1.23.7/golangci-lint-1.23.7-darwin-amd64.tar.gz: 7536c375997cca3d2e1f063958ad0344108ce23aed6bd372b69153bdbda82d13
+  https://github.com/golangci/golangci-lint/releases/download/v1.23.7/golangci-lint-1.23.7-linux-amd64.tar.gz: 34df1794a2ea8e168b3c98eed3cc0f3e13ed4cba735e4e40ef141df5c41bc086
+  https://github.com/golangci/golangci-lint/releases/download/v1.23.7/golangci-lint-1.23.7-windows-amd64.zip: 8ccb76466e4cdaebfc1633c137043c0bec23173749a6bca42846c7350402dcfe
+  https://github.com/goreleaser/goreleaser/releases/download/v0.120.7/goreleaser_Darwin_x86_64.tar.gz: 2ec8bb354cca2936d0722e7da770c37e2ba6cc90de4a1cea186e20968c47b663
+  https://github.com/goreleaser/goreleaser/releases/download/v0.120.7/goreleaser_Linux_x86_64.tar.gz: 771f2ad8219078b16a3e82097e9805309f6516640f0c6ab6b87f9b085a8ad743
+  https://github.com/goreleaser/goreleaser/releases/download/v0.120.7/goreleaser_Windows_x86_64.zip: 0e06f50e1b2213a84b493d32a805dd6d8e8ad960ec9526edd8ecd96e2ab91743
+  https://github.com/myitcv/gobin/releases/download/v0.0.10/darwin-amd64: 84ed966949e06bebd7d006bc343caf9d736932fd8b37df5cb5b268a28d07bd30
+  https://github.com/myitcv/gobin/releases/download/v0.0.10/linux-amd64: 415266d9af98578067051653f5057ea267c51ebf085408df48b118a8b978bac6
+  https://github.com/myitcv/gobin/releases/download/v0.0.13/windows-amd64: 70d3688c652bba96f377eb5d3a8068a07274024876c6e3b8d3785f0a63348905

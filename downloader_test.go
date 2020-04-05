@@ -51,7 +51,7 @@ func Test_Downloader_validateChecksum(t *testing.T) {
 			tmplApplied: true,
 		}
 		require.NoError(t, util.CopyFile(testutil.DownloadablesPath("foo.tar.gz"), filepath.Join(dir, "foo.tar.gz"), nil))
-		err := d.validateChecksum(dir)
+		err := d.validateChecksum(dir, nil)
 		assert.NoError(t, err)
 		assert.True(t, fileExists(filepath.Join(dir, "foo.tar.gz")))
 	})
@@ -64,7 +64,7 @@ func Test_Downloader_validateChecksum(t *testing.T) {
 			tmplApplied: true,
 		}
 
-		err := d.validateChecksum(dir)
+		err := d.validateChecksum(dir, nil)
 		assert.Error(t, err)
 	})
 
@@ -76,7 +76,7 @@ func Test_Downloader_validateChecksum(t *testing.T) {
 			tmplApplied: true,
 		}
 		require.NoError(t, util.CopyFile(testutil.DownloadablesPath("foo.tar.gz"), filepath.Join(dir, "foo.tar.gz"), nil))
-		err := d.validateChecksum(dir)
+		err := d.validateChecksum(dir, nil)
 		assert.Error(t, err)
 		assert.False(t, fileExists(filepath.Join(dir, "foo.tar.gz")))
 	})
