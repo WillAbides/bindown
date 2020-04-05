@@ -37,8 +37,8 @@ func CopyFile(src, dst string, closeCloser func(io.Closer)) error {
 	return err
 }
 
-//copyStringMap returns a copy of mp
-func copyStringMap(mp map[string]string) map[string]string {
+//CopyStringMap returns a copy of mp
+func CopyStringMap(mp map[string]string) map[string]string {
 	result := make(map[string]string, len(mp))
 	for k, v := range mp {
 		result[k] = v
@@ -57,7 +57,7 @@ func setStringMapDefault(mp map[string]string, key, val string) {
 
 //ExecuteTemplate executes a template
 func ExecuteTemplate(tmplString string, os, arch string, vars map[string]string) (string, error) {
-	vars = copyStringMap(vars)
+	vars = CopyStringMap(vars)
 	setStringMapDefault(vars, "os", os)
 	setStringMapDefault(vars, "arch", arch)
 	tmpl, err := template.New("").Option("missingkey=error").Parse(tmplString)

@@ -22,14 +22,23 @@ type Downloader struct {
 	OS          string            `json:"os"`
 	Arch        string            `json:"arch"`
 	URL         string            `json:"url"`
-	Checksum    string            `json:"checksum,omitempty" yaml:",omitempty"`
 	ArchivePath string            `json:"archive_path,omitempty" yaml:"archive_path,omitempty"`
 	BinName     string            `json:"bin,omitempty" yaml:"bin,omitempty"`
-	Vars        map[string]string `json:"vars,omitempty" yaml:"vars,omitempty"`
 	Link        bool              `json:"link,omitempty" yaml:",omitempty"`
+	Checksum    string            `json:"checksum,omitempty" yaml:",omitempty"`
+	Vars        map[string]string `json:"vars,omitempty" yaml:"vars,omitempty"`
 
 	//set to true by applyTemplates
 	tmplApplied bool
+}
+
+func (d *Downloader) clone() *Downloader {
+	c := new(Downloader)
+	*c = *d
+	if c.Vars != nil {
+		c.Vars = util.CopyStringMap(c.Vars)
+	}
+	return c
 }
 
 func (d *Downloader) requireApplyTemplates() {
@@ -217,15 +226,26 @@ type UpdateChecksumOpts struct {
 
 //UpdateChecksum updates the checksum based on a fresh download
 func (d *Downloader) UpdateChecksum(opts UpdateChecksumOpts) error {
-	err := d.applyTemplates()
+	sum, err := d.getUpdatedChecksum(opts)
 	if err != nil {
 		return err
+	}
+	d.Checksum = sum
+	return nil
+}
+
+//getUpdatedChecksum downloads the archive and returns its actual checksum.
+func (d *Downloader) getUpdatedChecksum(opts UpdateChecksumOpts) (string, error) {
+	d = d.clone()
+	err := d.applyTemplates()
+	if err != nil {
+		return "", err
 	}
 	cellarDir := opts.CellarDir
 	if cellarDir == "" {
 		cellarDir, err = ioutil.TempDir("", "bindown")
 		if err != nil {
-			return err
+			return "", err
 		}
 		defer func() {
 			_ = os.RemoveAll(cellarDir) //nolint:errcheck
@@ -237,21 +257,15 @@ func (d *Downloader) UpdateChecksum(opts UpdateChecksumOpts) error {
 	err = d.download(downloadDir)
 	if err != nil {
 		log.Printf("error downloading: %v", err)
-		return err
+		return "", err
 	}
 
 	dlPath, err := d.downloadablePath(downloadDir)
 	if err != nil {
-		return err
+		return "", err
 	}
 
-	checkSum, err := fileChecksum(dlPath)
-	if err != nil {
-		return err
-	}
-
-	d.Checksum = checkSum
-	return nil
+	return fileChecksum(dlPath)
 }
 
 //InstallOpts options for Install
