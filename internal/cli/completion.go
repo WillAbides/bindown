@@ -18,13 +18,26 @@ func findConfigFileForCompletion(args []string) string {
 		if arg != "--configfile" {
 			continue
 		}
-		return multifileFindExisting(args[i+1])
+		return prepCompletionConfigFile(args[i+1])
 	}
 	cf, ok := os.LookupEnv("BINDOWN_CONFIG_FILE")
 	if ok {
-		return multifileFindExisting(cf)
+		return prepCompletionConfigFile(cf)
 	}
-	return multifileFindExisting(kongVars["configfile_default"])
+	return prepCompletionConfigFile(kongVars["configfile_default"])
+}
+
+// prepCompletionConfigFile expands the path and returns "" if it isn't an existing file
+func prepCompletionConfigFile(path string) string {
+	path = kong.ExpandPath(path)
+	stat, err := os.Stat(path)
+	if err != nil {
+		return ""
+	}
+	if stat.IsDir() {
+		return ""
+	}
+	return path
 }
 
 func completionConfig(args []string) *bindown.ConfigFile {

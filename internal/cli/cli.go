@@ -41,7 +41,6 @@ func newParser(kongOptions ...kong.Option) *kong.Kong {
 		downloadKongVars,
 		configKongVars,
 		kong.UsageOnError(),
-		kong.NamedMapper("multipath", kong.MapperFunc(multipathMapper)),
 	)
 	return kong.Must(&cli, kongOptions...)
 }
