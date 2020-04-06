@@ -2,16 +2,22 @@ downloaders:
   gobin:
   - os: darwin
     arch: amd64
-    url: https://github.com/myitcv/gobin/releases/download/v0.0.10/darwin-amd64
-    archive_path: darwin-amd64
+    url: https://github.com/myitcv/gobin/releases/download/v{{.version}}/{{.os}}-{{.arch}}
+    archive_path: '{{.os}}-{{.arch}}'
+    vars:
+      version: 0.0.13
   - os: linux
     arch: amd64
-    url: https://github.com/myitcv/gobin/releases/download/v0.0.10/linux-amd64
-    archive_path: linux-amd64
+    url: https://github.com/myitcv/gobin/releases/download/v{{.version}}/{{.os}}-{{.arch}}
+    archive_path: '{{.os}}-{{.arch}}'
+    vars:
+      version: 0.0.13
   - os: windows
     arch: amd64
-    url: https://github.com/myitcv/gobin/releases/download/v0.0.13/windows-amd64
-    archive_path: windows-amd64
+    url: https://github.com/myitcv/gobin/releases/download/v{{.version}}/{{.os}}-{{.arch}}
+    archive_path: '{{.os}}-{{.arch}}'
+    vars:
+      version: 0.0.13
   golangci-lint:
   - os: darwin
     arch: amd64
@@ -19,7 +25,7 @@ downloaders:
     archive_path: golangci-lint-{{.version}}-{{.os}}-{{.arch}}/golangci-lint{{.archivepathsuffix}}
     link: true
     vars:
-      archivepathsuffix: ""
+      archivepathsuffix:
       urlsuffix: .tar.gz
       version: 1.23.7
   - os: linux
@@ -28,7 +34,7 @@ downloaders:
     archive_path: golangci-lint-{{.version}}-{{.os}}-{{.arch}}/golangci-lint{{.archivepathsuffix}}
     link: true
     vars:
-      archivepathsuffix: ""
+      archivepathsuffix:
       urlsuffix: .tar.gz
       version: 1.23.7
   - os: windows
@@ -43,25 +49,53 @@ downloaders:
   goreleaser:
   - os: darwin
     arch: amd64
-    url: https://github.com/goreleaser/goreleaser/releases/download/v0.120.7/goreleaser_Darwin_x86_64.tar.gz
+    url: https://github.com/goreleaser/goreleaser/releases/download/v{{.version}}/goreleaser_{{.os}}_{{.arch}}{{.urlsuffix}}
+    archive_path: goreleaser{{.archivepathsuffix}}
+    vars:
+      arch: x86_64
+      archivepathsuffix:
+      os: Darwin
+      urlsuffix: .tar.gz
+      version: 0.120.7
   - os: linux
     arch: amd64
-    url: https://github.com/goreleaser/goreleaser/releases/download/v0.120.7/goreleaser_Linux_x86_64.tar.gz
+    url: https://github.com/goreleaser/goreleaser/releases/download/v{{.version}}/goreleaser_{{.os}}_{{.arch}}{{.urlsuffix}}
+    archive_path: goreleaser{{.archivepathsuffix}}
+    vars:
+      arch: x86_64
+      archivepathsuffix:
+      os: Linux
+      urlsuffix: .tar.gz
+      version: 0.120.7
   - os: windows
     arch: amd64
-    url: https://github.com/goreleaser/goreleaser/releases/download/v0.120.7/goreleaser_Windows_x86_64.zip
-    archive_path: goreleaser.exe
+    url: https://github.com/goreleaser/goreleaser/releases/download/v{{.version}}/goreleaser_{{.os}}_{{.arch}}{{.urlsuffix}}
+    archive_path: goreleaser{{.archivepathsuffix}}
+    vars:
+      arch: x86_64
+      archivepathsuffix: .exe
+      os: Windows
+      urlsuffix: .zip
+      version: 0.120.7
   semver-next:
   - os: darwin
     arch: amd64
-    url: https://github.com/WillAbides/semver-next/releases/download/v0.4.0/semver-next_0.4.0_darwin_amd64.tar.gz
+    url: https://github.com/WillAbides/semver-next/releases/download/v{{.version}}/semver-next_{{.version}}_{{.os}}_{{.arch}}.tar.gz
+    vars:
+      archivepathsuffix:
+      version: 0.4.0
   - os: linux
     arch: amd64
-    url: https://github.com/WillAbides/semver-next/releases/download/v0.4.0/semver-next_0.4.0_linux_amd64.tar.gz
+    url: https://github.com/WillAbides/semver-next/releases/download/v{{.version}}/semver-next_{{.version}}_{{.os}}_{{.arch}}.tar.gz
+    vars:
+      archivepathsuffix:
+      version: 0.4.0
   - os: windows
     arch: amd64
-    url: https://github.com/WillAbides/semver-next/releases/download/v0.4.0/semver-next_0.4.0_windows_amd64.tar.gz
+    url: https://github.com/WillAbides/semver-next/releases/download/v{{.version}}/semver-next_{{.version}}_{{.os}}_{{.arch}}.tar.gz
     archive_path: semver-next.exe
+    vars:
+      version: 0.4.0
 url_checksums:
   https://github.com/WillAbides/semver-next/releases/download/v0.4.0/semver-next_0.4.0_darwin_amd64.tar.gz: a519f2c3bbe8972deb094d56c196fec89496f663431321c22be343ced23839fb
   https://github.com/WillAbides/semver-next/releases/download/v0.4.0/semver-next_0.4.0_linux_amd64.tar.gz: 6317c36bec63158038381e8878601151ae996310fef58306f70cb03f1b46ef7f
@@ -74,4 +108,7 @@ url_checksums:
   https://github.com/goreleaser/goreleaser/releases/download/v0.120.7/goreleaser_Windows_x86_64.zip: 0e06f50e1b2213a84b493d32a805dd6d8e8ad960ec9526edd8ecd96e2ab91743
   https://github.com/myitcv/gobin/releases/download/v0.0.10/darwin-amd64: 84ed966949e06bebd7d006bc343caf9d736932fd8b37df5cb5b268a28d07bd30
   https://github.com/myitcv/gobin/releases/download/v0.0.10/linux-amd64: 415266d9af98578067051653f5057ea267c51ebf085408df48b118a8b978bac6
+  https://github.com/myitcv/gobin/releases/download/v0.0.10/windows-amd64: c8a36b3791af31996cd723d7be4923fc5cc527290dbe9a79a913784b79c43cf9
+  https://github.com/myitcv/gobin/releases/download/v0.0.13/darwin-amd64: 4e6b22d1e85634178455059306f30b24a960cbc619abc63d3e2f0e91bc0194b5
+  https://github.com/myitcv/gobin/releases/download/v0.0.13/linux-amd64: 07725808fe920a10f7821a4d6f39558c4732279b41e81970e8087e0c3e6d54ba
   https://github.com/myitcv/gobin/releases/download/v0.0.13/windows-amd64: 70d3688c652bba96f377eb5d3a8068a07274024876c6e3b8d3785f0a63348905
