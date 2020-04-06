@@ -11,6 +11,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"strings"
 
 	"github.com/mholt/archiver/v3"
 	"github.com/willabides/bindown/v2/internal/util"
@@ -103,7 +104,7 @@ func (d *Downloader) moveOrLinkBin(targetDir, extractDir string) error {
 	}
 	var err error
 	target := d.binPath(targetDir)
-	if fileExists(target) {
+	if util.FileExists(target) {
 		err = os.RemoveAll(target)
 		if err != nil {
 			return err
@@ -143,7 +144,7 @@ func (d *Downloader) moveOrLinkBin(targetDir, extractDir string) error {
 	if err != nil {
 		return err
 	}
-	return os.Rename(extractedBin, target)
+	return util.CopyFile(extractedBin, target, nil)
 }
 
 func (d *Downloader) extract(downloadDir, extractDir string) error {
@@ -152,6 +153,15 @@ func (d *Downloader) extract(downloadDir, extractDir string) error {
 	if err != nil {
 		return err
 	}
+	extractSumFile := filepath.Join(downloadDir, ".extractsum")
+	if wantSum, sumErr := ioutil.ReadFile(extractSumFile); sumErr == nil { //nolint:gosec
+		var exs string
+		exs, sumErr = util.DirectoryChecksum(extractDir)
+		if sumErr == nil && exs == strings.TrimSpace(string(wantSum)) {
+			return nil
+		}
+	}
+
 	err = os.RemoveAll(extractDir)
 	if err != nil {
 		return err
@@ -165,7 +175,16 @@ func (d *Downloader) extract(downloadDir, extractDir string) error {
 	if err != nil {
 		return util.CopyFile(tarPath, filepath.Join(extractDir, dlName), logCloseErr)
 	}
-	return archiver.Unarchive(tarPath, extractDir)
+	err = archiver.Unarchive(tarPath, extractDir)
+	if err != nil {
+		return err
+	}
+	extractSum, err := util.DirectoryChecksum(extractDir)
+	if err != nil {
+		return err
+	}
+
+	return ioutil.WriteFile(extractSumFile, []byte(extractSum), 0640)
 }
 
 func (d *Downloader) download(downloadDir string) error {
@@ -178,7 +197,7 @@ func (d *Downloader) download(downloadDir string) error {
 	if err != nil {
 		return err
 	}
-	ok, err := fileExistsWithChecksum(dlPath, d.Checksum)
+	ok, err := util.FileExistsWithChecksum(dlPath, d.Checksum)
 	if err != nil {
 		return err
 	}
@@ -208,7 +227,7 @@ func (d *Downloader) validateChecksum(targetDir string, knownChecksums map[strin
 	if err != nil {
 		return err
 	}
-	result, err := fileChecksum(targetFile)
+	result, err := util.FileChecksum(targetFile)
 	if err != nil {
 		return err
 	}
@@ -229,7 +248,8 @@ got: %s`, targetFile, dl.Checksum, result)
 //UpdateChecksumOpts options for UpdateChecksum
 type UpdateChecksumOpts struct {
 	// CellarDir is the directory where downloads and extractions will be placed.  Default is a temp directory.
-	CellarDir string
+	CellarDir    string
+	URLChecksums map[string]string
 }
 
 //UpdateChecksum updates the checksum based on a fresh download
@@ -269,7 +289,7 @@ func (d *Downloader) getUpdatedChecksum(opts UpdateChecksumOpts) (string, error)
 		}()
 	}
 
-	downloadDir := filepath.Join(cellarDir, "downloads", dl.downloadsSubName())
+	downloadDir := filepath.Join(cellarDir, "downloads", dl.downloadsSubName(opts.URLChecksums))
 
 	err = dl.download(downloadDir)
 	if err != nil {
@@ -282,7 +302,7 @@ func (d *Downloader) getUpdatedChecksum(opts UpdateChecksumOpts) (string, error)
 		return "", err
 	}
 
-	return fileChecksum(dlPath)
+	return util.FileChecksum(dlPath)
 }
 
 //InstallOpts options for Install
@@ -299,28 +319,50 @@ type InstallOpts struct {
 	URLChecksums map[string]string
 }
 
-func (d *Downloader) downloadsSubName() string {
-	return mustHexHash(fnv.New64a(), []byte(d.Checksum))
+func (d *Downloader) downloadsSubName(knownChecksums map[string]string) string {
+	checksum := d.Checksum
+	u, err := d.url()
+	if err == nil && knownChecksums != nil {
+		if knownChecksums[u] != "" {
+			checksum = knownChecksums[u]
+		}
+	}
+	return mustHexHash(fnv.New64a(), []byte(checksum))
 }
 
-func (d *Downloader) extractsSubName() string {
-	return mustHexHash(fnv.New64a(), []byte(d.Checksum), []byte(d.BinName))
+func (d *Downloader) extractsSubName(knownChecksums map[string]string) string {
+	checksum := d.Checksum
+	u, err := d.url()
+	if err == nil && knownChecksums != nil {
+		if knownChecksums[u] != "" {
+			checksum = knownChecksums[u]
+		}
+	}
+	return mustHexHash(fnv.New64a(), []byte(checksum), []byte(d.BinName))
 }
 
 //Install downloads and installs a bin
 func (d *Downloader) Install(opts InstallOpts) error {
-	err := d.applyTemplates()
+	dl := d.clone()
+	err := dl.applyTemplates()
 	if err != nil {
 		return err
 	}
-	d.setDefaultBinName(opts.DownloaderName)
+	u, err := d.url()
+	if err == nil && opts.URLChecksums != nil {
+		if opts.URLChecksums[u] != "" {
+			dl.Checksum = opts.URLChecksums[u]
+		}
+	}
+
+	dl.setDefaultBinName(opts.DownloaderName)
 	cellarDir := opts.CellarDir
 	if cellarDir == "" {
 		cellarDir = filepath.Join(opts.TargetDir, ".bindown")
 	}
 
-	downloadDir := filepath.Join(cellarDir, "downloads", d.downloadsSubName())
-	extractDir := filepath.Join(cellarDir, "extracts", d.extractsSubName())
+	downloadDir := filepath.Join(cellarDir, "downloads", dl.downloadsSubName(opts.URLChecksums))
+	extractDir := filepath.Join(cellarDir, "extracts", dl.extractsSubName(opts.URLChecksums))
 
 	if opts.Force {
 		err = os.RemoveAll(downloadDir)
@@ -329,31 +371,31 @@ func (d *Downloader) Install(opts InstallOpts) error {
 		}
 	}
 
-	err = d.download(downloadDir)
+	err = dl.download(downloadDir)
 	if err != nil {
 		log.Printf("error downloading: %v", err)
 		return err
 	}
 
-	err = d.validateChecksum(downloadDir, opts.URLChecksums)
+	err = dl.validateChecksum(downloadDir, opts.URLChecksums)
 	if err != nil {
 		log.Printf("error validating: %v", err)
 		return err
 	}
 
-	err = d.extract(downloadDir, extractDir)
+	err = dl.extract(downloadDir, extractDir)
 	if err != nil {
 		log.Printf("error extracting: %v", err)
 		return err
 	}
 
-	err = d.moveOrLinkBin(opts.TargetDir, extractDir)
+	err = dl.moveOrLinkBin(opts.TargetDir, extractDir)
 	if err != nil {
 		log.Printf("error moving: %v", err)
 		return err
 	}
 
-	err = d.chmod(opts.TargetDir)
+	err = dl.chmod(opts.TargetDir)
 	if err != nil {
 		log.Printf("error chmodding: %v", err)
 		return err
