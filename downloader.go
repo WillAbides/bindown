@@ -19,22 +19,57 @@ import (
 
 // Downloader downloads a binary
 type Downloader struct {
-	OS          string `json:"os"`
-	Arch        string `json:"arch"`
-	URL         string `json:"url"`
-	Checksum    string `json:"checksum,omitempty" yaml:",omitempty"`
-	ArchivePath string `json:"archive_path,omitempty" yaml:"archive_path,omitempty"`
-	Link        bool   `json:"link,omitempty" yaml:",omitempty"`
-	BinName     string `json:"bin,omitempty" yaml:"bin,omitempty"`
+	OS          string            `json:"os"`
+	Arch        string            `json:"arch"`
+	URL         string            `json:"url"`
+	ArchivePath string            `json:"archive_path,omitempty" yaml:"archive_path,omitempty"`
+	BinName     string            `json:"bin,omitempty" yaml:"bin,omitempty"`
+	Link        bool              `json:"link,omitempty" yaml:",omitempty"`
+	Checksum    string            `json:"checksum,omitempty" yaml:",omitempty"`
+	Vars        map[string]string `json:"vars,omitempty" yaml:"vars,omitempty"`
 
-	// Deprecated: use ArchivePath
-	MoveFrom string `json:"move-from,omitempty" yaml:"move-from,omitempty"`
+	//set to true by applyTemplates
+	tmplApplied bool
+}
 
-	// Deprecated: use ArchivePath and Link
-	LinkSource string `json:"symlink,omitempty" yaml:"symlink,omitempty"`
+func (d *Downloader) clone() *Downloader {
+	c := new(Downloader)
+	*c = *d
+	if c.Vars != nil {
+		c.Vars = util.CopyStringMap(c.Vars)
+	}
+	return c
+}
+
+func (d *Downloader) requireApplyTemplates() {
+	if !d.tmplApplied {
+		panic("templates not applied")
+	}
+}
+
+func (d *Downloader) applyTemplates() error {
+	executeTemplate := func(tmpl string) (string, error) {
+		return util.ExecuteTemplate(tmpl, d.OS, d.Arch, d.Vars)
+	}
+	var err error
+	d.URL, err = executeTemplate(d.URL)
+	if err != nil {
+		return err
+	}
+	d.ArchivePath, err = executeTemplate(d.ArchivePath)
+	if err != nil {
+		return err
+	}
+	d.BinName, err = executeTemplate(d.BinName)
+	if err != nil {
+		return err
+	}
+	d.tmplApplied = true
+	return nil
 }
 
 func (d *Downloader) downloadableName() (string, error) {
+	d.requireApplyTemplates()
 	u, err := url.Parse(d.URL)
 	if err != nil {
 		return "", err
@@ -43,6 +78,7 @@ func (d *Downloader) downloadableName() (string, error) {
 }
 
 func (d *Downloader) downloadablePath(targetDir string) (string, error) {
+	d.requireApplyTemplates()
 	name, err := d.downloadableName()
 	if err != nil {
 		return "", err
@@ -51,6 +87,7 @@ func (d *Downloader) downloadablePath(targetDir string) (string, error) {
 }
 
 func (d *Downloader) binPath(targetDir string) string {
+	d.requireApplyTemplates()
 	return filepath.Join(targetDir, d.BinName)
 }
 
@@ -59,15 +96,7 @@ func (d *Downloader) chmod(targetDir string) error {
 }
 
 func (d *Downloader) moveOrLinkBin(targetDir, extractDir string) error {
-	//noinspection GoDeprecation
-	if d.LinkSource != "" {
-		d.ArchivePath = d.LinkSource
-		d.Link = true
-	}
-	//noinspection GoDeprecation
-	if d.MoveFrom != "" {
-		d.ArchivePath = d.MoveFrom
-	}
+	d.requireApplyTemplates()
 	archivePath := filepath.FromSlash(d.ArchivePath)
 	if archivePath == "" {
 		archivePath = filepath.FromSlash(d.BinName)
@@ -118,6 +147,7 @@ func (d *Downloader) moveOrLinkBin(targetDir, extractDir string) error {
 }
 
 func (d *Downloader) extract(downloadDir, extractDir string) error {
+	d.requireApplyTemplates()
 	dlName, err := d.downloadableName()
 	if err != nil {
 		return err
@@ -139,6 +169,7 @@ func (d *Downloader) extract(downloadDir, extractDir string) error {
 }
 
 func (d *Downloader) download(downloadDir string) error {
+	d.requireApplyTemplates()
 	dlPath, err := d.downloadablePath(downloadDir)
 	if err != nil {
 		return err
@@ -163,8 +194,17 @@ func (d *Downloader) setDefaultBinName(defaultName string) {
 	}
 }
 
-func (d *Downloader) validateChecksum(targetDir string) error {
-	targetFile, err := d.downloadablePath(targetDir)
+func (d *Downloader) validateChecksum(targetDir string, knownChecksums map[string]string) error {
+	d.requireApplyTemplates()
+	dl := d.clone()
+	u, err := dl.url()
+	if err != nil {
+		return err
+	}
+	if knownChecksums != nil && dl.Checksum == "" {
+		dl.Checksum = knownChecksums[u]
+	}
+	targetFile, err := dl.downloadablePath(targetDir)
 	if err != nil {
 		return err
 	}
@@ -172,7 +212,7 @@ func (d *Downloader) validateChecksum(targetDir string) error {
 	if err != nil {
 		return err
 	}
-	if d.Checksum != result {
+	if dl.Checksum != result {
 		defer func() {
 			delErr := os.RemoveAll(targetFile)
 			if delErr != nil {
@@ -181,7 +221,7 @@ func (d *Downloader) validateChecksum(targetDir string) error {
 		}()
 		return fmt.Errorf(`checksum mismatch in downloaded file %q 
 wanted: %s
-got: %s`, targetFile, d.Checksum, result)
+got: %s`, targetFile, dl.Checksum, result)
 	}
 	return nil
 }
@@ -194,38 +234,55 @@ type UpdateChecksumOpts struct {
 
 //UpdateChecksum updates the checksum based on a fresh download
 func (d *Downloader) UpdateChecksum(opts UpdateChecksumOpts) error {
+	sum, err := d.getUpdatedChecksum(opts)
+	if err != nil {
+		return err
+	}
+	d.Checksum = sum
+	return nil
+}
+
+func (d *Downloader) url() (string, error) {
+	dl := d.clone()
+	err := dl.applyTemplates()
+	if err != nil {
+		return "", err
+	}
+	return dl.URL, nil
+}
+
+//getUpdatedChecksum downloads the archive and returns its actual checksum.
+func (d *Downloader) getUpdatedChecksum(opts UpdateChecksumOpts) (string, error) {
+	dl := d.clone()
+	err := dl.applyTemplates()
+	if err != nil {
+		return "", err
+	}
 	cellarDir := opts.CellarDir
-	var err error
 	if cellarDir == "" {
 		cellarDir, err = ioutil.TempDir("", "bindown")
 		if err != nil {
-			return err
+			return "", err
 		}
 		defer func() {
 			_ = os.RemoveAll(cellarDir) //nolint:errcheck
 		}()
 	}
 
-	downloadDir := filepath.Join(cellarDir, "downloads", d.downloadsSubName())
+	downloadDir := filepath.Join(cellarDir, "downloads", dl.downloadsSubName())
 
-	err = d.download(downloadDir)
+	err = dl.download(downloadDir)
 	if err != nil {
 		log.Printf("error downloading: %v", err)
-		return err
+		return "", err
 	}
 
-	dlPath, err := d.downloadablePath(downloadDir)
+	dlPath, err := dl.downloadablePath(downloadDir)
 	if err != nil {
-		return err
+		return "", err
 	}
 
-	checkSum, err := fileChecksum(dlPath)
-	if err != nil {
-		return err
-	}
-
-	d.Checksum = checkSum
-	return nil
+	return fileChecksum(dlPath)
 }
 
 //InstallOpts options for Install
@@ -238,6 +295,8 @@ type InstallOpts struct {
 	TargetDir string
 	// Force - whether to force the install even if it already exists
 	Force bool
+	// Map of known checksums to validate against
+	URLChecksums map[string]string
 }
 
 func (d *Downloader) downloadsSubName() string {
@@ -250,6 +309,10 @@ func (d *Downloader) extractsSubName() string {
 
 //Install downloads and installs a bin
 func (d *Downloader) Install(opts InstallOpts) error {
+	err := d.applyTemplates()
+	if err != nil {
+		return err
+	}
 	d.setDefaultBinName(opts.DownloaderName)
 	cellarDir := opts.CellarDir
 	if cellarDir == "" {
@@ -260,19 +323,19 @@ func (d *Downloader) Install(opts InstallOpts) error {
 	extractDir := filepath.Join(cellarDir, "extracts", d.extractsSubName())
 
 	if opts.Force {
-		err := os.RemoveAll(downloadDir)
+		err = os.RemoveAll(downloadDir)
 		if err != nil {
 			return err
 		}
 	}
 
-	err := d.download(downloadDir)
+	err = d.download(downloadDir)
 	if err != nil {
 		log.Printf("error downloading: %v", err)
 		return err
 	}
 
-	err = d.validateChecksum(downloadDir)
+	err = d.validateChecksum(downloadDir, opts.URLChecksums)
 	if err != nil {
 		log.Printf("error validating: %v", err)
 		return err
@@ -310,6 +373,10 @@ type ValidateOpts struct {
 //Validate installs the downloader to a temporary directory and returns an error if it was unsuccessful.
 // If cellarDir is "", it will use a temp directory
 func (d *Downloader) Validate(opts ValidateOpts) error {
+	err := d.applyTemplates()
+	if err != nil {
+		return err
+	}
 	tmpDir, err := ioutil.TempDir("", "bindown")
 	if err != nil {
 		return err

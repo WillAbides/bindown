@@ -155,7 +155,7 @@ func TestConfig_Downloader(t *testing.T) {
 	assert.Nil(t, got)
 }
 
-func TestConfig_UpdateChecksums(t *testing.T) {
+func TestConfig_AddDownloaderChecksums(t *testing.T) {
 	ts := testutil.ServeFile(t, testutil.DownloadablesPath("foo.tar.gz"), "/foo/foo.tar.gz", "foo=bar")
 	dlURL := ts.URL + "/foo/foo.tar.gz?foo=bar"
 	getConfig := func() Config {
@@ -201,11 +201,14 @@ func TestConfig_UpdateChecksums(t *testing.T) {
 	t.Run("updates all", func(t *testing.T) {
 		dir := testutil.TmpDir(t)
 		config := getConfig()
-		err := config.UpdateChecksums("", dir)
+		err := config.AddDownloaderChecksums("", dir)
 		require.NoError(t, err)
 		for _, downloaders := range config.Downloaders {
 			for _, downloader := range downloaders {
-				require.Equal(t, testutil.FooChecksum, downloader.Checksum)
+				require.Empty(t, downloader.Checksum)
+				dlURL, err := downloader.url()
+				require.NoError(t, err)
+				require.Equal(t, testutil.FooChecksum, config.URLChecksums[dlURL])
 			}
 		}
 	})
@@ -213,20 +216,23 @@ func TestConfig_UpdateChecksums(t *testing.T) {
 	t.Run("updates one", func(t *testing.T) {
 		dir := testutil.TmpDir(t)
 		config := getConfig()
-		err := config.UpdateChecksums("bar", dir)
+		err := config.AddDownloaderChecksums("bar", dir)
 		require.NoError(t, err)
 		for _, downloader := range config.Downloaders["foo"] {
 			require.Equal(t, "deadbeef", downloader.Checksum)
 		}
 		for _, downloader := range config.Downloaders["bar"] {
-			require.Equal(t, testutil.FooChecksum, downloader.Checksum)
+			require.Empty(t, downloader.Checksum)
+			dlURL, err := downloader.url()
+			require.NoError(t, err)
+			require.Equal(t, testutil.FooChecksum, config.URLChecksums[dlURL])
 		}
 	})
 
 	t.Run("downloader doesn't exist", func(t *testing.T) {
 		dir := testutil.TmpDir(t)
 		config := getConfig()
-		err := config.UpdateChecksums("fake", dir)
+		err := config.AddDownloaderChecksums("fake", dir)
 		require.EqualError(t, err, `nothing configured for "fake"`)
 	})
 
@@ -246,7 +252,7 @@ func TestConfig_UpdateChecksums(t *testing.T) {
 				},
 			},
 		}
-		err := config.UpdateChecksums("foo", dir)
+		err := config.AddDownloaderChecksums("foo", dir)
 		require.Error(t, err)
 	})
 }

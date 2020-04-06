@@ -64,3 +64,22 @@ func TestCopyFile(t *testing.T) {
 		require.Equal(t, content, got)
 	})
 }
+
+func TestExecuteTemplate(t *testing.T) {
+	t.Run("success", func(t *testing.T) {
+		vars := map[string]string{
+			"version": "1.2.3",
+		}
+		tmpl := `whatever-{{.version}}/mybin-{{.os}}-{{.arch}}`
+		got, err := ExecuteTemplate(tmpl, "Linux", "arm", vars)
+		require.NoError(t, err)
+		require.Equal(t, "whatever-1.2.3/mybin-Linux-arm", got)
+	})
+
+	t.Run("nil vars", func(t *testing.T) {
+		tmpl := `whatever/mybin-{{.os}}-{{.arch}}`
+		got, err := ExecuteTemplate(tmpl, "Linux", "arm", nil)
+		require.NoError(t, err)
+		require.Equal(t, "whatever/mybin-Linux-arm", got)
+	})
+}

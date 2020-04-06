@@ -46,11 +46,12 @@ func Test_Downloader_validateChecksum(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
 		dir := testutil.TmpDir(t)
 		d := &Downloader{
-			URL:      "foo/foo.tar.gz",
-			Checksum: testutil.FooChecksum,
+			URL:         "foo/foo.tar.gz",
+			Checksum:    testutil.FooChecksum,
+			tmplApplied: true,
 		}
 		require.NoError(t, util.CopyFile(testutil.DownloadablesPath("foo.tar.gz"), filepath.Join(dir, "foo.tar.gz"), nil))
-		err := d.validateChecksum(dir)
+		err := d.validateChecksum(dir, nil)
 		assert.NoError(t, err)
 		assert.True(t, fileExists(filepath.Join(dir, "foo.tar.gz")))
 	})
@@ -58,22 +59,24 @@ func Test_Downloader_validateChecksum(t *testing.T) {
 	t.Run("missing file", func(t *testing.T) {
 		dir := testutil.TmpDir(t)
 		d := &Downloader{
-			URL:      "foo/foo.tar.gz",
-			Checksum: testutil.FooChecksum,
+			URL:         "foo/foo.tar.gz",
+			Checksum:    testutil.FooChecksum,
+			tmplApplied: true,
 		}
 
-		err := d.validateChecksum(dir)
+		err := d.validateChecksum(dir, nil)
 		assert.Error(t, err)
 	})
 
 	t.Run("mismatch", func(t *testing.T) {
 		dir := testutil.TmpDir(t)
 		d := &Downloader{
-			URL:      "foo/foo.tar.gz",
-			Checksum: "deadbeef",
+			URL:         "foo/foo.tar.gz",
+			Checksum:    "deadbeef",
+			tmplApplied: true,
 		}
 		require.NoError(t, util.CopyFile(testutil.DownloadablesPath("foo.tar.gz"), filepath.Join(dir, "foo.tar.gz"), nil))
-		err := d.validateChecksum(dir)
+		err := d.validateChecksum(dir, nil)
 		assert.Error(t, err)
 		assert.False(t, fileExists(filepath.Join(dir, "foo.tar.gz")))
 	})
@@ -82,8 +85,9 @@ func Test_Downloader_validateChecksum(t *testing.T) {
 func TestDownloader_extract(t *testing.T) {
 	dir := testutil.TmpDir(t)
 	d := &Downloader{
-		URL:      "foo/foo.tar.gz",
-		Checksum: testutil.FooChecksum,
+		URL:         "foo/foo.tar.gz",
+		Checksum:    testutil.FooChecksum,
+		tmplApplied: true,
 	}
 	downloadDir := filepath.Join(dir, "download")
 	extractDir := filepath.Join(dir, "extract")
@@ -217,47 +221,7 @@ func TestDownloader_Install(t *testing.T) {
 		require.NoError(t, err)
 	})
 
-	t.Run("legacy MoveFrom", func(t *testing.T) {
-		dir := testutil.TmpDir(t)
-		ts := testutil.ServeFile(t, testutil.DownloadablesPath("foo.tar.gz"), "/foo/foo.tar.gz", "foo=bar")
-		d := &Downloader{
-			URL:      ts.URL + "/foo/foo.tar.gz?foo=bar",
-			Checksum: testutil.FooChecksum,
-			BinName:  "foo.txt",
-			MoveFrom: "bin/foo.txt",
-			Arch:     "amd64",
-			OS:       "darwin",
-		}
-		err := d.Install(InstallOpts{
-			TargetDir: dir,
-			Force:     true,
-		})
-		assert.NoError(t, err)
-	})
-
 	t.Run("link", func(t *testing.T) {
-		dir := testutil.TmpDir(t)
-		ts := testutil.ServeFile(t, testutil.DownloadablesPath("foo.tar.gz"), "/foo/foo.tar.gz", "foo=bar")
-		d := &Downloader{
-			URL:        ts.URL + "/foo/foo.tar.gz?foo=bar",
-			Checksum:   testutil.FooChecksum,
-			BinName:    "foo",
-			LinkSource: "bin/foo.txt",
-			Arch:       "amd64",
-			OS:         "darwin",
-		}
-		err := d.Install(InstallOpts{
-			TargetDir: dir,
-			Force:     true,
-		})
-		assert.NoError(t, err)
-		linksTo, err := os.Readlink(filepath.Join(dir, "foo"))
-		assert.NoError(t, err)
-		absLinkTo := filepath.Join(dir, linksTo)
-		assert.True(t, fileExists(absLinkTo))
-	})
-
-	t.Run("legacy LinkSource", func(t *testing.T) {
 		dir := testutil.TmpDir(t)
 		ts := testutil.ServeFile(t, testutil.DownloadablesPath("foo.tar.gz"), "/foo/foo.tar.gz", "foo=bar")
 		d := &Downloader{
