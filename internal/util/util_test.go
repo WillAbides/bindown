@@ -2,7 +2,6 @@ package util
 
 import (
 	"crypto/sha256"
-	"fmt"
 	"hash/fnv"
 	"os"
 	"path/filepath"
@@ -141,53 +140,4 @@ func Test_hexHash(t *testing.T) {
 	got, err = HexHash(sha256.New(), content)
 	require.NoError(t, err)
 	require.Equal(t, testutil.FooChecksum, got)
-}
-
-func TestWalk(t *testing.T) {
-	inputDir := ".."
-	got, err := DirectoryChecksum(inputDir)
-	require.NoError(t, err)
-
-	fmt.Println(got)
-}
-
-func TestLink(t *testing.T) {
-	//foo := testutil.ProjectPath("tmp", "foo")
-	foo := filepath.FromSlash("../../tmp/foo")
-	fmt.Println(foo)
-	info, err := os.Lstat(foo)
-	require.NoError(t, err)
-	rl, err := os.Readlink(foo)
-	require.NoError(t, err)
-	fmt.Println("rl", rl)
-	fmt.Println(info.Mode()&os.ModeSymlink != 0)
-	fmt.Println(info.Mode() & os.ModeType)
-	fmt.Println(info.Mode().String())
-	got, err := filepath.EvalSymlinks(foo)
-	require.NoError(t, err)
-	fmt.Println(got)
-}
-
-func TestLinkWalk(t *testing.T) {
-	inputDir := filepath.FromSlash("../../tmp")
-	err := filepath.Walk(filepath.FromSlash(inputDir), func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-		linfo, err := os.Lstat(path)
-		if err != nil {
-			return err
-		}
-		// if it's a symlink, just add the target path to the hash
-		if linfo.Mode()&os.ModeSymlink != 0 {
-			linkPath, err := os.Readlink(path)
-			if err != nil {
-				return err
-			}
-
-			fmt.Println(path, "->", linkPath)
-		}
-		return nil
-	})
-	require.NoError(t, err)
 }
