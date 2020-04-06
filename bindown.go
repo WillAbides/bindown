@@ -139,7 +139,8 @@ func (c *Config) AddDownloaderChecksums(downloaderName, cellarDir string) error 
 				continue
 			}
 			sum, err := downloaders[i].getUpdatedChecksum(UpdateChecksumOpts{
-				CellarDir: cellarDir,
+				CellarDir:    cellarDir,
+				URLChecksums: c.URLChecksums,
 			})
 			if err != nil {
 				return err
