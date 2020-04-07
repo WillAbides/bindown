@@ -53,7 +53,7 @@ func Test_Downloader_validateChecksum(t *testing.T) {
 		require.NoError(t, util.CopyFile(testutil.DownloadablesPath("foo.tar.gz"), filepath.Join(dir, "foo.tar.gz"), nil))
 		err := d.validateChecksum(dir, nil)
 		assert.NoError(t, err)
-		assert.True(t, fileExists(filepath.Join(dir, "foo.tar.gz")))
+		assert.True(t, util.FileExists(filepath.Join(dir, "foo.tar.gz")))
 	})
 
 	t.Run("missing file", func(t *testing.T) {
@@ -78,7 +78,7 @@ func Test_Downloader_validateChecksum(t *testing.T) {
 		require.NoError(t, util.CopyFile(testutil.DownloadablesPath("foo.tar.gz"), filepath.Join(dir, "foo.tar.gz"), nil))
 		err := d.validateChecksum(dir, nil)
 		assert.Error(t, err)
-		assert.False(t, fileExists(filepath.Join(dir, "foo.tar.gz")))
+		assert.False(t, util.FileExists(filepath.Join(dir, "foo.tar.gz")))
 	})
 }
 
@@ -115,7 +115,7 @@ func TestDownloader_Install(t *testing.T) {
 			Force:     true,
 		})
 		assert.NoError(t, err)
-		assert.True(t, fileExists(filepath.Join(dir, "foo")))
+		assert.True(t, util.FileExists(filepath.Join(dir, "foo")))
 		stat, err := os.Stat(filepath.Join(dir, "foo"))
 		assert.NoError(t, err)
 		assert.False(t, stat.IsDir())
@@ -138,7 +138,7 @@ func TestDownloader_Install(t *testing.T) {
 			Force:     true,
 		})
 		assert.NoError(t, err)
-		assert.True(t, fileExists(filepath.Join(dir, "foo")))
+		assert.True(t, util.FileExists(filepath.Join(dir, "foo")))
 		stat, err := os.Stat(filepath.Join(dir, "foo"))
 		assert.NoError(t, err)
 		assert.False(t, stat.IsDir())
@@ -198,7 +198,7 @@ func TestDownloader_Install(t *testing.T) {
 			TargetDir: dir,
 		})
 		require.Error(t, err)
-		require.False(t, fileExists(filepath.Join(dir, "foo.txt")))
+		require.False(t, util.FileExists(filepath.Join(dir, "foo.txt")))
 	})
 
 	t.Run("tar file exists", func(t *testing.T) {
@@ -211,7 +211,7 @@ func TestDownloader_Install(t *testing.T) {
 			Arch:        "amd64",
 			OS:          "darwin",
 		}
-		downloadsDir := filepath.Join(dir, ".bindown", "downloads", d.downloadsSubName())
+		downloadsDir := filepath.Join(dir, ".bindown", "downloads", d.downloadsSubName(nil))
 		err := os.MkdirAll(downloadsDir, 0750)
 		require.NoError(t, err)
 		require.NoError(t, util.CopyFile(testutil.DownloadablesPath("foo.tar.gz"), filepath.Join(downloadsDir, "foo.tar.gz"), nil))
@@ -241,7 +241,7 @@ func TestDownloader_Install(t *testing.T) {
 		linksTo, err := os.Readlink(filepath.Join(dir, "foo"))
 		assert.NoError(t, err)
 		absLinkTo := filepath.Join(dir, linksTo)
-		assert.True(t, fileExists(absLinkTo))
+		assert.True(t, util.FileExists(absLinkTo))
 	})
 }
 

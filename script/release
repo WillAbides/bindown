@@ -4,6 +4,8 @@ set -e
 
 CDPATH="" cd -- "$(dirname -- "$(dirname -- "$0")")"
 
+. script/goenv
+
 make -s bin/goreleaser bin/semver-next
 
 GITHUB_SHA="${GITHUB_SHA:-"$(git rev-parse HEAD)"}"

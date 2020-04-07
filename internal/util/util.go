@@ -2,9 +2,16 @@ package util
 
 import (
 	"bytes"
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
+	"hash"
+	"hash/fnv"
 	"io"
+	"io/ioutil"
 	"os"
+	"path/filepath"
+	"strings"
 	"text/template"
 )
 
@@ -71,4 +78,95 @@ func ExecuteTemplate(tmplString string, os, arch string, vars map[string]string)
 		return "", fmt.Errorf("error applying template: %v", err)
 	}
 	return buf.String(), nil
+}
+
+//DirectoryChecksum returns a hash of directory contents.
+func DirectoryChecksum(inputDir string) (string, error) {
+	hasher := fnv.New64a()
+	err := filepath.Walk(inputDir, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		linfo, err := os.Lstat(path)
+		if err != nil {
+			return err
+		}
+
+		hPath := strings.TrimPrefix(strings.TrimPrefix(path, inputDir), string(filepath.Separator))
+		_, err = hasher.Write([]byte(hPath))
+		if err != nil {
+			return err
+		}
+
+		// if it's a symlink, just add the target path to the hash
+		if linfo.Mode()&os.ModeSymlink != 0 {
+			var linkPath string
+			linkPath, err = os.Readlink(path)
+			if err != nil {
+				return err
+			}
+			_, err = hasher.Write([]byte(linkPath))
+			return err
+		}
+
+		if !info.Mode().IsRegular() {
+			return nil
+		}
+
+		fi, err := os.Open(path) //nolint:gosec
+		if err != nil {
+			return err
+		}
+		defer func() {
+			_ = fi.Close() //nolint:errcheck
+		}()
+		_, err = io.Copy(hasher, fi)
+		return err
+	})
+	if err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(hasher.Sum(nil)), nil
+}
+
+// HexHash returns a hex representation of data's hash
+// This will only return non-nil error if given a hasher that can return a non-nil error from Write()
+func HexHash(hasher hash.Hash, data ...[]byte) (string, error) {
+	hasher.Reset()
+	for _, datum := range data {
+		_, err := hasher.Write(datum)
+		if err != nil {
+			return "", err
+		}
+	}
+	return hex.EncodeToString(hasher.Sum(nil)), nil
+}
+
+// FileChecksum returns the hex checksum of a file
+func FileChecksum(filename string) (string, error) {
+	fileBytes, err := ioutil.ReadFile(filename) //nolint:gosec
+	if err != nil {
+		return "", err
+	}
+	return HexHash(sha256.New(), fileBytes)
+}
+
+//FileExistsWithChecksum returns true if the file both exists and has a matching checksum
+func FileExistsWithChecksum(filename, checksum string) (bool, error) {
+	if !FileExists(filename) {
+		return false, nil
+	}
+	got, err := FileChecksum(filename)
+	if err != nil {
+		return false, err
+	}
+	return checksum == got, nil
+}
+
+//FileExists asserts that a file exists
+func FileExists(path string) bool {
+	if _, err := os.Stat(filepath.FromSlash(path)); !os.IsNotExist(err) {
+		return true
+	}
+	return false
 }
