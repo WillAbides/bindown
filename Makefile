@@ -1,6 +1,6 @@
 GOCMD=go
 GOBUILD=$(GOCMD) build
-PATH := bin:$(PATH)
+PATH := "${CURDIR}/bin:$(PATH)"
 
 .PHONY: gobuildcache
 
