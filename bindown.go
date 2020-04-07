@@ -1,8 +1,6 @@
 package bindown
 
 import (
-	"bytes"
-	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"path/filepath"
@@ -11,31 +9,17 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-type configFileFormat int
-
-const (
-	formatJSON configFileFormat = iota + 1
-	formatYAML
-)
-
 //ConfigFile represents a config file
 type ConfigFile struct {
-	format configFileFormat
-	file   string
+	file string
 	Config
 }
 
 func (c *ConfigFile) Write() error {
 	var data []byte
 	var err error
-	switch c.format {
-	case formatJSON:
-		data, err = json.MarshalIndent(&c.Config, "", "  ")
-		must(err)
-	case formatYAML:
-		data, err = yaml.Marshal(&c.Config)
-		must(err)
-	}
+	data, err = yaml.Marshal(&c.Config)
+	must(err)
 	return ioutil.WriteFile(c.file, data, 0600)
 }
 
@@ -45,49 +29,21 @@ func LoadConfigFile(file string) (*ConfigFile, error) {
 	if err != nil {
 		return nil, err
 	}
-	cfg, err := loadConfigFromJSON(data)
-	if err == nil {
-		return &ConfigFile{
-			format: formatJSON,
-			file:   file,
-			Config: *cfg,
-		}, nil
-	}
 	var config Config
 	err = yaml.Unmarshal(data, &config)
 	if err != nil {
 		return nil, err
 	}
 	return &ConfigFile{
-		format: formatYAML,
 		file:   file,
 		Config: config,
 	}, nil
 }
 
-func loadConfigFromJSON(data []byte) (*Config, error) {
-	var cfg Config
-	decoder := json.NewDecoder(bytes.NewReader(data))
-	decoder.DisallowUnknownFields()
-	err := decoder.Decode(&cfg)
-	if err == nil {
-		return &cfg, nil
-	}
-	decoder = json.NewDecoder(bytes.NewReader(data))
-	decoder.DisallowUnknownFields()
-	dls := cfg.Downloaders
-	err = decoder.Decode(&dls)
-	if err != nil {
-		return nil, err
-	}
-	cfg.Downloaders = dls
-	return &cfg, nil
-}
-
 //Config is downloaders configuration
 type Config struct {
-	Downloaders  map[string][]*Downloader `json:"downloaders,omitempty" yaml:"downloaders"`
-	URLChecksums map[string]string        `json:"url_checksums,omitempty" yaml:"url_checksums,omitempty"`
+	Downloaders  map[string][]*Downloader `yaml:"downloaders"`
+	URLChecksums map[string]string        `yaml:"url_checksums,omitempty"`
 }
 
 func (c *Config) urlChecksum(url string) string {

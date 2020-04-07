@@ -6,6 +6,6 @@ CDPATH="" cd -- "$(dirname -- "$(dirname -- "$0")")"
 
 . script/goenv
 
-[ -f bin/goimports ] || make -s bin/goimports
+make -s bin/golangci-lint
 
-bin/goimports -w .
+bin/golangci-lint run --disable-all --no-config -E goimports --fix
