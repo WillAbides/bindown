@@ -7,9 +7,10 @@ jobs:
   release:
     runs-on: ubuntu-latest
     steps:
-      - name: check out code
-        uses: actions/checkout@v1
-      - name: release
-        run: script/release
+      - uses: actions/checkout@v2
+      - uses: actions/setup-go@v2-beta
+        with:
+          go-version: '^1.14.1'
+      - run: script/release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
