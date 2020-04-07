@@ -3,6 +3,7 @@ package cli
 import (
 	"fmt"
 	"path"
+	"path/filepath"
 	"runtime"
 
 	"github.com/alecthomas/kong"
@@ -16,14 +17,16 @@ var downloadKongVars = kong.Vars{
 	"download_os_default":       runtime.GOOS,
 	"download_force_help":       `force download even if it already exists`,
 	"download_target_file_help": `file to download`,
+	"download_extract_dir_help": `output path to directory where the downloaded archive is extracted`,
 }
 
 type downloadCmd struct {
-	Arch       string     `kong:"help=${download_arch_help},default=${download_arch_default},completer=arch"`
-	OS         string     `kong:"help=${download_os_help},default=${download_os_default},completer=os"`
-	Force      bool       `kong:"help=${download_force_help}"`
-	TargetFile string     `kong:"required=true,arg,help=${download_target_file_help},completer=binpath"`
-	ConfigOpts configOpts `kong:"embed"`
+	Arch           string     `kong:"help=${download_arch_help},default=${download_arch_default},completer=arch"`
+	OS             string     `kong:"help=${download_os_help},default=${download_os_default},completer=os"`
+	Force          bool       `kong:"help=${download_force_help}"`
+	TargetFile     string     `kong:"required=true,arg,help=${download_target_file_help},completer=binpath"`
+	ShowExtractDir bool       `kong:"name='extract-dir',help=${download_extract_dir_help}"`
+	ConfigOpts     configOpts `kong:"embed"`
 }
 
 func (d *downloadCmd) Run(kctx *kong.Context) error {
@@ -46,6 +49,26 @@ arch: %s`, binary, d.OS, d.Arch)
 		CellarDir:      d.ConfigOpts.CellarDir,
 		URLChecksums:   config.URLChecksums,
 	}
+	err := downloader.Install(installOpts)
+	if err != nil {
+		return err
+	}
 
-	return downloader.Install(installOpts)
+	if d.ShowExtractDir {
+		var extractDir string
+		cellarDir := d.ConfigOpts.CellarDir
+		if cellarDir == "" {
+			cellarDir = filepath.Join(binDir, ".bindown")
+		}
+		extractDir, err = config.DownloaderExtractDir(downloader, binary, cellarDir)
+		if err != nil {
+			return err
+		}
+		_, err = fmt.Fprintf(kctx.Stdout, "%s:  %s\n", "extract-dir", extractDir)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }

@@ -97,6 +97,18 @@ func (c *Config) urlChecksum(url string) string {
 	return c.URLChecksums[url]
 }
 
+//DownloaderExtractDir returns the directory where a downloader's archive will be extracted
+func (c *Config) DownloaderExtractDir(downloader *Downloader, binName, cellarDir string) (string, error) {
+	dl := downloader.clone()
+	dl.setDefaultBinName(binName)
+	err := dl.applyTemplates()
+	if err != nil {
+		return "", err
+	}
+	sub := dl.extractsSubName(c.URLChecksums)
+	return filepath.Join(cellarDir, "extracts", sub), nil
+}
+
 // Downloader returns a Downloader for the given binary, os and arch.
 func (c *Config) Downloader(binary, os, arch string) *Downloader {
 	l, ok := c.Downloaders[binary]
