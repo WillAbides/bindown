@@ -1,4 +1,32 @@
 downloaders:
+  go:
+  - os: darwin
+    arch: amd64
+    url: https://dl.google.com/go/go{{.version}}.{{.os}}-{{.arch}}{{.urlsuffix}}
+    archive_path: go/bin/go{{.archivepathsuffix}}
+    link: true
+    vars:
+      archivepathsuffix: ""
+      urlsuffix: .tar.gz
+      version: 1.14.1
+  - os: linux
+    arch: amd64
+    url: https://dl.google.com/go/go{{.version}}.{{.os}}-{{.arch}}{{.urlsuffix}}
+    archive_path: go/bin/go{{.archivepathsuffix}}
+    link: true
+    vars:
+      archivepathsuffix: ""
+      urlsuffix: .tar.gz
+      version: 1.14.1
+  - os: windows
+    arch: amd64
+    url: https://dl.google.com/go/go{{.version}}.{{.os}}-{{.arch}}{{.urlsuffix}}
+    archive_path: go/bin/go{{.archivepathsuffix}}
+    link: true
+    vars:
+      archivepathsuffix: .exe
+      urlsuffix: .zip
+      version: 1.14.1
   gobin:
   - os: darwin
     arch: amd64
