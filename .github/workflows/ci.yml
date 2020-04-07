@@ -9,9 +9,5 @@ jobs:
     steps:
       - uses: actions/checkout@v1
       - run: script/test
-      - if: success() && matrix.platform == 'ubuntu-latest'
-        run: |
-          make bin/gcov2lcov
-          bin/gcov2lcov -infile tmp/coverage.out -outfile tmp/coverage.lcov
       - run: make bin/bindown
       - run: script/lint

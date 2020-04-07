@@ -33,12 +33,6 @@ bin/semver-next: bin/bindown
 	bin/bindown download $@
 bins += bin/semver-next
 
-GCOV2LCOV_REF := 4f26027bd206195bbbd82d3944cd328a5e8dea60
-bin/gcov2lcov: bin/gobin
-	GOBIN=${CURDIR}/bin \
-	bin/gobin github.com/jandelgado/gcov2lcov@$(GCOV2LCOV_REF)
-bins += bin/gcov2lcov
-
 GOIMPORTS_REF := 8aaa1484dc108aa23dcf2d4a09371c0c9e280f6b
 bin/goimports: bin/gobin
 	GOBIN=${CURDIR}/bin \
