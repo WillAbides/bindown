@@ -20,14 +20,14 @@ import (
 
 // Downloader downloads a binary
 type Downloader struct {
-	OS          string            `json:"os"`
-	Arch        string            `json:"arch"`
-	URL         string            `json:"url"`
-	ArchivePath string            `json:"archive_path,omitempty" yaml:"archive_path,omitempty"`
-	BinName     string            `json:"bin,omitempty" yaml:"bin,omitempty"`
-	Link        bool              `json:"link,omitempty" yaml:",omitempty"`
-	Checksum    string            `json:"checksum,omitempty" yaml:",omitempty"`
-	Vars        map[string]string `json:"vars,omitempty" yaml:"vars,omitempty"`
+	OS          string
+	Arch        string
+	URL         string
+	ArchivePath string            `yaml:"archive_path,omitempty"`
+	BinName     string            `yaml:"bin,omitempty"`
+	Link        bool              `yaml:",omitempty"`
+	Checksum    string            `yaml:",omitempty"`
+	Vars        map[string]string `yaml:"vars,omitempty"`
 
 	//set to true by applyTemplates
 	tmplApplied bool
