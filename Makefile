@@ -1,9 +1,19 @@
 GOCMD=go
 GOBUILD=$(GOCMD) build
+PATH := bin:$(PATH)
 
 .PHONY: gobuildcache
 
-bin/bindown: gobuildcache
+bin/bootstrapped/bindown:
+	./script/bootstrap-bindown.sh -b bin/bootstrapped
+bins += bin/bootstrapped/bindown
+
+bin/go:
+	$(MAKE) bin/bootstrapped/bindown
+	bin/bootstrapped/bindown download $@
+bins += bin/go
+
+bin/bindown: gobuildcache bin/go
 	$(GOBUILD) -o $@ ./cmd/bindown
 bins += bin/bindown
 
