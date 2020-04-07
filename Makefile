@@ -10,7 +10,7 @@ bins += bin/bootstrapped/bindown
 
 bin/go:
 	$(MAKE) bin/bootstrapped/bindown
-	bin/bootstrapped/bindown download $@
+	bin/bootstrapped/bindown download --configfile bindown-v2.yml $@
 bins += bin/go
 
 bin/bindown: gobuildcache bin/go

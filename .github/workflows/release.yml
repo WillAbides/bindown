@@ -8,9 +8,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - uses: actions/setup-go@v2-beta
-        with:
-          go-version: '^1.14.1'
       - run: script/release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
