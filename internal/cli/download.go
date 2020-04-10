@@ -1,8 +1,8 @@
 package cli
 
 import (
-	"fmt"
 	"path"
+	"path/filepath"
 
 	"github.com/alecthomas/kong"
 	"github.com/willabides/bindown/v3"
@@ -21,25 +21,20 @@ type downloadCmd struct {
 }
 
 func (d *downloadCmd) Run(kctx *kong.Context) error {
-	config := configFile(kctx)
+	config := configFile(kctx, d.ConfigOpts.Configfile)
 	binary := path.Base(d.TargetFile)
 	binDir := path.Dir(d.TargetFile)
-
-	downloader := config.Downloader(binary, d.OSArchOpts.OS, d.OSArchOpts.Arch)
-	if downloader == nil {
-		return fmt.Errorf(`no downloader configured for:
-bin: %s
-os: %s
-arch: %s`, binary, d.OSArchOpts.OS, d.OSArchOpts.Arch)
+	system := bindown.SystemInfo{
+		OS:   d.OSArchOpts.OS,
+		Arch: d.OSArchOpts.Arch,
 	}
-
-	installOpts := bindown.InstallOpts{
-		DownloaderName: binary,
-		TargetDir:      binDir,
-		Force:          d.Force,
-		CellarDir:      d.ConfigOpts.CellarDir,
-		URLChecksums:   config.URLChecksums,
+	cellarDir := cli.Config.ConfigOpts.CellarDir
+	if cellarDir == "" {
+		cellarDir = filepath.Join(binDir, ".bindown")
 	}
-
-	return downloader.Install(installOpts)
+	return config.Install(binary, system, &bindown.ConfigInstallOpts{
+		CellarDir: cellarDir,
+		TargetDir: binDir,
+		Force:     d.Force,
+	})
 }

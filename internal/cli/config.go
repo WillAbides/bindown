@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 
 	"github.com/alecthomas/kong"
+	"github.com/willabides/bindown/v3"
 )
 
 var configKongVars = kong.Vars{
@@ -33,36 +34,29 @@ type configExtractPathCmd struct {
 }
 
 func (d configExtractPathCmd) Run(kctx *kong.Context) error {
-	config := configFile(kctx)
+	config := configFile(kctx, cli.Config.ConfigOpts.Configfile)
 	binary := path.Base(d.TargetFile)
 	binDir := path.Dir(d.TargetFile)
-	downloader := config.Downloader(binary, d.OSArchOpts.OS, d.OSArchOpts.Arch)
-	if downloader == nil {
-		return fmt.Errorf(`no downloader configured for:
-bin: %s
-os: %s
-arch: %s`, binary, d.OSArchOpts.OS, d.OSArchOpts.Arch)
+	system := bindown.SystemInfo{
+		OS:   d.OSArchOpts.OS,
+		Arch: d.OSArchOpts.Arch,
 	}
-
 	cellarDir := cli.Config.ConfigOpts.CellarDir
 	if cellarDir == "" {
 		cellarDir = filepath.Join(binDir, ".bindown")
 	}
-	extractDir, err := config.DownloaderExtractDir(downloader, binary, cellarDir)
+	extractDir, err := config.ExtractPath(binary, system, cellarDir)
 	if err != nil {
 		return err
 	}
-	_, err = fmt.Fprintf(kctx.Stdout, "%s:  %s\n", "extract-dir", extractDir)
-	if err != nil {
-		return err
-	}
-	return nil
+	_, err = fmt.Fprintln(kctx.Stdout, extractDir)
+	return err
 }
 
 type configFmtCmd struct{}
 
 func (c configFmtCmd) Run(kctx *kong.Context) error {
-	config := configFile(kctx)
+	config := configFile(kctx, cli.Config.ConfigOpts.Configfile)
 	if config != nil {
 		return config.Write()
 	}
@@ -74,8 +68,10 @@ type configUpdateChecksumsCmd struct {
 }
 
 func (d *configUpdateChecksumsCmd) Run(kctx *kong.Context) error {
-	config := configFile(kctx)
-	err := config.AddDownloaderChecksums(d.TargetFile, cli.Config.ConfigOpts.CellarDir)
+	config := configFile(kctx, cli.Config.ConfigOpts.Configfile)
+	err := config.AddChecksums(&bindown.ConfigAddChecksumsOptions{
+		Downloadables: []string{filepath.Base(d.TargetFile)},
+	})
 	if err != nil {
 		return err
 	}
@@ -87,6 +83,6 @@ type configValidateCmd struct {
 }
 
 func (d configValidateCmd) Run(kctx *kong.Context) error {
-	config := configFile(kctx)
-	return config.Validate(d.Bin, cli.Config.ConfigOpts.CellarDir)
+	config := configFile(kctx, cli.Config.ConfigOpts.Configfile)
+	return config.Validate([]string{d.Bin}, nil)
 }

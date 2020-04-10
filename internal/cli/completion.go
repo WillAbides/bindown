@@ -3,10 +3,10 @@ package cli
 import (
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 
 	"github.com/alecthomas/kong"
-	"github.com/killa-beez/gopkgs/sets/builtins"
 	"github.com/willabides/bindown/v3"
 )
 
@@ -56,17 +56,19 @@ func allBins(cfg *bindown.ConfigFile) []string {
 	if cfg == nil {
 		return []string{}
 	}
-	bins := builtins.NewStringSet(len(cfg.Downloaders) * 10)
-	for dlName, downloaders := range cfg.Downloaders {
-		for _, dl := range downloaders {
-			if dl.BinName == "" {
-				bins.Add(dlName)
-				continue
-			}
-			bins.Add(dl.BinName)
-		}
+	system := bindown.SystemInfo{
+		OS:   runtime.GOOS,
+		Arch: runtime.GOARCH,
 	}
-	return bins.Values()
+	bins := make([]string, 0, len(cfg.Downloadables))
+	for dlName := range cfg.Downloadables {
+		bn, err := cfg.BinName(dlName, system)
+		if err != nil {
+			return []string{}
+		}
+		bins = append(bins, bn)
+	}
+	return bins
 }
 
 var binCompleter = kong.CompleterFunc(func(a kong.CompleterArgs) []string {

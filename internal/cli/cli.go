@@ -34,9 +34,9 @@ var cli struct {
 	Config   configCmd   `kong:"cmd"`
 }
 
-func configFile(kctx *kong.Context) *bindown.ConfigFile {
-	config, err := bindown.LoadConfigFile(cli.Config.ConfigOpts.Configfile)
-	kctx.FatalIfErrorf(err, "error loading config from %q", cli.Config.ConfigOpts.Configfile)
+func configFile(kctx *kong.Context, filename string) *bindown.ConfigFile {
+	config, err := bindown.LoadConfigFile(filename)
+	kctx.FatalIfErrorf(err, "error loading config from %q", filename)
 	return config
 }
 

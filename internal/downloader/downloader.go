@@ -1,4 +1,4 @@
-package bindown
+package downloader
 
 import (
 	"fmt"
@@ -26,7 +26,6 @@ type Downloader struct {
 	ArchivePath string            `yaml:"archive_path,omitempty"`
 	BinName     string            `yaml:"bin,omitempty"`
 	Link        bool              `yaml:",omitempty"`
-	Checksum    string            `yaml:",omitempty"`
 	Vars        map[string]string `yaml:"vars,omitempty"`
 
 	//set to true by applyTemplates
@@ -187,7 +186,7 @@ func (d *Downloader) extract(downloadDir, extractDir string) error {
 	return ioutil.WriteFile(extractSumFile, []byte(extractSum), 0640)
 }
 
-func (d *Downloader) download(downloadDir string) error {
+func (d *Downloader) download(downloadDir, wantChecksum string) error {
 	d.requireApplyTemplates()
 	dlPath, err := d.downloadablePath(downloadDir)
 	if err != nil {
@@ -197,7 +196,7 @@ func (d *Downloader) download(downloadDir string) error {
 	if err != nil {
 		return err
 	}
-	ok, err := util.FileExistsWithChecksum(dlPath, d.Checksum)
+	ok, err := util.FileExistsWithChecksum(dlPath, wantChecksum)
 	if err != nil {
 		return err
 	}
@@ -213,16 +212,9 @@ func (d *Downloader) setDefaultBinName(defaultName string) {
 	}
 }
 
-func (d *Downloader) validateChecksum(targetDir string, knownChecksums map[string]string) error {
+func (d *Downloader) validateChecksum(targetDir, checksum string) error {
 	d.requireApplyTemplates()
 	dl := d.clone()
-	u, err := dl.url()
-	if err != nil {
-		return err
-	}
-	if knownChecksums != nil && dl.Checksum == "" {
-		dl.Checksum = knownChecksums[u]
-	}
 	targetFile, err := dl.downloadablePath(targetDir)
 	if err != nil {
 		return err
@@ -231,7 +223,7 @@ func (d *Downloader) validateChecksum(targetDir string, knownChecksums map[strin
 	if err != nil {
 		return err
 	}
-	if dl.Checksum != result {
+	if checksum != result {
 		defer func() {
 			delErr := os.RemoveAll(targetFile)
 			if delErr != nil {
@@ -240,7 +232,7 @@ func (d *Downloader) validateChecksum(targetDir string, knownChecksums map[strin
 		}()
 		return fmt.Errorf(`checksum mismatch in downloaded file %q 
 wanted: %s
-got: %s`, targetFile, dl.Checksum, result)
+got: %s`, targetFile, checksum, result)
 	}
 	return nil
 }
@@ -252,17 +244,7 @@ type UpdateChecksumOpts struct {
 	URLChecksums map[string]string
 }
 
-//UpdateChecksum updates the checksum based on a fresh download
-func (d *Downloader) UpdateChecksum(opts UpdateChecksumOpts) error {
-	sum, err := d.getUpdatedChecksum(opts)
-	if err != nil {
-		return err
-	}
-	d.Checksum = sum
-	return nil
-}
-
-func (d *Downloader) url() (string, error) {
+func (d *Downloader) GetURL() (string, error) {
 	dl := d.clone()
 	err := dl.applyTemplates()
 	if err != nil {
@@ -272,7 +254,7 @@ func (d *Downloader) url() (string, error) {
 }
 
 //getUpdatedChecksum downloads the archive and returns its actual checksum.
-func (d *Downloader) getUpdatedChecksum(opts UpdateChecksumOpts) (string, error) {
+func (d *Downloader) GetUpdatedChecksum(opts UpdateChecksumOpts) (string, error) {
 	dl := d.clone()
 	err := dl.applyTemplates()
 	if err != nil {
@@ -291,7 +273,7 @@ func (d *Downloader) getUpdatedChecksum(opts UpdateChecksumOpts) (string, error)
 
 	downloadDir := filepath.Join(cellarDir, "downloads", dl.downloadsSubName(opts.URLChecksums))
 
-	err = dl.download(downloadDir)
+	err = dl.download(downloadDir, "")
 	if err != nil {
 		log.Printf("error downloading: %v", err)
 		return "", err
@@ -315,30 +297,30 @@ type InstallOpts struct {
 	TargetDir string
 	// Force - whether to force the install even if it already exists
 	Force bool
-	// Map of known checksums to validate against
-	URLChecksums map[string]string
+	// Checksum is the checksum we want this download to have
+	Checksum string
 }
 
 func (d *Downloader) downloadsSubName(knownChecksums map[string]string) string {
-	checksum := d.Checksum
-	u, err := d.url()
+	var checksum string
+	u, err := d.GetURL()
 	if err == nil && knownChecksums != nil {
 		if knownChecksums[u] != "" {
 			checksum = knownChecksums[u]
 		}
 	}
-	return mustHexHash(fnv.New64a(), []byte(checksum))
+	return util.MustHexHash(fnv.New64a(), []byte(checksum))
 }
 
-func (d *Downloader) extractsSubName(knownChecksums map[string]string) string {
-	checksum := d.Checksum
-	u, err := d.url()
+func (d *Downloader) ExtractsSubName(knownChecksums map[string]string) string {
+	var checksum string
+	u, err := d.GetURL()
 	if err == nil && knownChecksums != nil {
 		if knownChecksums[u] != "" {
 			checksum = knownChecksums[u]
 		}
 	}
-	return mustHexHash(fnv.New64a(), []byte(checksum), []byte(d.BinName))
+	return util.MustHexHash(fnv.New64a(), []byte(checksum), []byte(d.BinName))
 }
 
 //Install downloads and installs a bin
@@ -348,12 +330,6 @@ func (d *Downloader) Install(opts InstallOpts) error {
 	if err != nil {
 		return err
 	}
-	u, err := d.url()
-	if err == nil && opts.URLChecksums != nil {
-		if opts.URLChecksums[u] != "" {
-			dl.Checksum = opts.URLChecksums[u]
-		}
-	}
 
 	dl.setDefaultBinName(opts.DownloaderName)
 	cellarDir := opts.CellarDir
@@ -361,8 +337,8 @@ func (d *Downloader) Install(opts InstallOpts) error {
 		cellarDir = filepath.Join(opts.TargetDir, ".bindown")
 	}
 
-	downloadDir := filepath.Join(cellarDir, "downloads", dl.downloadsSubName(opts.URLChecksums))
-	extractDir := filepath.Join(cellarDir, "extracts", dl.extractsSubName(opts.URLChecksums))
+	downloadDir := filepath.Join(cellarDir, "downloads", util.MustHexHash(fnv.New64a(), []byte(opts.Checksum)))
+	extractDir := filepath.Join(cellarDir, "extracts", util.MustHexHash(fnv.New64a(), []byte(opts.Checksum), []byte(dl.BinName)))
 
 	if opts.Force {
 		err = os.RemoveAll(downloadDir)
@@ -371,13 +347,13 @@ func (d *Downloader) Install(opts InstallOpts) error {
 		}
 	}
 
-	err = dl.download(downloadDir)
+	err = dl.download(downloadDir, opts.Checksum)
 	if err != nil {
 		log.Printf("error downloading: %v", err)
 		return err
 	}
 
-	err = dl.validateChecksum(downloadDir, opts.URLChecksums)
+	err = dl.validateChecksum(downloadDir, opts.Checksum)
 	if err != nil {
 		log.Printf("error validating: %v", err)
 		return err
@@ -410,6 +386,8 @@ type ValidateOpts struct {
 	DownloaderName string
 	// CellarDir is the directory where downloads and extractions will be placed.  Default is a temp directory.
 	CellarDir string
+	// Checksum is the checksum we want this download to have
+	Checksum string
 }
 
 //Validate installs the downloader to a temporary directory and returns an error if it was unsuccessful.
@@ -445,6 +423,7 @@ func (d *Downloader) Validate(opts ValidateOpts) error {
 		TargetDir:      binDir,
 		Force:          true,
 		CellarDir:      opts.CellarDir,
+		Checksum:       opts.Checksum,
 	}
 
 	err = d.Install(installOpts)
@@ -470,4 +449,11 @@ func downloadFile(targetPath, url string) error {
 	defer logCloseErr(out)
 	_, err = io.Copy(out, resp.Body)
 	return err
+}
+
+func logCloseErr(closer io.Closer) {
+	err := closer.Close()
+	if err != nil {
+		log.Println(err)
+	}
 }
