@@ -8,6 +8,7 @@ import (
 
 	"github.com/alecthomas/kong"
 	"github.com/willabides/bindown/v3"
+	"github.com/willabides/bindown/v3/internal/configfile"
 )
 
 func findConfigFileForCompletion(args []string) string {
@@ -40,19 +41,19 @@ func prepCompletionConfigFile(path string) string {
 	return path
 }
 
-func completionConfig(args []string) *bindown.ConfigFile {
+func completionConfig(args []string) *configfile.ConfigFile {
 	path := findConfigFileForCompletion(args)
 	if path == "" {
 		return nil
 	}
-	configFile, err := bindown.LoadConfigFile(path)
+	configFile, err := configfile.LoadConfigFile(path)
 	if err != nil {
 		return nil
 	}
 	return configFile
 }
 
-func allBins(cfg *bindown.ConfigFile) []string {
+func allBins(cfg *configfile.ConfigFile) []string {
 	if cfg == nil {
 		return []string{}
 	}

@@ -4,7 +4,7 @@ import (
 	"runtime"
 
 	"github.com/alecthomas/kong"
-	"github.com/willabides/bindown/v3"
+	"github.com/willabides/bindown/v3/internal/configfile"
 )
 
 var kongVars = kong.Vars{
@@ -34,8 +34,8 @@ var cli struct {
 	Config   configCmd   `kong:"cmd"`
 }
 
-func configFile(kctx *kong.Context, filename string) *bindown.ConfigFile {
-	config, err := bindown.LoadConfigFile(filename)
+func configFile(kctx *kong.Context, filename string) *configfile.ConfigFile {
+	config, err := configfile.LoadConfigFile(filename)
 	kctx.FatalIfErrorf(err, "error loading config from %q", filename)
 	return config
 }
