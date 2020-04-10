@@ -244,6 +244,7 @@ type UpdateChecksumOpts struct {
 	URLChecksums map[string]string
 }
 
+//GetURL returns the downloaders url after applying templates
 func (d *Downloader) GetURL() (string, error) {
 	dl := d.clone()
 	err := dl.applyTemplates()
@@ -253,7 +254,7 @@ func (d *Downloader) GetURL() (string, error) {
 	return dl.URL, nil
 }
 
-//getUpdatedChecksum downloads the archive and returns its actual checksum.
+//GetUpdatedChecksum downloads the archive and returns its actual checksum.
 func (d *Downloader) GetUpdatedChecksum(opts UpdateChecksumOpts) (string, error) {
 	dl := d.clone()
 	err := dl.applyTemplates()
@@ -312,6 +313,7 @@ func (d *Downloader) downloadsSubName(knownChecksums map[string]string) string {
 	return util.MustHexHash(fnv.New64a(), []byte(checksum))
 }
 
+//ExtractsSubName returns the subdirectory where this will be extracted
 func (d *Downloader) ExtractsSubName(knownChecksums map[string]string) string {
 	var checksum string
 	u, err := d.GetURL()

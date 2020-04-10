@@ -38,4 +38,3 @@ func (c *ConfigFile) Write() error {
 	util.Must(err)
 	return ioutil.WriteFile(c.filename, data, 0600)
 }
-

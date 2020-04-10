@@ -85,7 +85,7 @@ func (c *Config) buildDownloader(downloadableName string, info SystemInfo) (*dow
 	}
 	downloadable.applyOverrides(info, 0)
 	dl := &downloader.Downloader{
-		OS: info.OS,
+		OS:   info.OS,
 		Arch: info.Arch,
 		Vars: downloadable.Vars,
 	}
