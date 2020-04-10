@@ -98,6 +98,9 @@ func (c *Config) buildDownloader(downloadableName string, info SystemInfo) (*dow
 	if downloadable.BinName != nil {
 		dl.BinName = *downloadable.BinName
 	}
+	if dl.BinName == "" {
+		dl.BinName = filepath.Base(downloadableName)
+	}
 	if downloadable.Link != nil {
 		dl.Link = *downloadable.Link
 	}
