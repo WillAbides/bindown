@@ -11,17 +11,17 @@ import (
 
 var configKongVars = kong.Vars{
 	"config_format_help":              `formats the config file`,
-	"config_checksums_help":           `update checksums in the config file`,
+	"config_checksums_help":           `add checksums to the config file`,
 	"config_checksums_bin_help":       `name of the binary to update`,
 	"config_validate_bin_help":        `name of the binary to validate`,
-	"config_validate_help":            `validate that downloads work`,
+	"config_validate_help":            `validate that installs work`,
 	"config_install_completions_help": `install shell completions`,
 	"config_extract_path_help":        `output path to directory where the downloaded archive is extracted`,
 }
 
 type configCmd struct {
 	Format             configFmtCmd               `kong:"cmd,help=${config_format_help}"`
-	UpdateChecksums    configUpdateChecksumsCmd   `kong:"cmd,help=${config_checksums_bin_help}"`
+	AddChecksums       configAddChecksumsCmd      `kong:"cmd,help=${config_checksums_help}"`
 	Validate           configValidateCmd          `kong:"cmd,help=${config_validate_help}"`
 	InstallCompletions kong.InstallCompletionFlag `kong:"help=${config_install_completions_help}"`
 	ExtractPath        configExtractPathCmd       `kong:"cmd,help=${config_extract_path_help}"`
@@ -60,15 +60,15 @@ func (c configFmtCmd) Run(kctx *kong.Context) error {
 	return nil
 }
 
-type configUpdateChecksumsCmd struct {
-	TargetFile string               `kong:"required=true,arg,help=${config_checksums_bin_help},completer=bin"`
+type configAddChecksumsCmd struct {
+	Dependency string               `kong:"required=true,arg,help=${config_checksums_bin_help},completer=bin"`
 	Systems    []bindown.SystemInfo `kong:"name=system,default=${system_default},completer=system"`
 }
 
-func (d *configUpdateChecksumsCmd) Run(kctx *kong.Context) error {
+func (d *configAddChecksumsCmd) Run(kctx *kong.Context) error {
 	config := configFile(kctx, cli.Config.ConfigOpts.Configfile)
 	err := config.AddChecksums(&bindown.ConfigAddChecksumsOptions{
-		Dependencies: []string{filepath.Base(d.TargetFile)},
+		Dependencies: []string{filepath.Base(d.Dependency)},
 		Systems:      d.Systems,
 	})
 	if err != nil {
@@ -78,11 +78,11 @@ func (d *configUpdateChecksumsCmd) Run(kctx *kong.Context) error {
 }
 
 type configValidateCmd struct {
-	Bin     string               `kong:"required=true,arg,help=${config_validate_bin_help},completer=bin"`
-	Systems []bindown.SystemInfo `kong:"name=system,default=${system_default},completer=system"`
+	Dependency string               `kong:"required=true,arg,help=${config_validate_bin_help},completer=bin"`
+	Systems    []bindown.SystemInfo `kong:"name=system,default=${system_default},completer=system"`
 }
 
 func (d configValidateCmd) Run(kctx *kong.Context) error {
 	config := configFile(kctx, cli.Config.ConfigOpts.Configfile)
-	return config.Validate([]string{d.Bin}, d.Systems)
+	return config.Validate([]string{d.Dependency}, d.Systems)
 }
