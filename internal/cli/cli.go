@@ -11,8 +11,8 @@ import (
 var kongVars = kong.Vars{
 	"configfile_help":    `file with bindown config`,
 	"configfile_default": `bindown.yml`,
-	"cellar_dir_help":    `directory where downloads will be cached`,
-	"download_help":      `download a bin`,
+	"cellar_dir_help":    `directory where installs will be cached`,
+	"install_help":       `install a bin`,
 	"system_default":     fmt.Sprintf("%s/%s", runtime.GOOS, runtime.GOARCH),
 	"system_help":        `target system in the format of <os>/<architecture>`,
 }
@@ -23,9 +23,9 @@ type configOpts struct {
 }
 
 var cli struct {
-	Version  versionCmd  `kong:"cmd"`
-	Download downloadCmd `kong:"cmd,help=${download_help}"`
-	Config   configCmd   `kong:"cmd"`
+	Version versionCmd `kong:"cmd"`
+	Install installCmd `kong:"cmd,help=${install_help}"`
+	Config  configCmd  `kong:"cmd"`
 }
 
 func configFile(kctx *kong.Context, filename string) *configfile.ConfigFile {
@@ -42,7 +42,7 @@ func newParser(kongOptions ...kong.Option) *kong.Kong {
 			"system":  systemCompleter,
 		},
 		kongVars,
-		downloadKongVars,
+		installKongVars,
 		configKongVars,
 		kong.UsageOnError(),
 	)

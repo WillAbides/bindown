@@ -19,19 +19,19 @@ bin/bindown: gobuildcache bin/go
 bins += bin/bindown
 
 bin/golangci-lint: bin/bindown
-	bin/bindown download $@
+	bin/bindown install $@
 bins += bin/golangci-lint
 
 bin/gobin: bin/bindown
-	bin/bindown download $@
+	bin/bindown install $@
 bins += bin/gobin
 
 bin/goreleaser: bin/bindown
-	bin/bindown download $@
+	bin/bindown install $@
 bins += bin/goreleaser
 
 bin/semver-next: bin/bindown
-	bin/bindown download $@
+	bin/bindown install $@
 bins += bin/semver-next
 
 GOIMPORTS_REF := 8aaa1484dc108aa23dcf2d4a09371c0c9e280f6b
