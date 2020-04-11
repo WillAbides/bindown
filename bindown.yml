@@ -1,4 +1,4 @@
-downloadables:
+dependencies:
   gobin:
     url: https://github.com/myitcv/gobin/releases/download/v{{.version}}/{{.os}}-{{.arch}}
     archive_path: '{{.os}}-{{.arch}}'

@@ -4,47 +4,46 @@ import (
 	"fmt"
 )
 
-// DownloadableOverride overrides a downloadable
-type DownloadableOverride struct {
-	Downloadable        `yaml:",inline"`
-	DownloadableMatcher `yaml:",inline"`
+// DependencyOverride overrides a dependency's configuration
+type DependencyOverride struct {
+	Dependency      `yaml:",inline"`
+	OverrideMatcher `yaml:",inline"`
 }
 
-func (o *DownloadableOverride) clone() *DownloadableOverride {
-	dl := o.Downloadable.clone()
-	return &DownloadableOverride{
-		Downloadable:        *dl,
-		DownloadableMatcher: o.DownloadableMatcher.clone(),
+func (o *DependencyOverride) clone() *DependencyOverride {
+	dl := o.Dependency.clone()
+	return &DependencyOverride{
+		Dependency:      *dl,
+		OverrideMatcher: o.OverrideMatcher.clone(),
 	}
 }
 
-// DownloadableMatcher contains a list or oses and arches to match a downloadable override
-// is either os or arch is empty, all oses and arches match.
-type DownloadableMatcher struct {
+// OverrideMatcher contains a list or oses and arches to match an override. If either os or arch is empty, all oses and arches match.
+type OverrideMatcher struct {
 	OS   []string `yaml:",omitempty"`
 	Arch []string `yaml:",omitempty"`
 }
 
-func (m DownloadableMatcher) matches(info SystemInfo) bool {
+func (m OverrideMatcher) matches(info SystemInfo) bool {
 	return m.archMatch(info.Arch) && m.osMatch(info.OS)
 }
 
-func (m DownloadableMatcher) osMatch(os string) bool {
+func (m OverrideMatcher) osMatch(os string) bool {
 	if len(m.OS) == 0 {
 		return true
 	}
 	return stringSliceContains(m.OS, os)
 }
 
-func (m DownloadableMatcher) archMatch(arch string) bool {
+func (m OverrideMatcher) archMatch(arch string) bool {
 	if len(m.Arch) == 0 {
 		return true
 	}
 	return stringSliceContains(m.Arch, arch)
 }
 
-func (m DownloadableMatcher) clone() DownloadableMatcher {
-	matcher := DownloadableMatcher{
+func (m OverrideMatcher) clone() OverrideMatcher {
+	matcher := OverrideMatcher{
 		OS:   make([]string, len(m.OS)),
 		Arch: make([]string, len(m.Arch)),
 	}
@@ -53,37 +52,37 @@ func (m DownloadableMatcher) clone() DownloadableMatcher {
 	return matcher
 }
 
-// Downloadable defines how a downloader is built
-type Downloadable struct {
-	Template    *string                `yaml:",omitempty"`
-	URL         *string                `yaml:",omitempty"`
-	ArchivePath *string                `yaml:"archive_path,omitempty"`
-	BinName     *string                `yaml:"bin,omitempty"`
-	Link        *bool                  `yaml:",omitempty"`
-	Vars        map[string]string      `yaml:"vars,omitempty"`
-	Overrides   []DownloadableOverride `yaml:"overrides,omitempty"`
+// Dependency is something to download, extract and install
+type Dependency struct {
+	Template    *string              `yaml:",omitempty"`
+	URL         *string              `yaml:",omitempty"`
+	ArchivePath *string              `yaml:"archive_path,omitempty"`
+	BinName     *string              `yaml:"bin,omitempty"`
+	Link        *bool                `yaml:",omitempty"`
+	Vars        map[string]string    `yaml:"vars,omitempty"`
+	Overrides   []DependencyOverride `yaml:"overrides,omitempty"`
 }
 
-func (d *Downloadable) clone() *Downloadable {
-	downloadable := *d
+func (d *Dependency) clone() *Dependency {
+	dep := *d
 	if d.Vars != nil {
-		downloadable.Vars = make(map[string]string, len(d.Vars))
+		dep.Vars = make(map[string]string, len(d.Vars))
 		for k, v := range d.Vars {
-			downloadable.Vars[k] = v
+			dep.Vars[k] = v
 		}
 	}
 	if d.Overrides != nil {
-		downloadable.Overrides = make([]DownloadableOverride, len(d.Overrides))
+		dep.Overrides = make([]DependencyOverride, len(d.Overrides))
 		for i, override := range d.Overrides {
-			downloadable.Overrides[i] = *override.clone()
+			dep.Overrides[i] = *override.clone()
 		}
 	}
-	return &downloadable
+	return &dep
 }
 
 const maxTemplateDepth = 2
 
-func (d *Downloadable) applyTemplate(templates map[string]*Downloadable, depth int) error {
+func (d *Dependency) applyTemplate(templates map[string]*Dependency, depth int) error {
 	if depth > maxTemplateDepth {
 		return nil
 	}
@@ -92,7 +91,7 @@ func (d *Downloadable) applyTemplate(templates map[string]*Downloadable, depth i
 		return nil
 	}
 	if templates == nil {
-		templates = map[string]*Downloadable{}
+		templates = map[string]*Dependency{}
 	}
 	tmpl, ok := templates[*templateName]
 	if !ok {
@@ -127,12 +126,12 @@ func (d *Downloadable) applyTemplate(templates map[string]*Downloadable, depth i
 	return nil
 }
 
-func (d *Downloadable) addOverrides(overrides []DownloadableOverride) {
+func (d *Dependency) addOverrides(overrides []DependencyOverride) {
 	if len(overrides) == 0 {
 		return
 	}
 	if d.Overrides == nil {
-		d.Overrides = make([]DownloadableOverride, 0, len(overrides))
+		d.Overrides = make([]DependencyOverride, 0, len(overrides))
 	}
 	for _, override := range overrides {
 		d.Overrides = append(d.Overrides, *override.clone())
@@ -141,12 +140,12 @@ func (d *Downloadable) addOverrides(overrides []DownloadableOverride) {
 
 const maxOverrideDepth = 2
 
-func (d *Downloadable) applyOverrides(info SystemInfo, depth int) {
+func (d *Dependency) applyOverrides(info SystemInfo, depth int) {
 	for _, override := range d.Overrides {
-		if !override.DownloadableMatcher.matches(info) {
+		if !override.OverrideMatcher.matches(info) {
 			continue
 		}
-		o := &override.Downloadable
+		o := &override.Dependency
 		if depth <= maxOverrideDepth {
 			o.applyOverrides(info, depth+1)
 		}

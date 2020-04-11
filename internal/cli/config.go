@@ -68,8 +68,8 @@ type configUpdateChecksumsCmd struct {
 func (d *configUpdateChecksumsCmd) Run(kctx *kong.Context) error {
 	config := configFile(kctx, cli.Config.ConfigOpts.Configfile)
 	err := config.AddChecksums(&bindown.ConfigAddChecksumsOptions{
-		Downloadables: []string{filepath.Base(d.TargetFile)},
-		Systems:       d.Systems,
+		Dependencies: []string{filepath.Base(d.TargetFile)},
+		Systems:      d.Systems,
 	})
 	if err != nil {
 		return err

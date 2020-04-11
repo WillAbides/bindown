@@ -11,9 +11,9 @@ import (
 
 //Config is our main config
 type Config struct {
-	Downloadables map[string]*Downloadable `yaml:"downloadables"`
-	Templates     map[string]*Downloadable `yaml:"templates,omitempty"`
-	URLChecksums  map[string]string        `yaml:"url_checksums,omitempty"`
+	Dependencies map[string]*Dependency `yaml:"dependencies"`
+	Templates    map[string]*Dependency `yaml:"templates,omitempty"`
+	URLChecksums map[string]string      `yaml:"url_checksums,omitempty"`
 }
 
 //SystemInfo contains os and architecture for a target system
@@ -49,66 +49,66 @@ func (s SystemInfo) MarshalText() (text []byte, err error) {
 	return []byte(s.String()), nil
 }
 
-func (c *Config) getDownloadable(name string) *Downloadable {
-	if c.Downloadables == nil {
+func (c *Config) getDependency(name string) *Dependency {
+	if c.Dependencies == nil {
 		return nil
 	}
-	return c.Downloadables[name]
+	return c.Dependencies[name]
 }
 
 //BinName returns the bin name for a downloader on a given system
-func (c *Config) BinName(downloadableName string, system SystemInfo) (string, error) {
-	dl, err := c.buildDownloader(downloadableName, system)
+func (c *Config) BinName(dep string, system SystemInfo) (string, error) {
+	dl, err := c.buildDownloader(dep, system)
 	if err != nil {
 		return "", err
 	}
 	if dl.BinName != "" {
 		return dl.BinName, nil
 	}
-	return downloadableName, nil
+	return dep, nil
 }
 
-func (c *Config) buildDownloader(downloadableName string, info SystemInfo) (*downloader.Downloader, error) {
-	downloadable := c.getDownloadable(downloadableName)
-	if downloadable == nil {
-		return nil, fmt.Errorf("no downloadable configured with the name %q", downloadableName)
+func (c *Config) buildDownloader(depName string, info SystemInfo) (*downloader.Downloader, error) {
+	dep := c.getDependency(depName)
+	if dep == nil {
+		return nil, fmt.Errorf("no dependency configured with the name %q", depName)
 	}
 
-	downloadable = downloadable.clone()
-	err := downloadable.applyTemplate(c.Templates, 0)
+	dep = dep.clone()
+	err := dep.applyTemplate(c.Templates, 0)
 	if err != nil {
 		return nil, err
 	}
-	downloadable.applyOverrides(info, 0)
+	dep.applyOverrides(info, 0)
 	dl := &downloader.Downloader{
 		OS:   info.OS,
 		Arch: info.Arch,
-		Vars: downloadable.Vars,
+		Vars: dep.Vars,
 	}
-	if downloadable.URL != nil {
-		dl.URL = *downloadable.URL
+	if dep.URL != nil {
+		dl.URL = *dep.URL
 	}
-	if downloadable.ArchivePath != nil {
-		dl.ArchivePath = *downloadable.ArchivePath
+	if dep.ArchivePath != nil {
+		dl.ArchivePath = *dep.ArchivePath
 	}
-	if downloadable.BinName != nil {
-		dl.BinName = *downloadable.BinName
+	if dep.BinName != nil {
+		dl.BinName = *dep.BinName
 	}
 	if dl.BinName == "" {
-		dl.BinName = filepath.Base(downloadableName)
+		dl.BinName = filepath.Base(depName)
 	}
-	if downloadable.Link != nil {
-		dl.Link = *downloadable.Link
+	if dep.Link != nil {
+		dl.Link = *dep.Link
 	}
 	return dl, nil
 }
 
-func (c *Config) allDownloadableNames() []string {
-	if len(c.Downloadables) == 0 {
+func (c *Config) allDependencyNames() []string {
+	if len(c.Dependencies) == 0 {
 		return []string{}
 	}
-	result := make([]string, 0, len(c.Downloadables))
-	for dl := range c.Downloadables {
+	result := make([]string, 0, len(c.Dependencies))
+	for dl := range c.Dependencies {
 		result = append(result, dl)
 	}
 	return result
@@ -117,12 +117,12 @@ func (c *Config) allDownloadableNames() []string {
 //ConfigAddChecksumsOptions contains options for Config.AddChecksums
 type ConfigAddChecksumsOptions struct {
 
-	// Only add checksums for these downloadables. When Downloadables is empty, AddChecksums adds checksums for all
-	//configured downloadables.
-	Downloadables []string
+	// Only add checksums for these dependencies. When Dependencies is empty, AddChecksums adds checksums for all
+	//configured dependencies.
+	Dependencies []string
 
 	// Only add checksums for these system targets. When Systems is empty, AddChecksums adds checksums for all known
-	// builds configured for each downloadable.
+	// builds configured for each dependency.
 	Systems []SystemInfo
 }
 
@@ -132,21 +132,21 @@ func (c *Config) AddChecksums(opts *ConfigAddChecksumsOptions) error {
 	if opts == nil {
 		opts = &ConfigAddChecksumsOptions{}
 	}
-	downloadables := opts.Downloadables
-	if len(downloadables) == 0 && c.Downloadables != nil {
-		downloadables = make([]string, 0, len(c.Downloadables))
-		for dlName := range c.Downloadables {
-			downloadables = append(downloadables, dlName)
+	deps := opts.Dependencies
+	if len(deps) == 0 && c.Dependencies != nil {
+		deps = make([]string, 0, len(c.Dependencies))
+		for dlName := range c.Dependencies {
+			deps = append(deps, dlName)
 		}
 	}
 	var err error
-	for _, dlName := range downloadables {
-		downloadable := c.getDownloadable(dlName)
-		if downloadable == nil {
-			return fmt.Errorf("no downloadable configured with the name %q", dlName)
+	for _, depName := range deps {
+		dp := c.getDependency(depName)
+		if dp == nil {
+			return fmt.Errorf("no dependency configured with the name %q", depName)
 		}
 		for _, system := range opts.Systems {
-			err = c.addChecksum(dlName, system)
+			err = c.addChecksum(depName, system)
 			if err != nil {
 				return err
 			}
@@ -155,8 +155,8 @@ func (c *Config) AddChecksums(opts *ConfigAddChecksumsOptions) error {
 	return nil
 }
 
-func (c *Config) addChecksum(downloadableName string, sysInfo SystemInfo) error {
-	dl, err := c.buildDownloader(downloadableName, sysInfo)
+func (c *Config) addChecksum(dependencyName string, sysInfo SystemInfo) error {
+	dl, err := c.buildDownloader(dependencyName, sysInfo)
 	if err != nil {
 		return err
 	}
@@ -184,22 +184,23 @@ func (c *Config) addChecksum(downloadableName string, sysInfo SystemInfo) error 
 //ConfigValidateOptions contains options for Config.Validate
 type ConfigValidateOptions struct {
 
-	// Only validates these downloadables. When Downloadables is empty, Validate validates all configured downloadables.
-	Downloadables []string
+	// Only validates these dependencies. When Dependencies is empty, Validate validates all configured dependencies.
+	Dependencies []string
 
-	// Only validates system targets. When Systems is empty, AddChecksums validates all known builds configured for each downloadable.
+	// Only validates system targets. When Systems is empty, AddChecksums validates all known builds configured for each
+	//dependency.
 	Systems []SystemInfo
 }
 
 //Validate installs the downloader to a temporary directory and returns an error if it was unsuccessful.
-func (c *Config) Validate(downloadables []string, systems []SystemInfo) error {
+func (c *Config) Validate(dependencies []string, systems []SystemInfo) error {
 	runtime.Version()
-	if len(downloadables) == 0 {
-		downloadables = c.allDownloadableNames()
+	if len(dependencies) == 0 {
+		dependencies = c.allDependencyNames()
 	}
-	for _, downloadableName := range downloadables {
+	for _, depName := range dependencies {
 		for _, system := range systems {
-			dl, err := c.buildDownloader(downloadableName, system)
+			dl, err := c.buildDownloader(depName, system)
 			if err != nil {
 				return err
 			}
@@ -213,7 +214,7 @@ func (c *Config) Validate(downloadables []string, systems []SystemInfo) error {
 				return fmt.Errorf("no checksum for the url %q", dlURL)
 			}
 			err = dl.Validate(downloader.ValidateOpts{
-				DownloaderName: downloadableName,
+				DownloaderName: depName,
 				Checksum:       checksum,
 			})
 			if err != nil {
@@ -234,12 +235,12 @@ type ConfigInstallOpts struct {
 	Force bool
 }
 
-//Install installs a downloadable
-func (c Config) Install(downloadableName string, sysInfo SystemInfo, opts *ConfigInstallOpts) error {
+//Install installs a dependency
+func (c Config) Install(dependencyName string, sysInfo SystemInfo, opts *ConfigInstallOpts) error {
 	if opts == nil {
 		opts = &ConfigInstallOpts{}
 	}
-	dl, err := c.buildDownloader(downloadableName, sysInfo)
+	dl, err := c.buildDownloader(dependencyName, sysInfo)
 	if err != nil {
 		return err
 	}
@@ -252,7 +253,7 @@ func (c Config) Install(downloadableName string, sysInfo SystemInfo, opts *Confi
 		return fmt.Errorf("no checksum for the url %q", dlURL)
 	}
 	return dl.Install(downloader.InstallOpts{
-		DownloaderName: downloadableName,
+		DownloaderName: dependencyName,
 		CellarDir:      opts.CellarDir,
 		TargetDir:      opts.TargetDir,
 		Force:          opts.Force,
@@ -260,9 +261,9 @@ func (c Config) Install(downloadableName string, sysInfo SystemInfo, opts *Confi
 	})
 }
 
-//ExtractPath returns the path where a downloadable will be extracted
-func (c Config) ExtractPath(downloadableName string, sysInfo SystemInfo, cellarDir string) (string, error) {
-	dl, err := c.buildDownloader(downloadableName, sysInfo)
+//ExtractPath returns the path where a dependency will be extracted
+func (c Config) ExtractPath(dependencyName string, sysInfo SystemInfo, cellarDir string) (string, error) {
+	dl, err := c.buildDownloader(dependencyName, sysInfo)
 	if err != nil {
 		return "", err
 	}
