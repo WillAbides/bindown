@@ -80,10 +80,19 @@ func (c *Config) buildDownloader(depName string, info SystemInfo) (*downloader.D
 		return nil, err
 	}
 	dep.applyOverrides(info, 0)
+	if dep.Vars == nil {
+		dep.Vars = map[string]string{}
+	}
+	if _, ok := dep.Vars["os"]; !ok {
+		dep.Vars["os"] = info.OS
+	}
+	if _, ok := dep.Vars["arch"]; !ok {
+		dep.Vars["arch"] = info.Arch
+	}
 	dl := &downloader.Downloader{
 		OS:   info.OS,
 		Arch: info.Arch,
-		Vars: dep.Vars,
+		Vars: varsWithSubstitutions(dep.Vars, dep.Substitutions),
 	}
 	if dep.URL != nil {
 		dl.URL = *dep.URL

@@ -19,10 +19,10 @@ dependencies:
       archivepathsuffix: ""
       version: 0.4.0
     overrides:
-    - vars:
-        archivepathsuffix: .exe
-      os:
+    - os:
       - windows
+      vars:
+        archivepathsuffix: .exe
 templates:
   golangci-lint:
     url: https://github.com/golangci/golangci-lint/releases/download/v{{.version}}/golangci-lint-{{.version}}-{{.os}}-{{.arch}}{{.urlsuffix}}
@@ -32,11 +32,11 @@ templates:
       archivepathsuffix: ""
       urlsuffix: .tar.gz
     overrides:
-    - vars:
+    - os:
+      - windows
+      vars:
         archivepathsuffix: .exe
         urlsuffix: .zip
-      os:
-      - windows
   goreleaser:
     url: https://github.com/goreleaser/goreleaser/releases/download/v{{.version}}/goreleaser_{{.os}}_{{.arch}}{{.urlsuffix}}
     archive_path: goreleaser{{.archivepathsuffix}}
@@ -45,28 +45,19 @@ templates:
       urlsuffix: .tar.gz
       version: 0.120.7
     overrides:
-    - vars:
-        os: Linux
-      os:
-      - linux
-    - vars:
-        os: Darwin
-      os:
-      - darwin
-    - vars:
-        archivepathsuffix: .exe
-        os: Windows
-        urlsuffix: .zip
-      os:
+    - os:
       - windows
-    - vars:
-        arch: i386
+      vars:
+        archivepathsuffix: .exe
+        urlsuffix: .zip
+    substitutions:
       arch:
-      - "386"
-    - vars:
-        arch: x86_64
-      arch:
-      - amd64
+        "386": i386
+        amd64: x86_64
+      os:
+        darwin: Darwin
+        linux: Linux
+        windows: Windows
 url_checksums:
   https://github.com/WillAbides/semver-next/releases/download/v0.4.0/semver-next_0.4.0_darwin_amd64.tar.gz: a519f2c3bbe8972deb094d56c196fec89496f663431321c22be343ced23839fb
   https://github.com/WillAbides/semver-next/releases/download/v0.4.0/semver-next_0.4.0_linux_amd64.tar.gz: 6317c36bec63158038381e8878601151ae996310fef58306f70cb03f1b46ef7f

@@ -2,12 +2,14 @@ package bindown
 
 import (
 	"fmt"
+
+	"github.com/willabides/bindown/v3/internal/util"
 )
 
 // DependencyOverride overrides a dependency's configuration
 type DependencyOverride struct {
-	Dependency      `yaml:",inline"`
 	OverrideMatcher `yaml:",inline"`
+	Dependency      `yaml:",inline"`
 }
 
 func (o *DependencyOverride) clone() *DependencyOverride {
@@ -54,22 +56,50 @@ func (m OverrideMatcher) clone() OverrideMatcher {
 
 // Dependency is something to download, extract and install
 type Dependency struct {
-	Template    *string              `yaml:",omitempty"`
-	URL         *string              `yaml:",omitempty"`
-	ArchivePath *string              `yaml:"archive_path,omitempty"`
-	BinName     *string              `yaml:"bin,omitempty"`
-	Link        *bool                `yaml:",omitempty"`
-	Vars        map[string]string    `yaml:"vars,omitempty"`
-	Overrides   []DependencyOverride `yaml:"overrides,omitempty"`
+	Template      *string                      `yaml:",omitempty"`
+	URL           *string                      `yaml:",omitempty"`
+	ArchivePath   *string                      `yaml:"archive_path,omitempty"`
+	BinName       *string                      `yaml:"bin,omitempty"`
+	Link          *bool                        `yaml:",omitempty"`
+	Vars          map[string]string            `yaml:"vars,omitempty"`
+	Overrides     []DependencyOverride         `yaml:"overrides,omitempty"`
+	Substitutions map[string]map[string]string `yaml:"substitutions,omitempty"`
+}
+
+func cloneSubstitutions(subs map[string]map[string]string) map[string]map[string]string {
+	if subs == nil {
+		return nil
+	}
+	result := make(map[string]map[string]string, len(subs))
+	for k, v := range subs {
+		result[k] = util.CopyStringMap(v)
+	}
+	return result
+}
+
+func varsWithSubstitutions(vars map[string]string, subs map[string]map[string]string) map[string]string {
+	if vars == nil || subs == nil {
+		return vars
+	}
+	vars = util.CopyStringMap(vars)
+	for key, val := range vars {
+		varSubs := subs[key]
+		if varSubs == nil {
+			continue
+		}
+		sub, ok := varSubs[val]
+		if !ok {
+			continue
+		}
+		vars[key] = sub
+	}
+	return vars
 }
 
 func (d *Dependency) clone() *Dependency {
 	dep := *d
 	if d.Vars != nil {
-		dep.Vars = make(map[string]string, len(d.Vars))
-		for k, v := range d.Vars {
-			dep.Vars[k] = v
-		}
+		dep.Vars = util.CopyStringMap(d.Vars)
 	}
 	if d.Overrides != nil {
 		dep.Overrides = make([]DependencyOverride, len(d.Overrides))
@@ -77,6 +107,7 @@ func (d *Dependency) clone() *Dependency {
 			dep.Overrides[i] = *override.clone()
 		}
 	}
+	dep.Substitutions = cloneSubstitutions(d.Substitutions)
 	return &dep
 }
 
