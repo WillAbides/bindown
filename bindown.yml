@@ -19,8 +19,8 @@ dependencies:
       archivepathsuffix: ""
       version: 0.4.0
     overrides:
-    - os:
-      - windows
+    - matcher:
+        os: windows
       vars:
         archivepathsuffix: .exe
 templates:
@@ -32,8 +32,8 @@ templates:
       archivepathsuffix: ""
       urlsuffix: .tar.gz
     overrides:
-    - os:
-      - windows
+    - matcher:
+        os: windows
       vars:
         archivepathsuffix: .exe
         urlsuffix: .zip
@@ -45,8 +45,8 @@ templates:
       urlsuffix: .tar.gz
       version: 0.120.7
     overrides:
-    - os:
-      - windows
+    - matcher:
+        os: windows
       vars:
         archivepathsuffix: .exe
         urlsuffix: .zip

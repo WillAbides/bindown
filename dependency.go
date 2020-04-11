@@ -8,8 +8,8 @@ import (
 
 // DependencyOverride overrides a dependency's configuration
 type DependencyOverride struct {
-	OverrideMatcher `yaml:",inline"`
-	Dependency      `yaml:",inline"`
+	OverrideMatcher OverrideMatcher `yaml:"matcher"`
+	Dependency      Dependency      `yaml:",inline"`
 }
 
 func (o *DependencyOverride) clone() *DependencyOverride {
@@ -22,8 +22,32 @@ func (o *DependencyOverride) clone() *DependencyOverride {
 
 // OverrideMatcher contains a list or oses and arches to match an override. If either os or arch is empty, all oses and arches match.
 type OverrideMatcher struct {
-	OS   []string `yaml:",omitempty"`
-	Arch []string `yaml:",omitempty"`
+	OS   matcherVal `yaml:",omitempty"`
+	Arch matcherVal `yaml:",omitempty"`
+}
+
+type matcherVal []string
+
+func (m matcherVal) MarshalYAML() (interface{}, error) {
+	if len(m) == 1 {
+		return m[0], nil
+	}
+	return []string(m), nil
+}
+
+func (m *matcherVal) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	var s string
+	err := unmarshal(&s)
+	if err == nil {
+		*m = matcherVal{s}
+		return nil
+	}
+	var strs []string
+	err = unmarshal(&strs)
+	if err == nil {
+		*m = strs
+	}
+	return err
 }
 
 func (m OverrideMatcher) matches(info SystemInfo) bool {
