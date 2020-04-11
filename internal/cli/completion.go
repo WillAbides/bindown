@@ -61,8 +61,8 @@ func allBins(cfg *configfile.ConfigFile) []string {
 		OS:   runtime.GOOS,
 		Arch: runtime.GOARCH,
 	}
-	bins := make([]string, 0, len(cfg.Downloadables))
-	for dlName := range cfg.Downloadables {
+	bins := make([]string, 0, len(cfg.Dependencies))
+	for dlName := range cfg.Dependencies {
 		bn, err := cfg.BinName(dlName, system)
 		if err != nil {
 			return []string{}

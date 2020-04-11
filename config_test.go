@@ -28,26 +28,26 @@ func TestConfig_addChecksums(t *testing.T) {
 	dl4 := ts4.URL + "/foo/foo.tar.gz"
 	dl5 := ts5.URL + "/foo/foo.tar.gz"
 	cfg := &Config{
-		Downloadables: map[string]*Downloadable{
+		Dependencies: map[string]*Dependency{
 			"d1": {
 				URL: stringPtr(dl1),
-				Overrides: []DownloadableOverride{
+				Overrides: []DependencyOverride{
 					{
-						Downloadable{URL: stringPtr(dl2)},
-						DownloadableMatcher{OS: []string{"darwin"}},
+						Dependency{URL: stringPtr(dl2)},
+						OverrideMatcher{OS: []string{"darwin"}},
 					},
 					{
-						Downloadable{URL: stringPtr(dl5)},
-						DownloadableMatcher{OS: []string{"windows"}},
+						Dependency{URL: stringPtr(dl5)},
+						OverrideMatcher{OS: []string{"windows"}},
 					},
 				},
 			},
 			"d2": {
 				URL: stringPtr(dl3),
-				Overrides: []DownloadableOverride{
+				Overrides: []DependencyOverride{
 					{
-						Downloadable{URL: stringPtr(dl4)},
-						DownloadableMatcher{OS: []string{"darwin"}},
+						Dependency{URL: stringPtr(dl4)},
+						OverrideMatcher{OS: []string{"darwin"}},
 					},
 				},
 			},
@@ -73,14 +73,14 @@ func TestConfig_addChecksum(t *testing.T) {
 	ts := testutil.ServeFile(t, testutil.DownloadablesPath("foo.tar.gz"), "/foo/foo.tar.gz", "")
 	dlURL := ts.URL + "/foo/foo.tar.gz"
 	cfg := &Config{
-		Downloadables: map[string]*Downloadable{
+		Dependencies: map[string]*Dependency{
 			"dut": {
 				URL: stringPtr(dlURL),
 			},
 		},
 	}
 	want := &Config{
-		Downloadables: map[string]*Downloadable{
+		Dependencies: map[string]*Dependency{
 			"dut": {
 				URL: stringPtr(dlURL),
 			},

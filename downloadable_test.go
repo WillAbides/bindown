@@ -6,7 +6,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func requireEqualDownloadable(t *testing.T, want, got Downloadable) {
+func requireEqualDependency(t *testing.T, want, got Dependency) {
 	t.Helper()
 	require.Equal(t, want.URL, got.URL)
 	require.Equal(t, want.ArchivePath, got.ArchivePath)
@@ -16,37 +16,37 @@ func requireEqualDownloadable(t *testing.T, want, got Downloadable) {
 	require.Equal(t, want.Overrides, got.Overrides)
 }
 
-func TestDownloadable_applyTemplate(t *testing.T) {
+func TestDependency_applyTemplate(t *testing.T) {
 	t.Run("no template", func(t *testing.T) {
-		downloadable := &Downloadable{
+		dep := &Dependency{
 			URL: stringPtr("foo"),
 		}
-		want := &Downloadable{
+		want := &Dependency{
 			URL: stringPtr("foo"),
 		}
-		err := downloadable.applyTemplate(nil, 0)
+		err := dep.applyTemplate(nil, 0)
 		require.NoError(t, err)
-		requireEqualDownloadable(t, *want, *downloadable)
+		requireEqualDependency(t, *want, *dep)
 	})
 
 	t.Run("missing grandparent template", func(t *testing.T) {
-		downloadable := &Downloadable{
+		dep := &Dependency{
 			Template: stringPtr("foo"),
 		}
-		templates := map[string]*Downloadable{
+		templates := map[string]*Dependency{
 			"foo": {
 				Template: stringPtr("bar"),
 			},
 		}
-		err := downloadable.applyTemplate(templates, 0)
+		err := dep.applyTemplate(templates, 0)
 		require.Error(t, err)
 	})
 
 	t.Run("missing template", func(t *testing.T) {
-		downloadable := &Downloadable{
+		dep := &Dependency{
 			Template: stringPtr("bar"),
 		}
-		err := downloadable.applyTemplate(nil, 0)
+		err := dep.applyTemplate(nil, 0)
 		require.Error(t, err)
 	})
 
@@ -66,25 +66,25 @@ templates:
       - os: [darwin]
         arch: [amd64]
         url: templateOverrideURL
-downloadables:
-  myDownloadable:
+dependencies:
+  myDependency:
     template: template1
     link: false
-    archive_path: downloadableArchivePath
+    archive_path: dependencyArchivePath
     vars:
-      foo: "downloadable foo"
-      baz: "downloadable baz"
+      foo: "dependency foo"
+      baz: "dependency baz"
     overrides:
       - os: [darwin]
         arch: [amd64]
-        url: downloadableOverrideURL
+        url: dependencyOverrideURL
   want:
     link: false
-    archive_path: downloadableArchivePath
+    archive_path: dependencyArchivePath
     url: parentTemplateURL
     vars:
-      foo: "downloadable foo"
-      baz: "downloadable baz"
+      foo: "dependency foo"
+      baz: "dependency baz"
       bar: "template bar"
     overrides:
       - os: [darwin]
@@ -92,61 +92,61 @@ downloadables:
         url: templateOverrideURL      
       - os: [darwin]
         arch: [amd64]
-        url: downloadableOverrideURL
+        url: dependencyOverrideURL
 `)
-		downloadable := cfg.Downloadables["myDownloadable"]
-		err := downloadable.applyTemplate(cfg.Templates, 0)
+		dep := cfg.Dependencies["myDependency"]
+		err := dep.applyTemplate(cfg.Templates, 0)
 		require.NoError(t, err)
-		requireEqualDownloadable(t, *cfg.Downloadables["want"], *downloadable)
+		requireEqualDependency(t, *cfg.Dependencies["want"], *dep)
 	})
 }
 
-func Test_Downloadable_applyOverrides(t *testing.T) {
+func Test_Dependency_applyOverrides(t *testing.T) {
 	t.Run("nil overrides", func(t *testing.T) {
-		want := Downloadable{
+		want := Dependency{
 			ArchivePath: stringPtr("archivePath"),
 			Link:        nil,
 			Vars: map[string]string{
 				"foo": "bar",
 			},
 		}
-		downloadable := want.clone()
-		downloadable.applyOverrides(newSystemInfo("windows", "amd64"), 0)
-		requireEqualDownloadable(t, want, *downloadable)
+		dep := want.clone()
+		dep.applyOverrides(newSystemInfo("windows", "amd64"), 0)
+		requireEqualDependency(t, want, *dep)
 	})
 
 	t.Run("simple override", func(t *testing.T) {
-		downloadable := &Downloadable{
+		dep := &Dependency{
 			ArchivePath: stringPtr("archivePath"),
 			Vars: map[string]string{
 				"foo": "bar",
 				"baz": "qux",
 			},
-			Overrides: []DownloadableOverride{
+			Overrides: []DependencyOverride{
 				{
-					DownloadableMatcher: DownloadableMatcher{
+					OverrideMatcher: OverrideMatcher{
 						OS: []string{"linux"},
 					},
-					Downloadable: Downloadable{
+					Dependency: Dependency{
 						Link: boolPtr(true),
 						Vars: map[string]string{
 							"foo": "not bar",
 							"bar": "moo",
 						},
-						Overrides: []DownloadableOverride{
+						Overrides: []DependencyOverride{
 							{
-								DownloadableMatcher: DownloadableMatcher{
+								OverrideMatcher: OverrideMatcher{
 									Arch: []string{"amd64"},
 								},
-								Downloadable: Downloadable{
+								Dependency: Dependency{
 									ArchivePath: stringPtr("it's amd64"),
 								},
 							},
 							{
-								DownloadableMatcher: DownloadableMatcher{
+								OverrideMatcher: OverrideMatcher{
 									Arch: []string{"x86"},
 								},
-								Downloadable: Downloadable{
+								Dependency: Dependency{
 									ArchivePath: stringPtr("it's x86"),
 								},
 							},
@@ -155,7 +155,7 @@ func Test_Downloadable_applyOverrides(t *testing.T) {
 				},
 			},
 		}
-		want := Downloadable{
+		want := Dependency{
 			ArchivePath: stringPtr("it's amd64"),
 			Link:        boolPtr(true),
 			Vars: map[string]string{
@@ -164,7 +164,7 @@ func Test_Downloadable_applyOverrides(t *testing.T) {
 				"bar": "moo",
 			},
 		}
-		downloadable.applyOverrides(newSystemInfo("linux", "amd64"), 0)
-		requireEqualDownloadable(t, want, *downloadable)
+		dep.applyOverrides(newSystemInfo("linux", "amd64"), 0)
+		requireEqualDependency(t, want, *dep)
 	})
 }

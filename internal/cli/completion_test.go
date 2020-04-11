@@ -51,11 +51,11 @@ func Test_completionConfig(t *testing.T) {
 	})
 
 	t.Run("valid config file", func(t *testing.T) {
-		configFile := createConfigFile(t, "downloadables1.yaml")
+		configFile := createConfigFile(t, "ex1.yaml")
 		setConfigFileEnvVar(t, configFile)
 		got := completionConfig(nil)
 		assert.NotNil(t, got)
-		assert.NotNil(t, got.Downloadables["golangci-lint"])
+		assert.NotNil(t, got.Dependencies["golangci-lint"])
 	})
 
 	t.Run("empty config file", func(t *testing.T) {
@@ -74,7 +74,7 @@ func Test_binCompleter(t *testing.T) {
 	assert.Empty(t, got)
 	assert.NotNil(t, got)
 
-	configFile := createConfigFile(t, "downloadables1.yaml")
+	configFile := createConfigFile(t, "ex1.yaml")
 	setConfigFileEnvVar(t, configFile)
 	got = binCompleter.Options(kong.CompleterArgs{})
 	sort.Strings(got)
@@ -86,7 +86,7 @@ func Test_binPathCompleter(t *testing.T) {
 	assert.Empty(t, got)
 	assert.NotNil(t, got)
 
-	configFile := createConfigFile(t, "downloadables1.yaml")
+	configFile := createConfigFile(t, "ex1.yaml")
 	setConfigFileEnvVar(t, configFile)
 	got = binPathCompleter.Options(kong.CompleterArgs{"foo", "bar/baz/"})
 	sort.Strings(got)
