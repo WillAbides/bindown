@@ -170,3 +170,18 @@ func FileExists(path string) bool {
 	}
 	return false
 }
+
+// MustHexHash is like hexHash but panics on err
+// this should only be used with hashers that are guaranteed to return a nil error from Write()
+func MustHexHash(hasher hash.Hash, data ...[]byte) string {
+	hsh, err := HexHash(hasher, data...)
+	Must(err)
+	return hsh
+}
+
+// Must is a single place to do all our error panics
+func Must(err error) {
+	if err != nil {
+		panic(err)
+	}
+}
