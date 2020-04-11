@@ -33,12 +33,12 @@ func TestConfig_addChecksums(t *testing.T) {
 				URL: stringPtr(dl1),
 				Overrides: []DependencyOverride{
 					{
-						Dependency{URL: stringPtr(dl2)},
-						OverrideMatcher{OS: []string{"darwin"}},
+						Dependency:      Dependency{URL: stringPtr(dl2)},
+						OverrideMatcher: OverrideMatcher{OS: []string{"darwin"}},
 					},
 					{
-						Dependency{URL: stringPtr(dl5)},
-						OverrideMatcher{OS: []string{"windows"}},
+						Dependency:      Dependency{URL: stringPtr(dl5)},
+						OverrideMatcher: OverrideMatcher{OS: []string{"windows"}},
 					},
 				},
 			},
@@ -46,8 +46,8 @@ func TestConfig_addChecksums(t *testing.T) {
 				URL: stringPtr(dl3),
 				Overrides: []DependencyOverride{
 					{
-						Dependency{URL: stringPtr(dl4)},
-						OverrideMatcher{OS: []string{"darwin"}},
+						Dependency:      Dependency{URL: stringPtr(dl4)},
+						OverrideMatcher: OverrideMatcher{OS: []string{"darwin"}},
 					},
 				},
 			},
