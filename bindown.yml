@@ -1,40 +1,29 @@
 downloadables:
   gobin:
-    template: gobin
+    url: https://github.com/myitcv/gobin/releases/download/v{{.version}}/{{.os}}-{{.arch}}
+    archive_path: '{{.os}}-{{.arch}}'
     vars:
       version: 0.0.13
-    known_builds:
-    - linux/amd64
-    - darwin/amd64
-    - windows/amd64
   golangci-lint:
     template: golangci-lint
     vars:
       version: 1.23.7
-    known_builds:
-    - linux/amd64
-    - darwin/amd64
-    - windows/amd64
   goreleaser:
     template: goreleaser
     vars:
       version: 0.120.7
-    known_builds:
-    - linux/amd64
-    - darwin/amd64
-    - windows/amd64
   semver-next:
-    template: semver-next
+    url: https://github.com/WillAbides/semver-next/releases/download/v{{.version}}/semver-next_{{.version}}_{{.os}}_{{.arch}}.tar.gz
+    archive_path: semver-next{{.archivepathsuffix}}
     vars:
+      archivepathsuffix: ""
       version: 0.4.0
-    known_builds:
-    - linux/amd64
-    - darwin/amd64
-    - windows/amd64
+    overrides:
+    - vars:
+        archivepathsuffix: .exe
+      os:
+      - windows
 templates:
-  gobin:
-    url: https://github.com/myitcv/gobin/releases/download/v{{.version}}/{{.os}}-{{.arch}}
-    archive_path: '{{.os}}-{{.arch}}'
   golangci-lint:
     url: https://github.com/golangci/golangci-lint/releases/download/v{{.version}}/golangci-lint-{{.version}}-{{.os}}-{{.arch}}{{.urlsuffix}}
     archive_path: golangci-lint-{{.version}}-{{.os}}-{{.arch}}/golangci-lint{{.archivepathsuffix}}
@@ -78,16 +67,6 @@ templates:
         arch: x86_64
       arch:
       - amd64
-  semver-next:
-    url: https://github.com/WillAbides/semver-next/releases/download/v{{.version}}/semver-next_{{.version}}_{{.os}}_{{.arch}}.tar.gz
-    archive_path: semver-next{{.archivepathsuffix}}
-    vars:
-      archivepathsuffix: ""
-    overrides:
-    - vars:
-        archivepathsuffix: .exe
-      os:
-      - windows
 url_checksums:
   https://github.com/WillAbides/semver-next/releases/download/v0.4.0/semver-next_0.4.0_darwin_amd64.tar.gz: a519f2c3bbe8972deb094d56c196fec89496f663431321c22be343ced23839fb
   https://github.com/WillAbides/semver-next/releases/download/v0.4.0/semver-next_0.4.0_linux_amd64.tar.gz: 6317c36bec63158038381e8878601151ae996310fef58306f70cb03f1b46ef7f

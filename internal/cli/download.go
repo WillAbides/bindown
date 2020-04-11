@@ -14,25 +14,21 @@ var downloadKongVars = kong.Vars{
 }
 
 type downloadCmd struct {
-	Force      bool       `kong:"help=${download_force_help}"`
-	TargetFile string     `kong:"required=true,arg,help=${download_target_file_help},completer=binpath"`
-	ConfigOpts configOpts `kong:"embed"`
-	OSArchOpts osArchOpts `kong:"embed"`
+	Force      bool               `kong:"help=${download_force_help}"`
+	TargetFile string             `kong:"required=true,arg,help=${download_target_file_help},completer=binpath"`
+	ConfigOpts configOpts         `kong:"embed"`
+	System     bindown.SystemInfo `kong:"name=system,default=${system_default},help=${system_help},completer=system"`
 }
 
 func (d *downloadCmd) Run(kctx *kong.Context) error {
 	config := configFile(kctx, d.ConfigOpts.Configfile)
 	binary := path.Base(d.TargetFile)
 	binDir := path.Dir(d.TargetFile)
-	system := bindown.SystemInfo{
-		OS:   d.OSArchOpts.OS,
-		Arch: d.OSArchOpts.Arch,
-	}
 	cellarDir := cli.Config.ConfigOpts.CellarDir
 	if cellarDir == "" {
 		cellarDir = filepath.Join(binDir, ".bindown")
 	}
-	return config.Install(binary, system, &bindown.ConfigInstallOpts{
+	return config.Install(binary, d.System, &bindown.ConfigInstallOpts{
 		CellarDir: cellarDir,
 		TargetDir: binDir,
 		Force:     d.Force,

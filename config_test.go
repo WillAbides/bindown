@@ -41,7 +41,6 @@ func TestConfig_addChecksums(t *testing.T) {
 						DownloadableMatcher{OS: []string{"windows"}},
 					},
 				},
-				KnownBuilds: []SystemInfo{newSystemInfo("darwin", "amd64"), newSystemInfo("linux", "amd64")},
 			},
 			"d2": {
 				URL: stringPtr(dl3),
@@ -51,11 +50,15 @@ func TestConfig_addChecksums(t *testing.T) {
 						DownloadableMatcher{OS: []string{"darwin"}},
 					},
 				},
-				KnownBuilds: []SystemInfo{newSystemInfo("darwin", "amd64"), newSystemInfo("linux", "amd64")},
 			},
 		},
 	}
-	err := cfg.AddChecksums(nil)
+	err := cfg.AddChecksums(&ConfigAddChecksumsOptions{
+		Systems: []SystemInfo{
+			newSystemInfo("darwin", "amd64"),
+			newSystemInfo("linux", "amd64"),
+		},
+	})
 	require.NoError(t, err)
 	require.Len(t, cfg.URLChecksums, 4)
 	require.Equal(t, map[string]string{
@@ -79,8 +82,7 @@ func TestConfig_addChecksum(t *testing.T) {
 	want := &Config{
 		Downloadables: map[string]*Downloadable{
 			"dut": {
-				URL:         stringPtr(dlURL),
-				KnownBuilds: []SystemInfo{newSystemInfo("testOS", "testArch")},
+				URL: stringPtr(dlURL),
 			},
 		},
 		URLChecksums: map[string]string{

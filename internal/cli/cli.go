@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"fmt"
 	"runtime"
 
 	"github.com/alecthomas/kong"
@@ -12,20 +13,13 @@ var kongVars = kong.Vars{
 	"configfile_default": `bindown.yml`,
 	"cellar_dir_help":    `directory where downloads will be cached`,
 	"download_help":      `download a bin`,
-	"os_help":            `download for this operating system`,
-	"os_default":         runtime.GOOS,
-	"arch_help":          `download for this architecture`,
-	"arch_default":       runtime.GOARCH,
+	"system_default":     fmt.Sprintf("%s/%s", runtime.GOOS, runtime.GOARCH),
+	"system_help":        `target system in the format of <os>/<architecture>`,
 }
 
 type configOpts struct {
 	Configfile string `kong:"type=path,help=${configfile_help},default=${configfile_default},env='BINDOWN_CONFIG_FILE'"`
 	CellarDir  string `kong:"type=path,help=${cellar_dir_help},env='BINDOWN_CELLAR'"`
-}
-
-type osArchOpts struct {
-	OS   string `kong:"help=${os_help},default=${os_default},completer=os"`
-	Arch string `kong:"help=${arch_help},default=${arch_default},completer=arch"`
 }
 
 var cli struct {
@@ -44,9 +38,8 @@ func newParser(kongOptions ...kong.Option) *kong.Kong {
 	kongOptions = append(kongOptions,
 		kong.Completers{
 			"binpath": binPathCompleter,
-			"arch":    archCompleter,
-			"os":      osCompleter,
 			"bin":     binCompleter,
+			"system":  systemCompleter,
 		},
 		kongVars,
 		downloadKongVars,

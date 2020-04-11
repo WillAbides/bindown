@@ -62,7 +62,6 @@ type Downloadable struct {
 	Link        *bool                  `yaml:",omitempty"`
 	Vars        map[string]string      `yaml:"vars,omitempty"`
 	Overrides   []DownloadableOverride `yaml:"overrides,omitempty"`
-	KnownBuilds []SystemInfo           `yaml:"known_builds,omitempty"`
 }
 
 func (d *Downloadable) clone() *Downloadable {
@@ -79,23 +78,7 @@ func (d *Downloadable) clone() *Downloadable {
 			downloadable.Overrides[i] = *override.clone()
 		}
 	}
-	if d.KnownBuilds != nil {
-		downloadable.KnownBuilds = make([]SystemInfo, len(d.KnownBuilds))
-		copy(downloadable.KnownBuilds, d.KnownBuilds)
-	}
 	return &downloadable
-}
-
-func (d *Downloadable) addKnownBuild(info SystemInfo) {
-	if d.KnownBuilds == nil {
-		d.KnownBuilds = make([]SystemInfo, 0, 1)
-	}
-	for _, kb := range d.KnownBuilds {
-		if kb.equal(&info) {
-			return
-		}
-	}
-	d.KnownBuilds = append(d.KnownBuilds, info)
 }
 
 const maxTemplateDepth = 2
@@ -140,9 +123,6 @@ func (d *Downloadable) applyTemplate(templates map[string]*Downloadable, depth i
 		newDL.Link = d.Link
 	}
 	newDL.addOverrides(d.Overrides)
-	if d.KnownBuilds != nil {
-		newDL.KnownBuilds = append(newDL.KnownBuilds, d.KnownBuilds...)
-	}
 	*d = *newDL
 	return nil
 }
@@ -187,9 +167,6 @@ func (d *Downloadable) applyOverrides(info SystemInfo, depth int) {
 		}
 		if o.URL != nil {
 			d.URL = o.URL
-		}
-		if o.KnownBuilds != nil {
-			d.KnownBuilds = append(d.KnownBuilds, o.KnownBuilds...)
 		}
 	}
 	d.Overrides = nil

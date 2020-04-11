@@ -3,10 +3,6 @@ downloadables:
     template: golangci-lint
     vars:
       version: 1.23.7
-    known_builds:
-      - linux/amd64
-      - darwin/amd64
-      - windows/amd64
   goreleaser:
     template: goreleaser
     vars:

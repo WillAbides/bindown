@@ -90,37 +90,49 @@ var binPathCompleter = kong.CompleterFunc(func(a kong.CompleterArgs) []string {
 	).Options(a)
 })
 
-var osCompleter = kong.CompleteSet(strings.Split(goosVals, "\n")...)
+var systemCompleter = kong.CompleteSet(strings.Split(goDists, "\n")...)
 
-//from `go tool dist list | cut -f 1 -d '/' | sort | uniq`
-const goosVals = `aix
-android
-darwin
-dragonfly
-freebsd
-illumos
-js
-linux
-nacl
-netbsd
-openbsd
-plan9
-solaris
-windows`
-
-var archCompleter = kong.CompleteSet(strings.Split(goarchVals, "\n")...)
-
-//from `go tool dist list | cut -f 2 -d '/' | sort | uniq`
-const goarchVals = `386
-amd64
-amd64p32
-arm
-arm64
-mips
-mips64
-mips64le
-mipsle
-ppc64
-ppc64le
-s390x
-wasm`
+// from `go tool dist list`
+const goDists = `aix/ppc64
+android/386
+android/amd64
+android/arm
+android/arm64
+darwin/386
+darwin/amd64
+darwin/arm
+darwin/arm64
+dragonfly/amd64
+freebsd/386
+freebsd/amd64
+freebsd/arm
+freebsd/arm64
+illumos/amd64
+js/wasm
+linux/386
+linux/amd64
+linux/arm
+linux/arm64
+linux/mips
+linux/mips64
+linux/mips64le
+linux/mipsle
+linux/ppc64
+linux/ppc64le
+linux/riscv64
+linux/s390x
+netbsd/386
+netbsd/amd64
+netbsd/arm
+netbsd/arm64
+openbsd/386
+openbsd/amd64
+openbsd/arm
+openbsd/arm64
+plan9/386
+plan9/amd64
+plan9/arm
+solaris/amd64
+windows/386
+windows/amd64
+windows/arm`

@@ -49,10 +49,6 @@ func (s SystemInfo) MarshalText() (text []byte, err error) {
 	return []byte(s.String()), nil
 }
 
-func (s *SystemInfo) equal(other *SystemInfo) bool {
-	return s.OS == other.OS && s.Arch == other.Arch
-}
-
 func (c *Config) getDownloadable(name string) *Downloadable {
 	if c.Downloadables == nil {
 		return nil
@@ -107,23 +103,6 @@ func (c *Config) buildDownloader(downloadableName string, info SystemInfo) (*dow
 	return dl, nil
 }
 
-func (c *Config) downloadableKnownBuilds(downloadableName string) ([]SystemInfo, error) {
-	downloadable := c.getDownloadable(downloadableName)
-	if downloadable == nil {
-		return []SystemInfo{}, nil
-	}
-	downloadable = downloadable.clone()
-	err := downloadable.applyTemplate(c.Templates, 0)
-	if err != nil {
-		return nil, err
-	}
-	result := make([]SystemInfo, len(downloadable.KnownBuilds))
-	if downloadable.KnownBuilds != nil {
-		copy(result, downloadable.KnownBuilds)
-	}
-	return result, nil
-}
-
 func (c *Config) allDownloadableNames() []string {
 	if len(c.Downloadables) == 0 {
 		return []string{}
@@ -166,14 +145,7 @@ func (c *Config) AddChecksums(opts *ConfigAddChecksumsOptions) error {
 		if downloadable == nil {
 			return fmt.Errorf("no downloadable configured with the name %q", dlName)
 		}
-		sysTodo := opts.Systems
-		if len(sysTodo) == 0 {
-			sysTodo, err = c.downloadableKnownBuilds(dlName)
-			if err != nil {
-				return err
-			}
-		}
-		for _, system := range sysTodo {
+		for _, system := range opts.Systems {
 			err = c.addChecksum(dlName, system)
 			if err != nil {
 				return err
@@ -202,7 +174,6 @@ func (c *Config) addChecksum(downloadableName string, sysInfo SystemInfo) error 
 	if err != nil {
 		return err
 	}
-	c.Downloadables[downloadableName].addKnownBuild(sysInfo)
 	if c.URLChecksums == nil {
 		c.URLChecksums = make(map[string]string, 1)
 	}
@@ -226,17 +197,9 @@ func (c *Config) Validate(downloadables []string, systems []SystemInfo) error {
 	if len(downloadables) == 0 {
 		downloadables = c.allDownloadableNames()
 	}
-	var err error
 	for _, downloadableName := range downloadables {
-		sysInfos := systems
-		if len(sysInfos) == 0 {
-			sysInfos, err = c.downloadableKnownBuilds(downloadableName)
-			if err != nil {
-				return err
-			}
-		}
-		for _, sysInfo := range sysInfos {
-			dl, err := c.buildDownloader(downloadableName, sysInfo)
+		for _, system := range systems {
+			dl, err := c.buildDownloader(downloadableName, system)
 			if err != nil {
 				return err
 			}

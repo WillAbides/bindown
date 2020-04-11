@@ -14,7 +14,6 @@ func requireEqualDownloadable(t *testing.T, want, got Downloadable) {
 	require.Equal(t, want.Link, got.Link)
 	require.Equal(t, want.Vars, got.Vars)
 	require.Equal(t, want.Overrides, got.Overrides)
-	require.Equal(t, want.KnownBuilds, got.KnownBuilds)
 }
 
 func TestDownloadable_applyTemplate(t *testing.T) {
@@ -63,7 +62,6 @@ templates:
     vars:
       foo: "template foo"
       bar: "template bar"
-    known_builds: [tmplOS/tmplArch]
     overrides:
       - os: [darwin]
         arch: [amd64]
@@ -76,7 +74,6 @@ downloadables:
     vars:
       foo: "downloadable foo"
       baz: "downloadable baz"
-    known_builds: [downloadableOS/downloadableArch]
     overrides:
       - os: [darwin]
         arch: [amd64]
@@ -89,9 +86,6 @@ downloadables:
       foo: "downloadable foo"
       baz: "downloadable baz"
       bar: "template bar"
-    known_builds:
-      - tmplOS/tmplArch
-      - downloadableOS/downloadableArch
     overrides:
       - os: [darwin]
         arch: [amd64]
