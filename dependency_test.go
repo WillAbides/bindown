@@ -66,8 +66,8 @@ templates:
       bar: "template bar"
     overrides:
       - matcher:
-          os: [darwin]
-          arch: [amd64]
+          os: darwin
+          arch: amd64
         url: templateOverrideURL
 dependencies:
   myDependency:
