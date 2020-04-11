@@ -8,19 +8,19 @@ import (
 	"github.com/willabides/bindown/v3"
 )
 
-var downloadKongVars = kong.Vars{
-	"download_force_help":       `force download even if it already exists`,
-	"download_target_file_help": `file to download`,
+var installKongVars = kong.Vars{
+	"install_force_help":       `force install even if it already exists`,
+	"install_target_file_help": `file to install`,
 }
 
-type downloadCmd struct {
-	Force      bool               `kong:"help=${download_force_help}"`
-	TargetFile string             `kong:"required=true,arg,help=${download_target_file_help},completer=binpath"`
+type installCmd struct {
+	Force      bool               `kong:"help=${install_force_help}"`
+	TargetFile string             `kong:"required=true,arg,help=${install_target_file_help},completer=binpath"`
 	ConfigOpts configOpts         `kong:"embed"`
 	System     bindown.SystemInfo `kong:"name=system,default=${system_default},help=${system_help},completer=system"`
 }
 
-func (d *downloadCmd) Run(kctx *kong.Context) error {
+func (d *installCmd) Run(kctx *kong.Context) error {
 	config := configFile(kctx, d.ConfigOpts.Configfile)
 	binary := path.Base(d.TargetFile)
 	binDir := path.Dir(d.TargetFile)
