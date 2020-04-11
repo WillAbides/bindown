@@ -152,7 +152,7 @@ func Test_matcherVal_UnmarshalYAML(t *testing.T) {
 			want: matcherVal{"foo"},
 		},
 		{
-			yml:  `
+			yml: `
 - foo
 - bar
 `,
