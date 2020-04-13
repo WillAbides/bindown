@@ -2,72 +2,75 @@
   "$id": "https://willabides.github.io/bindown/bindown.schema.json",
   "$schema": "http://json-schema.org/draft-07/schema#",
   "definitions": {
+    "dependency": {
+      "properties": {
+        "archive_path": {
+          "description": "The path in the downloaded archive where the binary is located. Default is ./\u003cbin\u003e",
+          "type": "string"
+        },
+        "bin": {
+          "description": "The name of the binary to be installed. Default is the name of the dependency.",
+          "type": "string"
+        },
+        "link": {
+          "description": "Whether to create a symlink to the bin instead of copying it.",
+          "type": "boolean"
+        },
+        "overrides": {
+          "additionalItems": false,
+          "description": "Overrides allows you to override values depending on the os and architecture of the target system.",
+          "items": {
+            "$ref": "#/definitions/override"
+          },
+          "type": "array"
+        },
+        "substitutions": {
+          "additionalProperties": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object"
+          },
+          "description": "Substitutions will substitute values from vars.",
+          "examples": [
+            {
+              "arch": {
+                "386": "i386",
+                "amd64": "x86_64"
+              },
+              "os": {
+                "darwin": "Darwin",
+                "linux": "Linux",
+                "windows": "Windows"
+              }
+            }
+          ],
+          "type": "object"
+        },
+        "template": {
+          "description": "A template for this dependency. Any unset fields in this dependency will be set by values from the template. Overrides in the dependency and its template are concatinated with the template's overrides coming first. Vars and substitutions are both combined with the dependency's value taking precedence.\n",
+          "type": "string"
+        },
+        "url": {
+          "description": "The url to download a dependency from.",
+          "type": "string"
+        },
+        "vars": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "A list of variables that can be used in 'url', 'archive_path' and 'bin'.\nTwo variables are always added based on the current environment: 'os' and 'arch'. Those are the operating system and architecture as defined by go's GOOS and GOARCH variables. I should document what those are somewhere.\nYou can reference a variable using golang template syntax. For example, you could have a url set to `https://example.org/mydependency/v{{.version}}/mydependency-{{.os}}-{{.arch}}.tar.gz`.  If you define the var 'version: 1.2.3' and run bindown on a 64 bit Linux system, it will download `https://example.org/mydependency/v1.2.3/mydependency-linux-amd64.tar.gz`.\n",
+          "type": "object"
+        }
+      },
+      "type": "object"
+    },
     "override": {
       "additionalProperties": false,
       "properties": {
         "dependency": {
-          "description": "Values to override the parent dependency",
-          "properties": {
-            "archive_path": {
-              "description": "The path in the downloaded archive where the binary is located. Default is ./\u003cbin\u003e",
-              "type": "string"
-            },
-            "bin": {
-              "description": "The name of the binary to be installed. Default is the name of the dependency.",
-              "type": "string"
-            },
-            "link": {
-              "description": "Whether to create a symlink to the bin instead of copying it.",
-              "type": "boolean"
-            },
-            "overrides": {
-              "additionalItems": false,
-              "description": "Overrides allows you to override values depending on the os and architecture of the target system.",
-              "items": {
-                "$ref": "#/definitions/override"
-              },
-              "type": "array"
-            },
-            "substitutions": {
-              "additionalProperties": {
-                "additionalProperties": {
-                  "type": "string"
-                },
-                "type": "object"
-              },
-              "description": "Substitutions will substitute values from vars.",
-              "examples": [
-                {
-                  "arch": {
-                    "386": "i386",
-                    "amd64": "x86_64"
-                  },
-                  "os": {
-                    "darwin": "Darwin",
-                    "linux": "Linux",
-                    "windows": "Windows"
-                  }
-                }
-              ],
-              "type": "object"
-            },
-            "template": {
-              "description": "A template for this dependency. Any unset fields in this dependency will be set by values from the template. Overrides in the dependency and its template are concatinated with the template's overrides coming first. Vars and substitutions are both combined with the dependency's value taking precedence.\n",
-              "type": "string"
-            },
-            "url": {
-              "description": "The url to download a dependency from.",
-              "type": "string"
-            },
-            "vars": {
-              "additionalProperties": {
-                "type": "string"
-              },
-              "description": "A list of variables that can be used in 'url', 'archive_path' and 'bin'.\nTwo variables are always added based on the current environment: 'os' and 'arch'. Those are the operating system and architecture as defined by go's GOOS and GOARCH variables. I should document what those are somewhere.\nYou can reference a variable using golang template syntax. For example, you could have a url set to `https://example.org/mydependency/v{{.version}}/mydependency-{{.os}}-{{.arch}}.tar.gz`.  If you define the var 'version: 1.2.3' and run bindown on a 64 bit Linux system, it will download `https://example.org/mydependency/v1.2.3/mydependency-linux-amd64.tar.gz`.\n",
-              "type": "object"
-            }
-          },
-          "type": "object"
+          "$ref": "#/definitions/dependency",
+          "description": "Values to override the parent dependency"
         },
         "matcher": {
           "additionalProperties": false,
@@ -116,134 +119,14 @@
   "properties": {
     "dependencies": {
       "additionalProperties": {
-        "properties": {
-          "archive_path": {
-            "description": "The path in the downloaded archive where the binary is located. Default is ./\u003cbin\u003e",
-            "type": "string"
-          },
-          "bin": {
-            "description": "The name of the binary to be installed. Default is the name of the dependency.",
-            "type": "string"
-          },
-          "link": {
-            "description": "Whether to create a symlink to the bin instead of copying it.",
-            "type": "boolean"
-          },
-          "overrides": {
-            "additionalItems": false,
-            "description": "Overrides allows you to override values depending on the os and architecture of the target system.",
-            "items": {
-              "$ref": "#/definitions/override"
-            },
-            "type": "array"
-          },
-          "substitutions": {
-            "additionalProperties": {
-              "additionalProperties": {
-                "type": "string"
-              },
-              "type": "object"
-            },
-            "description": "Substitutions will substitute values from vars.",
-            "examples": [
-              {
-                "arch": {
-                  "386": "i386",
-                  "amd64": "x86_64"
-                },
-                "os": {
-                  "darwin": "Darwin",
-                  "linux": "Linux",
-                  "windows": "Windows"
-                }
-              }
-            ],
-            "type": "object"
-          },
-          "template": {
-            "description": "A template for this dependency. Any unset fields in this dependency will be set by values from the template. Overrides in the dependency and its template are concatinated with the template's overrides coming first. Vars and substitutions are both combined with the dependency's value taking precedence.\n",
-            "type": "string"
-          },
-          "url": {
-            "description": "The url to download a dependency from.",
-            "type": "string"
-          },
-          "vars": {
-            "additionalProperties": {
-              "type": "string"
-            },
-            "description": "A list of variables that can be used in 'url', 'archive_path' and 'bin'.\nTwo variables are always added based on the current environment: 'os' and 'arch'. Those are the operating system and architecture as defined by go's GOOS and GOARCH variables. I should document what those are somewhere.\nYou can reference a variable using golang template syntax. For example, you could have a url set to `https://example.org/mydependency/v{{.version}}/mydependency-{{.os}}-{{.arch}}.tar.gz`.  If you define the var 'version: 1.2.3' and run bindown on a 64 bit Linux system, it will download `https://example.org/mydependency/v1.2.3/mydependency-linux-amd64.tar.gz`.\n",
-            "type": "object"
-          }
-        },
-        "type": "object"
+        "$ref": "#/definitions/dependency"
       },
       "description": "Dependencies available for bindown to install.",
       "type": "object"
     },
     "templates": {
       "additionalProperties": {
-        "properties": {
-          "archive_path": {
-            "description": "The path in the downloaded archive where the binary is located. Default is ./\u003cbin\u003e",
-            "type": "string"
-          },
-          "bin": {
-            "description": "The name of the binary to be installed. Default is the name of the dependency.",
-            "type": "string"
-          },
-          "link": {
-            "description": "Whether to create a symlink to the bin instead of copying it.",
-            "type": "boolean"
-          },
-          "overrides": {
-            "additionalItems": false,
-            "description": "Overrides allows you to override values depending on the os and architecture of the target system.",
-            "items": {
-              "$ref": "#/definitions/override"
-            },
-            "type": "array"
-          },
-          "substitutions": {
-            "additionalProperties": {
-              "additionalProperties": {
-                "type": "string"
-              },
-              "type": "object"
-            },
-            "description": "Substitutions will substitute values from vars.",
-            "examples": [
-              {
-                "arch": {
-                  "386": "i386",
-                  "amd64": "x86_64"
-                },
-                "os": {
-                  "darwin": "Darwin",
-                  "linux": "Linux",
-                  "windows": "Windows"
-                }
-              }
-            ],
-            "type": "object"
-          },
-          "template": {
-            "description": "A template for this dependency. Any unset fields in this dependency will be set by values from the template. Overrides in the dependency and its template are concatinated with the template's overrides coming first. Vars and substitutions are both combined with the dependency's value taking precedence.\n",
-            "type": "string"
-          },
-          "url": {
-            "description": "The url to download a dependency from.",
-            "type": "string"
-          },
-          "vars": {
-            "additionalProperties": {
-              "type": "string"
-            },
-            "description": "A list of variables that can be used in 'url', 'archive_path' and 'bin'.\nTwo variables are always added based on the current environment: 'os' and 'arch'. Those are the operating system and architecture as defined by go's GOOS and GOARCH variables. I should document what those are somewhere.\nYou can reference a variable using golang template syntax. For example, you could have a url set to `https://example.org/mydependency/v{{.version}}/mydependency-{{.os}}-{{.arch}}.tar.gz`.  If you define the var 'version: 1.2.3' and run bindown on a 64 bit Linux system, it will download `https://example.org/mydependency/v1.2.3/mydependency-linux-amd64.tar.gz`.\n",
-            "type": "object"
-          }
-        },
-        "type": "object"
+        "$ref": "#/definitions/dependency"
       },
       "description": "Templates that can be used by dependencies in this file.",
       "type": "object"

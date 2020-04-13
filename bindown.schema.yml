@@ -2,79 +2,64 @@ $schema: http://json-schema.org/draft-07/schema#
 $id: https://willabides.github.io/bindown/bindown.schema.json
 title: bindown configuration file
 type: object
-properties:
-  dependencies:
-    description: Dependencies available for bindown to install.
+definitions:
+  dependency:
     type: object
-    additionalProperties:
-      type: object
-      properties: &dependency_properties
-        template:
-          description: >
-            A template for this dependency. Any unset fields in this dependency will be set by values from the template.
-            Overrides in the dependency and its template are concatinated with the template's overrides coming first.
-            Vars and substitutions are both combined with the dependency's value taking precedence.
-          type: string
-        url:
-          description: The url to download a dependency from.
-          type: string
-        archive_path:
-          description: The path in the downloaded archive where the binary is located. Default is ./<bin>
-          type: string
-        bin:
-          description: The name of the binary to be installed. Default is the name of the dependency.
-          type: string
-        link:
-          description: Whether to create a symlink to the bin instead of copying it.
-          type: boolean
-        vars:
-          description: >
-            A list of variables that can be used in 'url', 'archive_path' and 'bin'.
+    properties:
+      template:
+        description: >
+          A template for this dependency. Any unset fields in this dependency will be set by values from the template.
+          Overrides in the dependency and its template are concatinated with the template's overrides coming first.
+          Vars and substitutions are both combined with the dependency's value taking precedence.
+        type: string
+      url:
+        description: The url to download a dependency from.
+        type: string
+      archive_path:
+        description: The path in the downloaded archive where the binary is located. Default is ./<bin>
+        type: string
+      bin:
+        description: The name of the binary to be installed. Default is the name of the dependency.
+        type: string
+      link:
+        description: Whether to create a symlink to the bin instead of copying it.
+        type: boolean
+      vars:
+        description: >
+          A list of variables that can be used in 'url', 'archive_path' and 'bin'.
 
-            Two variables are always added based on the current environment: 'os' and 'arch'. Those are the operating
-            system and architecture as defined by go's GOOS and GOARCH variables. I should document what those are
-            somewhere.
+          Two variables are always added based on the current environment: 'os' and 'arch'. Those are the operating
+          system and architecture as defined by go's GOOS and GOARCH variables. I should document what those are
+          somewhere.
 
-            You can reference a variable using golang template syntax. For example, you could have a url set to
-            `https://example.org/mydependency/v{{.version}}/mydependency-{{.os}}-{{.arch}}.tar.gz`.  If you define the var
-            'version: 1.2.3' and run bindown on a 64 bit Linux system, it will download
-            `https://example.org/mydependency/v1.2.3/mydependency-linux-amd64.tar.gz`.
+          You can reference a variable using golang template syntax. For example, you could have a url set to
+          `https://example.org/mydependency/v{{.version}}/mydependency-{{.os}}-{{.arch}}.tar.gz`.  If you define the var
+          'version: 1.2.3' and run bindown on a 64 bit Linux system, it will download
+          `https://example.org/mydependency/v1.2.3/mydependency-linux-amd64.tar.gz`.
+        type: object
+        additionalProperties:
+          type: string
+      overrides:
+        description: Overrides allows you to override values depending on the os and architecture of the target system.
+        type: array
+        additionalItems: false
+        items:
+          "$ref": "#/definitions/override"
+      substitutions:
+        description: Substitutions will substitute values from vars.
+        examples:
+          - os:
+              darwin: Darwin
+              linux: Linux
+              windows: Windows
+            arch:
+              "386": i386
+              amd64: x86_64
+        type: object
+        additionalProperties:
           type: object
           additionalProperties:
             type: string
-        overrides:
-          description: Overrides allows you to override values depending on the os and architecture of the target system.
-          type: array
-          additionalItems: false
-          items:
-            "$ref": "#/definitions/override"
-        substitutions:
-          description: Substitutions will substitute values from vars.
-          examples:
-            - os:
-                darwin: Darwin
-                linux: Linux
-                windows: Windows
-              arch:
-                "386": i386
-                amd64: x86_64
-          type: object
-          additionalProperties:
-            type: object
-            additionalProperties:
-              type: string
-  templates:
-    description: Templates that can be used by dependencies in this file.
-    type: object
-    additionalProperties:
-      type: object
-      properties: *dependency_properties
-  url_checksums:
-    description: Checksums of downloaded files.
-    type: object
-    additionalProperties:
-      type: string
-definitions:
   override:
     type: object
     additionalProperties: false
@@ -108,5 +93,20 @@ definitions:
               type: string
       dependency:
         description: Values to override the parent dependency
-        type: object
-        properties: *dependency_properties
+        $ref: "#/definitions/dependency"
+properties:
+  dependencies:
+    description: Dependencies available for bindown to install.
+    type: object
+    additionalProperties:
+      $ref: "#/definitions/dependency"
+  templates:
+    description: Templates that can be used by dependencies in this file.
+    type: object
+    additionalProperties:
+      $ref: "#/definitions/dependency"
+  url_checksums:
+    description: Checksums of downloaded files.
+    type: object
+    additionalProperties:
+      type: string
