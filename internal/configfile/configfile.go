@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 
 	"github.com/willabides/bindown/v3"
+	"github.com/willabides/bindown/v3/internal/jsonschema"
 	"gopkg.in/yaml.v2"
 )
 
@@ -13,6 +14,14 @@ import (
 type ConfigFile struct {
 	filename string
 	bindown.Config
+}
+
+//New returns a new *ConfigFile
+func New(filename string, config bindown.Config) *ConfigFile {
+	return &ConfigFile{
+		filename: filename,
+		Config:   config,
+	}
 }
 
 //LoadConfigFile loads a config file
@@ -23,6 +32,10 @@ func LoadConfigFile(filename string) (*ConfigFile, error) {
 	}
 	result := ConfigFile{
 		filename: filename,
+	}
+	err = jsonschema.ValidateConfig(data)
+	if err != nil {
+		return nil, err
 	}
 	err = yaml.Unmarshal(data, &result.Config)
 	if err != nil {

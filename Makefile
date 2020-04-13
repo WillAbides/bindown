@@ -38,6 +38,11 @@ bin/semver-next: bin/bindown
 	bin/bindown install $@
 bins += bin/semver-next
 
+bin/go-bindata: bin/gobin
+	GOBIN=${CURDIR}/bin \
+	bin/gobin github.com/go-bindata/go-bindata/v3/go-bindata@v3.1.3
+bins += bin/go-bindata
+
 GOIMPORTS_REF := 8aaa1484dc108aa23dcf2d4a09371c0c9e280f6b
 bin/goimports: bin/gobin
 	GOBIN=${CURDIR}/bin \

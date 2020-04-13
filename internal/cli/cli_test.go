@@ -3,6 +3,7 @@ package cli
 import (
 	"bytes"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -11,6 +12,8 @@ import (
 	"github.com/alecthomas/kong"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/willabides/bindown/v3"
+	"github.com/willabides/bindown/v3/internal/configfile"
 	"github.com/willabides/bindown/v3/internal/testutil"
 	"github.com/willabides/bindown/v3/internal/util"
 )
@@ -64,6 +67,25 @@ func createConfigFile(t *testing.T, sourceFile string) string {
 	return dest
 }
 
+func createConfigFileWithContent(t *testing.T, filename, content string) string {
+	t.Helper()
+	dir := testutil.TmpDir(t)
+	dest := filepath.Join(dir, filename)
+	err := ioutil.WriteFile(dest, []byte(content), 0600)
+	require.NoError(t, err)
+	return dest
+}
+
+func writeFileFromConfig(t *testing.T, cfg bindown.Config, writeJSON bool) string {
+	t.Helper()
+	dir := testutil.TmpDir(t)
+	dest := filepath.Join(dir, "bindown.config")
+	cfgFile := configfile.New(dest, cfg)
+	err := cfgFile.Write(writeJSON)
+	require.NoError(t, err)
+	return dest
+}
+
 func setConfigFileEnvVar(t *testing.T, file string) {
 	t.Helper()
 	err := os.Setenv("BINDOWN_CONFIG_FILE", file)
@@ -73,25 +95,198 @@ func setConfigFileEnvVar(t *testing.T, file string) {
 	})
 }
 
-func TestRun(t *testing.T) {
-	t.Run("version", func(t *testing.T) {
-		result := runCmd("version")
-		result.assertStdOut(t, "cmdname: version unknown")
+func strPtr(s string) *string {
+	return &s
+}
+
+func TestAddChecksums(t *testing.T) {
+	ts := testutil.ServeFile(t, testutil.DownloadablesPath("foo.tar.gz"), "/foo/foo.tar.gz", "")
+	dlURL := ts.URL + "/foo/foo.tar.gz"
+	cfg := bindown.Config{
+		Dependencies: map[string]*bindown.Dependency{
+			"foo": {
+				URL:         &dlURL,
+				ArchivePath: strPtr("bin/foo.txt"),
+			},
+		},
+	}
+	cfgFile := writeFileFromConfig(t, cfg, false)
+	result := runCmd("add-checksums", "--configfile", cfgFile, "--system", "darwin/amd64", "foo")
+	result.assertStdOut(t, "")
+	result.assertStdErr(t, "")
+	require.Zero(t, result.exitVal)
+	gotCfg, err := configfile.LoadConfigFile(cfgFile)
+	require.NoError(t, err)
+	require.Equal(t, testutil.FooChecksum, gotCfg.URLChecksums[dlURL])
+}
+
+func TestValidate(t *testing.T) {
+	ts := testutil.ServeFile(t, testutil.DownloadablesPath("foo.tar.gz"), "/foo/foo.tar.gz", "")
+	dlURL := ts.URL + "/foo/foo.tar.gz"
+	cfg := bindown.Config{
+		Dependencies: map[string]*bindown.Dependency{
+			"foo": {
+				URL:         &dlURL,
+				ArchivePath: strPtr("bin/foo.txt"),
+			},
+		},
+		URLChecksums: map[string]string{
+			dlURL: testutil.FooChecksum,
+		},
+	}
+	cfgFile := writeFileFromConfig(t, cfg, false)
+	result := runCmd("validate", "--configfile", cfgFile, "--system", "darwin/amd64", "foo")
+	result.assertStdOut(t, "")
+	result.assertStdErr(t, "")
+	require.Zero(t, result.exitVal)
+}
+
+func TestExtractPath(t *testing.T) {
+	dlURL := `https://localhost:8080/whatever`
+	cfg := bindown.Config{
+		Dependencies: map[string]*bindown.Dependency{
+			"foo": {
+				URL:         &dlURL,
+				ArchivePath: strPtr("bin/foo.txt"),
+			},
+		},
+		URLChecksums: map[string]string{
+			dlURL: testutil.FooChecksum,
+		},
+	}
+	dir := testutil.TmpDir(t)
+	cfgFile := writeFileFromConfig(t, cfg, false)
+	result := runCmd("extract-path", "--configfile", cfgFile, "--system", "darwin/amd64", filepath.Join(dir, "foo"))
+	result.assertStdOut(t, filepath.Join(dir, filepath.FromSlash(".bindown/extracts/0c580d4cd271bc3e")))
+	result.assertStdErr(t, "")
+	require.Zero(t, result.exitVal)
+}
+
+func TestInstall(t *testing.T) {
+	ts := testutil.ServeFile(t, testutil.DownloadablesPath("foo.tar.gz"), "/foo/foo.tar.gz", "")
+	dlURL := ts.URL + "/foo/foo.tar.gz"
+	cfg := bindown.Config{
+		Dependencies: map[string]*bindown.Dependency{
+			"foo": {
+				URL:         &dlURL,
+				ArchivePath: strPtr("bin/foo.txt"),
+			},
+		},
+		URLChecksums: map[string]string{
+			dlURL: testutil.FooChecksum,
+		},
+	}
+
+	cfgFile := writeFileFromConfig(t, cfg, false)
+	dir := testutil.TmpDir(t)
+	result := runCmd("install", "--configfile", cfgFile, "--system", "darwin/amd64", filepath.Join(dir, "foo"))
+	result.assertStdOut(t, "")
+	result.assertStdErr(t, "")
+	require.Zero(t, result.exitVal)
+	got := testutil.MustReadFile(t, filepath.Join(dir, "foo"))
+	require.Equal(t, "bar\n", string(got))
+}
+
+func TestFormat(t *testing.T) {
+	t.Run("invalid config file", func(t *testing.T) {
+		cfgFile := createConfigFile(t, "invalid1.yaml")
+		setConfigFileEnvVar(t, cfgFile)
+		result := runCmd("format", "--configfile", cfgFile)
+		result.assertStdOut(t, "")
+		result.assertError(t, fmt.Sprintf(`error loading config from "%s": invalid config:
+                /dependencies/golangci-lint: "boo" type should be object
+                /templates/golangci-lint/link: "true" type should be boolean`, cfgFile))
+		assert.NotZero(t, result.exitVal)
+	})
+
+	t.Run("formats the config file", func(t *testing.T) {
+		cfgFile := createConfigFileWithContent(t, "bindown.yml", `
+
+dependencies:
+  goreleaser:
+    template: goreleaser
+    vars:
+        version: 0.120.7
+  golangci-lint:
+    template: golangci-lint
+    vars:
+      version: 1.23.7
+
+`)
+		want := `dependencies:
+  golangci-lint:
+    template: golangci-lint
+    vars:
+      version: 1.23.7
+  goreleaser:
+    template: goreleaser
+    vars:
+      version: 0.120.7
+`
+
+		result := runCmd("format", "--configfile", cfgFile)
 		result.assertStdErr(t, "")
+		result.assertStdOut(t, "")
+		assert.Zero(t, result.exitVal)
+		got := testutil.MustReadFile(t, cfgFile)
+		require.Equal(t, want, string(got))
+	})
+
+	t.Run("writes json with json extension", func(t *testing.T) {
+		cfgFile := createConfigFileWithContent(t, "bindown.json", `
+dependencies:
+  golangci-lint:
+    template: golangci-lint
+    vars:
+      version: 1.23.7
+  goreleaser:
+    template: goreleaser
+    vars:
+      version: 0.120.7
+`)
+		want := `{
+  "dependencies": {
+    "golangci-lint": {
+      "template": "golangci-lint",
+      "vars": {
+        "version": "1.23.7"
+      }
+    },
+    "goreleaser": {
+      "template": "goreleaser",
+      "vars": {
+        "version": "0.120.7"
+      }
+    }
+  }
+}`
+
+		result := runCmd("format", "--configfile", cfgFile)
+		result.assertStdErr(t, "")
+		result.assertStdOut(t, "")
+		assert.Zero(t, result.exitVal)
+		got := testutil.MustReadFile(t, cfgFile)
+		require.JSONEq(t, want, string(got))
 	})
 
 	t.Run("config format", func(t *testing.T) {
 		setConfigFileEnvVar(t, createConfigFile(t, "ex1.yaml"))
-		result := runCmd("config", "format")
+		result := runCmd("format")
 		result.assertStdErr(t, "")
 		result.assertStdOut(t, "")
 		assert.Zero(t, result.exitVal)
 	})
 
 	t.Run("config format no config file", func(t *testing.T) {
-		result := runCmd("config", "format")
+		result := runCmd("format")
 		assert.NotZero(t, result.exitVal)
 		result.assertStdOut(t, "")
 		result.assertError(t, "error loading config")
 	})
+}
+
+func TestVersion(t *testing.T) {
+	result := runCmd("version")
+	result.assertStdOut(t, "cmdname: version unknown")
+	result.assertStdErr(t, "")
 }

@@ -13,18 +13,9 @@ dependencies:
     vars:
       version: 0.120.7
   semver-next:
-    url: https://github.com/WillAbides/semver-next/releases/download/v{{.version}}/semver-next_{{.version}}_{{.os}}_{{.arch}}.tar.gz
-    archive_path: semver-next{{.archivepathsuffix}}
+    template: semver-next
     vars:
-      archivepathsuffix: ""
       version: 0.4.0
-    overrides:
-    - matcher:
-        os:
-        - windows
-      dependency:
-        vars:
-          archivepathsuffix: .exe
   yq:
     template: yq
     vars:
@@ -68,6 +59,18 @@ templates:
         darwin: Darwin
         linux: Linux
         windows: Windows
+  semver-next:
+    url: https://github.com/WillAbides/semver-next/releases/download/v{{.version}}/semver-next_{{.version}}_{{.os}}_{{.arch}}.tar.gz
+    archive_path: semver-next{{.archivepathsuffix}}
+    vars:
+      archivepathsuffix: ""
+    overrides:
+    - matcher:
+        os:
+        - windows
+      dependency:
+        vars:
+          archivepathsuffix: .exe
   yq:
     url: https://github.com/mikefarah/yq/releases/download/{{.version}}/yq_{{.os}}_{{.arch}}{{.archivepathsuffix}}
     archive_path: yq_{{.os}}_{{.arch}}{{.archivepathsuffix}}

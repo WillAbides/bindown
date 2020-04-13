@@ -1,17 +1,14 @@
 dependencies:
-  golangci-lint:
-    template: golangci-lint
-    vars:
-      version: 1.23.7
+  golangci-lint: boo
   goreleaser:
     template: goreleaser
     vars:
-      version: 0.120.7
+      version: 12
 templates:
   golangci-lint:
     url: https://github.com/golangci/golangci-lint/releases/download/v{{.version}}/golangci-lint-{{.version}}-{{.os}}-{{.arch}}{{.urlsuffix}}
     archive_path: golangci-lint-{{.version}}-{{.os}}-{{.arch}}/golangci-lint{{.archivepathsuffix}}
-    link: true
+    link: "true"
     vars:
       archivepathsuffix: ""
       urlsuffix: .tar.gz
