@@ -212,6 +212,25 @@ func (d *Downloader) setDefaultBinName(defaultName string) {
 	}
 }
 
+func validateFileChecksum(filename, checksum string) error {
+	result, err := util.FileChecksum(filename)
+	if err != nil {
+		return err
+	}
+	if checksum != result {
+		defer func() {
+			delErr := os.RemoveAll(filename)
+			if delErr != nil {
+				log.Printf("Error deleting suspicious file at %q. Please delete it manually", filename)
+			}
+		}()
+		return fmt.Errorf(`checksum mismatch in downloaded file %q 
+wanted: %s
+got: %s`, filename, checksum, result)
+	}
+	return nil
+}
+
 func (d *Downloader) validateChecksum(targetDir, checksum string) error {
 	d.requireApplyTemplates()
 	dl := d.clone()
@@ -219,22 +238,7 @@ func (d *Downloader) validateChecksum(targetDir, checksum string) error {
 	if err != nil {
 		return err
 	}
-	result, err := util.FileChecksum(targetFile)
-	if err != nil {
-		return err
-	}
-	if checksum != result {
-		defer func() {
-			delErr := os.RemoveAll(targetFile)
-			if delErr != nil {
-				log.Printf("Error deleting suspicious file at %q. Please delete it manually", targetFile)
-			}
-		}()
-		return fmt.Errorf(`checksum mismatch in downloaded file %q 
-wanted: %s
-got: %s`, targetFile, checksum, result)
-	}
-	return nil
+	return validateFileChecksum(targetFile, checksum)
 }
 
 //UpdateChecksumOpts options for UpdateChecksum
@@ -288,20 +292,6 @@ func (d *Downloader) GetUpdatedChecksum(opts UpdateChecksumOpts) (string, error)
 	return util.FileChecksum(dlPath)
 }
 
-//InstallOpts options for Install
-type InstallOpts struct {
-	// DownloaderName is the downloader's key from the config file
-	DownloaderName string
-	// CellarDir is the directory where downloads and extractions will be placed.  Default is a <TargetDir>/.bindown
-	CellarDir string
-	// TargetDir is the directory where the executable should end up
-	TargetDir string
-	// Force - whether to force the install even if it already exists
-	Force bool
-	// Checksum is the checksum we want this download to have
-	Checksum string
-}
-
 func (d *Downloader) downloadsSubName(knownChecksums map[string]string) string {
 	var checksum string
 	u, err := d.GetURL()
@@ -323,6 +313,47 @@ func (d *Downloader) ExtractsSubName(knownChecksums map[string]string) string {
 		}
 	}
 	return util.MustHexHash(fnv.New64a(), []byte(checksum), []byte(d.BinName))
+}
+
+//Download download the file to outputPath
+func (d *Downloader) Download(outputPath, checksum string, force bool) error {
+	dl := d.clone()
+	err := dl.applyTemplates()
+	if err != nil {
+		return err
+	}
+	if force {
+		err = os.Remove(outputPath)
+		if err != nil {
+			return err
+		}
+	}
+	ok, err := util.FileExistsWithChecksum(outputPath, checksum)
+	if err != nil {
+		return err
+	}
+	if ok {
+		return nil
+	}
+	err = downloadFile(outputPath, dl.URL)
+	if err != nil {
+		return err
+	}
+	return validateFileChecksum(outputPath, checksum)
+}
+
+//InstallOpts options for Install
+type InstallOpts struct {
+	// DownloaderName is the downloader's key from the config file
+	DownloaderName string
+	// CellarDir is the directory where downloads and extractions will be placed.  Default is a <TargetDir>/.bindown
+	CellarDir string
+	// TargetDir is the directory where the executable should end up
+	TargetDir string
+	// Force - whether to force the install even if it already exists
+	Force bool
+	// Checksum is the checksum we want this download to have
+	Checksum string
 }
 
 //Install downloads and installs a bin
@@ -349,15 +380,16 @@ func (d *Downloader) Install(opts InstallOpts) error {
 		}
 	}
 
-	err = dl.download(downloadDir, opts.Checksum)
+	dlPath, err := dl.downloadablePath(downloadDir)
 	if err != nil {
-		log.Printf("error downloading: %v", err)
 		return err
 	}
-
-	err = dl.validateChecksum(downloadDir, opts.Checksum)
+	err = os.MkdirAll(downloadDir, 0750)
 	if err != nil {
-		log.Printf("error validating: %v", err)
+		return err
+	}
+	err = dl.Download(dlPath, opts.Checksum, false)
+	if err != nil {
 		return err
 	}
 

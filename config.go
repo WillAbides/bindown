@@ -3,6 +3,9 @@ package bindown
 import (
 	"bytes"
 	"fmt"
+	"net/url"
+	"os"
+	"path"
 	"path/filepath"
 	"runtime"
 
@@ -232,6 +235,47 @@ func (c *Config) Validate(dependencies []string, systems []SystemInfo) error {
 		}
 	}
 	return nil
+}
+
+//ConfigDownloadDependencyOpts options for Config.DownloadDependency
+type ConfigDownloadDependencyOpts struct {
+	TargetFile string
+	Force      bool
+}
+
+//DownloadDependency download a dependency
+func (c Config) DownloadDependency(dependencyName string, sysInfo SystemInfo, opts *ConfigDownloadDependencyOpts) (string, error) {
+	if opts == nil {
+		opts = &ConfigDownloadDependencyOpts{}
+	}
+	targetFile := opts.TargetFile
+	dl, err := c.buildDownloader(dependencyName, sysInfo)
+	if err != nil {
+		return "", err
+	}
+
+	dlURLStr, err := dl.GetURL()
+	if err != nil {
+		return "", err
+	}
+
+	checksum, ok := c.URLChecksums[dlURLStr]
+	if !ok {
+		return "", fmt.Errorf("no checksum for the url %q", dlURLStr)
+	}
+
+	if targetFile == "" {
+		dlURL, err := url.Parse(dlURLStr)
+		if err != nil {
+			return "", err
+		}
+		pwd, err := os.Getwd()
+		if err != nil {
+			return "", err
+		}
+		targetFile = filepath.Join(pwd, path.Base(dlURL.EscapedPath()))
+	}
+	return targetFile, dl.Download(targetFile, checksum, opts.Force)
 }
 
 //ConfigInstallOpts provides options for Config.Install
