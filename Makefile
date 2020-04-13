@@ -30,6 +30,10 @@ bin/goreleaser: bin/bindown
 	bin/bindown install $@
 bins += bin/goreleaser
 
+bin/yq: bin/bindown
+	bin/bindown install $@
+bins += bin/yq
+
 bin/semver-next: bin/bindown
 	bin/bindown install $@
 bins += bin/semver-next

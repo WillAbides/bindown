@@ -8,8 +8,8 @@ import (
 
 // DependencyOverride overrides a dependency's configuration
 type DependencyOverride struct {
-	OverrideMatcher `yaml:",inline"`
-	Dependency      `yaml:",inline"`
+	OverrideMatcher OverrideMatcher `yaml:"matcher"`
+	Dependency      Dependency
 }
 
 func (o *DependencyOverride) clone() *DependencyOverride {

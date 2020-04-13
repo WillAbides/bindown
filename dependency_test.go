@@ -63,9 +63,11 @@ templates:
       foo: "template foo"
       bar: "template bar"
     overrides:
-      - os: [darwin]
-        arch: [amd64]
-        url: templateOverrideURL
+      - matcher:
+          os: [darwin]
+          arch: [amd64]
+        dependency:
+          url: templateOverrideURL
 dependencies:
   myDependency:
     template: template1
@@ -75,9 +77,11 @@ dependencies:
       foo: "dependency foo"
       baz: "dependency baz"
     overrides:
-      - os: [darwin]
-        arch: [amd64]
-        url: dependencyOverrideURL
+      - matcher:
+          os: [darwin]
+          arch: [amd64]
+        dependency:
+          url: dependencyOverrideURL
   want:
     link: false
     archive_path: dependencyArchivePath
@@ -87,12 +91,16 @@ dependencies:
       baz: "dependency baz"
       bar: "template bar"
     overrides:
-      - os: [darwin]
-        arch: [amd64]
-        url: templateOverrideURL      
-      - os: [darwin]
-        arch: [amd64]
-        url: dependencyOverrideURL
+      - matcher:
+          os: [darwin]
+          arch: [amd64]
+        dependency:
+          url: templateOverrideURL
+      - matcher:
+          os: [darwin]
+          arch: [amd64]
+        dependency:
+          url: dependencyOverrideURL
 `)
 		dep := cfg.Dependencies["myDependency"]
 		err := dep.applyTemplate(cfg.Templates, 0)
