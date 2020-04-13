@@ -11,9 +11,9 @@ import (
 
 //Config is our main config
 type Config struct {
-	Dependencies map[string]*Dependency `yaml:"dependencies"`
-	Templates    map[string]*Dependency `yaml:"templates,omitempty"`
-	URLChecksums map[string]string      `yaml:"url_checksums,omitempty"`
+	Dependencies map[string]*Dependency `json:"dependencies,omitempty" yaml:",omitempty"`
+	Templates    map[string]*Dependency `json:"templates,omitempty" yaml:",omitempty"`
+	URLChecksums map[string]string      `json:"url_checksums,omitempty" yaml:"url_checksums,omitempty"`
 }
 
 //SystemInfo contains os and architecture for a target system

@@ -20,6 +20,7 @@ var kongVars = kong.Vars{
 type configOpts struct {
 	Configfile string `kong:"type=path,help=${configfile_help},default=${configfile_default},env='BINDOWN_CONFIG_FILE'"`
 	CellarDir  string `kong:"type=path,help=${cellar_dir_help},env='BINDOWN_CELLAR'"`
+	JSONConfig bool   `kong:"name=json,help='use json instead of yaml for the config file'"`
 }
 
 var cli struct {

@@ -8,8 +8,8 @@ import (
 
 // DependencyOverride overrides a dependency's configuration
 type DependencyOverride struct {
-	OverrideMatcher OverrideMatcher `yaml:"matcher"`
-	Dependency      Dependency
+	OverrideMatcher OverrideMatcher `json:"matcher" yaml:"matcher,omitempty"`
+	Dependency      Dependency      `json:"dependency" yaml:",omitempty"`
 }
 
 func (o *DependencyOverride) clone() *DependencyOverride {
@@ -22,8 +22,8 @@ func (o *DependencyOverride) clone() *DependencyOverride {
 
 // OverrideMatcher contains a list or oses and arches to match an override. If either os or arch is empty, all oses and arches match.
 type OverrideMatcher struct {
-	OS   []string `yaml:",omitempty"`
-	Arch []string `yaml:",omitempty"`
+	OS   []string `json:"os,omitempty" yaml:",omitempty"`
+	Arch []string `json:"arch,omitempty" yaml:",omitempty"`
 }
 
 func (m OverrideMatcher) matches(info SystemInfo) bool {
@@ -56,14 +56,14 @@ func (m OverrideMatcher) clone() OverrideMatcher {
 
 // Dependency is something to download, extract and install
 type Dependency struct {
-	Template      *string                      `yaml:",omitempty"`
-	URL           *string                      `yaml:",omitempty"`
-	ArchivePath   *string                      `yaml:"archive_path,omitempty"`
-	BinName       *string                      `yaml:"bin,omitempty"`
-	Link          *bool                        `yaml:",omitempty"`
-	Vars          map[string]string            `yaml:"vars,omitempty"`
-	Overrides     []DependencyOverride         `yaml:"overrides,omitempty"`
-	Substitutions map[string]map[string]string `yaml:"substitutions,omitempty"`
+	Template      *string                      `json:"template,omitempty" yaml:",omitempty"`
+	URL           *string                      `json:"url,omitempty" yaml:",omitempty"`
+	ArchivePath   *string                      `json:"archive_path,omitempty" yaml:"archive_path,omitempty"`
+	BinName       *string                      `json:"bin,omitempty" yaml:"bin,omitempty"`
+	Link          *bool                        `json:"link,omitempty" yaml:",omitempty"`
+	Vars          map[string]string            `json:"vars,omitempty" yaml:",omitempty"`
+	Overrides     []DependencyOverride         `json:"overrides,omitempty" yaml:",omitempty"`
+	Substitutions map[string]map[string]string `json:"substitutions,omitempty" yaml:",omitempty"`
 }
 
 func cloneSubstitutions(subs map[string]map[string]string) map[string]map[string]string {
