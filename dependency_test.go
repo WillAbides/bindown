@@ -1,11 +1,9 @@
 package bindown
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"gopkg.in/yaml.v2"
 )
 
 func requireEqualDependency(t *testing.T, want, got Dependency) {
@@ -66,8 +64,8 @@ templates:
       bar: "template bar"
     overrides:
       - matcher:
-          os: darwin
-          arch: amd64
+          os: [darwin]
+          arch: [amd64]
         url: templateOverrideURL
 dependencies:
   myDependency:
@@ -105,72 +103,6 @@ dependencies:
 		require.NoError(t, err)
 		requireEqualDependency(t, *cfg.Dependencies["want"], *dep)
 	})
-}
-
-func Test_matcherVal_MarshalYAML(t *testing.T) {
-	mv0 := matcherVal{}
-	yml0, err := yaml.Marshal(mv0)
-	require.NoError(t, err)
-	want0, err := yaml.Marshal([]string{})
-	require.NoError(t, err)
-	require.Equal(t, want0, yml0)
-	mv1 := matcherVal{"windows"}
-	yml1, err := yaml.Marshal(mv1)
-	require.NoError(t, err)
-	want1, err := yaml.Marshal("windows")
-	require.NoError(t, err)
-	require.Equal(t, want1, yml1)
-	fmt.Println(string(yml1))
-	mv2 := matcherVal{"windows", "darwin"}
-	yml2, err := yaml.Marshal(mv2)
-	require.NoError(t, err)
-	want2, err := yaml.Marshal([]string(mv2))
-	require.NoError(t, err)
-	require.Equal(t, want2, yml2)
-
-	fmt.Printf("%q\n", string(yml0))
-	fmt.Printf("%q\n", string(yml1))
-	fmt.Printf("%q\n", string(yml2))
-}
-
-func Test_matcherVal_UnmarshalYAML(t *testing.T) {
-
-	for _, td := range []struct {
-		yml  string
-		want matcherVal
-	}{
-		{
-			yml:  "",
-			want: matcherVal(nil),
-		},
-		{
-			yml:  "[]",
-			want: matcherVal{},
-		},
-		{
-			yml:  "foo",
-			want: matcherVal{"foo"},
-		},
-		{
-			yml: `
-- foo
-- bar
-`,
-			want: matcherVal{"foo", "bar"},
-		},
-		{
-			yml:  `[ "foo", bar ]`,
-			want: matcherVal{"foo", "bar"},
-		},
-	} {
-		t.Run("", func(t *testing.T) {
-			var got matcherVal
-			err := yaml.Unmarshal([]byte(td.yml), &got)
-			require.NoError(t, err)
-			require.Equal(t, td.want, got)
-		})
-	}
-
 }
 
 func Test_Dependency_applyOverrides(t *testing.T) {

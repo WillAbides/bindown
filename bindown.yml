@@ -20,7 +20,8 @@ dependencies:
       version: 0.4.0
     overrides:
     - matcher:
-        os: windows
+        os:
+        - windows
       vars:
         archivepathsuffix: .exe
 templates:
@@ -33,7 +34,8 @@ templates:
       urlsuffix: .tar.gz
     overrides:
     - matcher:
-        os: windows
+        os:
+        - windows
       vars:
         archivepathsuffix: .exe
         urlsuffix: .zip
@@ -46,7 +48,8 @@ templates:
       version: 0.120.7
     overrides:
     - matcher:
-        os: windows
+        os:
+        - windows
       vars:
         archivepathsuffix: .exe
         urlsuffix: .zip
