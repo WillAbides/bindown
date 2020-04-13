@@ -25,3 +25,4 @@ fi
 make -s bin/yq
 
 yq read --prettyPrint -j bindown.schema.yml > bindown.schema.json
+go generate ./...

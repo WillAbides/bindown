@@ -38,7 +38,9 @@ definitions:
           `https://example.org/mydependency/v1.2.3/mydependency-linux-amd64.tar.gz`.
         type: object
         additionalProperties:
-          type: string
+          oneOf:
+            - type: string
+            - type: number
       overrides:
         description: Overrides allows you to override values depending on the os and architecture of the target system.
         type: array

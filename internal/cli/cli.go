@@ -154,7 +154,7 @@ type installCmd struct {
 }
 
 func (d *installCmd) Run(kctx *kong.Context) error {
-	config := configFile(kctx, d.ConfigOpts.Configfile)
+	config := configFile(kctx, cli.Configfile)
 	binary := path.Base(d.TargetFile)
 	binDir := path.Dir(d.TargetFile)
 	cellarDir := cli.CellarDir
