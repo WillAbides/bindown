@@ -66,7 +66,8 @@ templates:
       - matcher:
           os: [darwin]
           arch: [amd64]
-        url: templateOverrideURL
+        dependency:
+          url: templateOverrideURL
 dependencies:
   myDependency:
     template: template1
@@ -79,7 +80,8 @@ dependencies:
       - matcher:
           os: [darwin]
           arch: [amd64]
-        url: dependencyOverrideURL
+        dependency:
+          url: dependencyOverrideURL
   want:
     link: false
     archive_path: dependencyArchivePath
@@ -92,11 +94,13 @@ dependencies:
       - matcher:
           os: [darwin]
           arch: [amd64]
-        url: templateOverrideURL      
+        dependency:
+          url: templateOverrideURL
       - matcher:
           os: [darwin]
           arch: [amd64]
-        url: dependencyOverrideURL
+        dependency:
+          url: dependencyOverrideURL
 `)
 		dep := cfg.Dependencies["myDependency"]
 		err := dep.applyTemplate(cfg.Templates, 0)

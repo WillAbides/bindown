@@ -80,6 +80,7 @@ definitions:
     additionalProperties: false
     required:
       - matcher
+      - dependency
     properties:
       matcher:
         description: Describes which systems this override applies to
@@ -105,4 +106,7 @@ definitions:
             type: array
             items:
               type: string
-      <<: *dependency_properties
+      dependency:
+        description: Values to override the parent dependency
+        type: object
+        properties: *dependency_properties

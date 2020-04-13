@@ -22,8 +22,9 @@ dependencies:
     - matcher:
         os:
         - windows
-      vars:
-        archivepathsuffix: .exe
+      dependency:
+        vars:
+          archivepathsuffix: .exe
   yq:
     template: yq
     vars:
@@ -40,9 +41,10 @@ templates:
     - matcher:
         os:
         - windows
-      vars:
-        archivepathsuffix: .exe
-        urlsuffix: .zip
+      dependency:
+        vars:
+          archivepathsuffix: .exe
+          urlsuffix: .zip
   goreleaser:
     url: https://github.com/goreleaser/goreleaser/releases/download/v{{.version}}/goreleaser_{{.os}}_{{.arch}}{{.urlsuffix}}
     archive_path: goreleaser{{.archivepathsuffix}}
@@ -54,9 +56,10 @@ templates:
     - matcher:
         os:
         - windows
-      vars:
-        archivepathsuffix: .exe
-        urlsuffix: .zip
+      dependency:
+        vars:
+          archivepathsuffix: .exe
+          urlsuffix: .zip
     substitutions:
       arch:
         "386": i386
@@ -74,8 +77,9 @@ templates:
     - matcher:
         os:
         - windows
-      vars:
-        archivepathsuffix: .exe
+      dependency:
+        vars:
+          archivepathsuffix: .exe
 url_checksums:
   https://github.com/WillAbides/semver-next/releases/download/v0.4.0/semver-next_0.4.0_darwin_amd64.tar.gz: a519f2c3bbe8972deb094d56c196fec89496f663431321c22be343ced23839fb
   https://github.com/WillAbides/semver-next/releases/download/v0.4.0/semver-next_0.4.0_linux_amd64.tar.gz: 6317c36bec63158038381e8878601151ae996310fef58306f70cb03f1b46ef7f
