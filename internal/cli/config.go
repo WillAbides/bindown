@@ -50,12 +50,14 @@ func (d configExtractPathCmd) Run(kctx *kong.Context) error {
 	return err
 }
 
-type configFmtCmd struct{}
+type configFmtCmd struct {
+	JSON bool `kong:"help='output json instead of yaml'"`
+}
 
 func (c configFmtCmd) Run(kctx *kong.Context) error {
 	config := configFile(kctx, cli.Config.ConfigOpts.Configfile)
 	if config != nil {
-		return config.Write()
+		return config.Write(cli.Config.ConfigOpts.JSONConfig)
 	}
 	return nil
 }
@@ -74,7 +76,7 @@ func (d *configAddChecksumsCmd) Run(kctx *kong.Context) error {
 	if err != nil {
 		return err
 	}
-	return config.Write()
+	return config.Write(cli.Config.ConfigOpts.JSONConfig)
 }
 
 type configValidateCmd struct {

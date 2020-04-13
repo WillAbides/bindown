@@ -1,10 +1,11 @@
 package configfile
 
 import (
+	"encoding/json"
 	"io/ioutil"
+	"path/filepath"
 
 	"github.com/willabides/bindown/v3"
-	"github.com/willabides/bindown/v3/internal/util"
 	"gopkg.in/yaml.v2"
 )
 
@@ -31,10 +32,20 @@ func LoadConfigFile(filename string) (*ConfigFile, error) {
 }
 
 //Write writes a file to disk
-func (c *ConfigFile) Write() error {
+func (c *ConfigFile) Write(outputJSON bool) error {
 	var data []byte
 	var err error
-	data, err = yaml.Marshal(&c.Config)
-	util.Must(err)
+	if filepath.Ext(c.filename) == ".json" {
+		outputJSON = true
+	}
+	switch outputJSON {
+	case true:
+		data, err = json.MarshalIndent(&c.Config, "", "  ")
+	case false:
+		data, err = yaml.Marshal(&c.Config)
+	}
+	if err != nil {
+		return err
+	}
 	return ioutil.WriteFile(c.filename, data, 0600)
 }
