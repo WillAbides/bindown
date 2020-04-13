@@ -8,6 +8,7 @@ jobs:
     runs-on: ${{ matrix.platform }}
     steps:
       - uses: actions/checkout@v2
+      - run: script/generate --check
       - run: script/test
       - run: make bin/bindown
       - run: script/lint
