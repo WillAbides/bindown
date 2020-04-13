@@ -25,17 +25,9 @@ dependencies:
       vars:
         archivepathsuffix: .exe
   yq:
-    url: https://github.com/mikefarah/yq/releases/download/{{.version}}/yq_{{.os}}_{{.arch}}{{.archivepathsuffix}}
-    archive_path: yq_{{.os}}_{{.arch}}{{.archivepathsuffix}}
+    template: yq
     vars:
-      archivepathsuffix: ""
       version: 3.2.1
-    overrides:
-    - matcher:
-        os:
-        - windows
-      vars:
-        archivepathsuffix: .exe
 templates:
   golangci-lint:
     url: https://github.com/golangci/golangci-lint/releases/download/v{{.version}}/golangci-lint-{{.version}}-{{.os}}-{{.arch}}{{.urlsuffix}}
@@ -73,6 +65,17 @@ templates:
         darwin: Darwin
         linux: Linux
         windows: Windows
+  yq:
+    url: https://github.com/mikefarah/yq/releases/download/{{.version}}/yq_{{.os}}_{{.arch}}{{.archivepathsuffix}}
+    archive_path: yq_{{.os}}_{{.arch}}{{.archivepathsuffix}}
+    vars:
+      archivepathsuffix: ""
+    overrides:
+    - matcher:
+        os:
+        - windows
+      vars:
+        archivepathsuffix: .exe
 url_checksums:
   https://github.com/WillAbides/semver-next/releases/download/v0.4.0/semver-next_0.4.0_darwin_amd64.tar.gz: a519f2c3bbe8972deb094d56c196fec89496f663431321c22be343ced23839fb
   https://github.com/WillAbides/semver-next/releases/download/v0.4.0/semver-next_0.4.0_linux_amd64.tar.gz: 6317c36bec63158038381e8878601151ae996310fef58306f70cb03f1b46ef7f
