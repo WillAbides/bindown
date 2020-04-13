@@ -24,6 +24,18 @@ dependencies:
         - windows
       vars:
         archivepathsuffix: .exe
+  yq:
+    url: https://github.com/mikefarah/yq/releases/download/{{.version}}/yq_{{.os}}_{{.arch}}{{.archivepathsuffix}}
+    archive_path: yq_{{.os}}_{{.arch}}{{.archivepathsuffix}}
+    vars:
+      archivepathsuffix: ""
+      version: 3.2.1
+    overrides:
+    - matcher:
+        os:
+        - windows
+      vars:
+        archivepathsuffix: .exe
 templates:
   golangci-lint:
     url: https://github.com/golangci/golangci-lint/releases/download/v{{.version}}/golangci-lint-{{.version}}-{{.os}}-{{.arch}}{{.urlsuffix}}
@@ -71,6 +83,9 @@ url_checksums:
   https://github.com/goreleaser/goreleaser/releases/download/v0.120.7/goreleaser_Darwin_x86_64.tar.gz: 2ec8bb354cca2936d0722e7da770c37e2ba6cc90de4a1cea186e20968c47b663
   https://github.com/goreleaser/goreleaser/releases/download/v0.120.7/goreleaser_Linux_x86_64.tar.gz: 771f2ad8219078b16a3e82097e9805309f6516640f0c6ab6b87f9b085a8ad743
   https://github.com/goreleaser/goreleaser/releases/download/v0.120.7/goreleaser_Windows_x86_64.zip: 0e06f50e1b2213a84b493d32a805dd6d8e8ad960ec9526edd8ecd96e2ab91743
+  https://github.com/mikefarah/yq/releases/download/3.2.1/yq_darwin_amd64: 116f74a384d0b4fa31a58dd01cfcdeffa6fcd21c066de223cbb0ebc042a8bc28
+  https://github.com/mikefarah/yq/releases/download/3.2.1/yq_linux_amd64: 11a830ffb72aad0eaa7640ef69637068f36469be4f68a93da822fbe454e998f8
+  https://github.com/mikefarah/yq/releases/download/3.2.1/yq_windows_amd64.exe: 9b3466ff4e37c8a93d7530e3dc7a047314d0897dbfbffb50b82235695e231fff
   https://github.com/myitcv/gobin/releases/download/v0.0.13/darwin-amd64: 4e6b22d1e85634178455059306f30b24a960cbc619abc63d3e2f0e91bc0194b5
   https://github.com/myitcv/gobin/releases/download/v0.0.13/linux-amd64: 07725808fe920a10f7821a4d6f39558c4732279b41e81970e8087e0c3e6d54ba
   https://github.com/myitcv/gobin/releases/download/v0.0.13/windows-amd64: 70d3688c652bba96f377eb5d3a8068a07274024876c6e3b8d3785f0a63348905
