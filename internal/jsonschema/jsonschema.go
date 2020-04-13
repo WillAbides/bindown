@@ -12,7 +12,7 @@ import (
 	"github.com/willabides/bindown/v3/internal/util"
 )
 
-//go:generate go-bindata -pkg schemafiles -o schemafiles/schemafiles.go ../../bindown.schema.json
+//go:generate go-bindata -nometadata -pkg schemafiles -o schemafiles/schemafiles.go ../../bindown.schema.json
 
 var jsonSchema *jsonschema.RootSchema
 

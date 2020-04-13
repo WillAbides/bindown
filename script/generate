@@ -22,7 +22,7 @@ fi
 
 . script/goenv
 
-make -s bin/yq
+make -s bin/yq bin/go-bindata
 
 yq read --prettyPrint -j bindown.schema.yml > bindown.schema.json
 go generate ./...
