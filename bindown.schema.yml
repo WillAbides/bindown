@@ -1,5 +1,5 @@
 $schema: http://json-schema.org/draft-07/schema#
-$id: https://willabides.github.io/bindown/schema.json
+$id: https://willabides.github.io/bindown/bindown.schema.json
 title: bindown configuration file
 type: object
 properties:
@@ -10,7 +10,7 @@ properties:
       type: object
       properties: &dependency_properties
         template:
-          description: |
+          description: >
             A template for this dependency. Any unset fields in this dependency will be set by values from the template.
             Overrides in the dependency and its template are concatinated with the template's overrides coming first.
             Vars and substitutions are both combined with the dependency's value taking precedence.
@@ -20,18 +20,15 @@ properties:
           type: string
         archive_path:
           description: The path in the downloaded archive where the binary is located. Default is ./<bin>
-          default: ./<bin>
           type: string
         bin:
           description: The name of the binary to be installed. Default is the name of the dependency.
-          default: <dependency name>
           type: string
         link:
           description: Whether to create a symlink to the bin instead of copying it.
-          default: false
           type: boolean
         vars:
-          description: |
+          description: >
             A list of variables that can be used in 'url', 'archive_path' and 'bin'.
 
             Two variables are always added based on the current environment: 'os' and 'arch'. Those are the operating
@@ -42,7 +39,6 @@ properties:
             `https://example.org/mydependency/v{{.version}}/mydependency-{{.os}}-{{.arch}}.tar.gz`.  If you define the var
             'version: 1.2.3' and run bindown on a 64 bit Linux system, it will download
             `https://example.org/mydependency/v1.2.3/mydependency-linux-amd64.tar.gz`.
-
           type: object
           additionalProperties:
             type: string
@@ -102,7 +98,7 @@ definitions:
           arch:
             description: List of architectures to match. When left empty, all architectures match.
             examples:
-              - - 386
+              - - "386"
                 - amd64
                 - arm
                 - arm64
