@@ -7,7 +7,6 @@ dependencies:
     template: goreleaser
     vars:
       version: 0.120.7
-
 templates:
   golangci-lint:
     url: https://github.com/golangci/golangci-lint/releases/download/v{{.version}}/golangci-lint-{{.version}}-{{.os}}-{{.arch}}{{.urlsuffix}}
@@ -17,7 +16,10 @@ templates:
       archivepathsuffix: ""
       urlsuffix: .tar.gz
     overrides:
-      - os: [windows]
+    - matcher:
+        os:
+        - windows
+      dependency:
         vars:
           archivepathsuffix: .exe
           urlsuffix: .zip
@@ -29,24 +31,21 @@ templates:
       urlsuffix: .tar.gz
       version: 0.120.7
     overrides:
-      - os: [linux]
+    - matcher:
+        os:
+        - windows
+      dependency:
         vars:
-          os: Linux
-      - os: [darwin]
-        vars:
-          os: Darwin
-      - os: [windows]
-        vars:
-          os: Windows
           archivepathsuffix: .exe
           urlsuffix: .zip
-      - arch: [386]
-        vars:
-          arch: i386
-      - arch: [amd64]
-        vars:
-          arch: x86_64
-
+    substitutions:
+      arch:
+        "386": i386
+        amd64: x86_64
+      os:
+        darwin: Darwin
+        linux: Linux
+        windows: Windows
 url_checksums:
   https://github.com/golangci/golangci-lint/releases/download/v1.23.7/golangci-lint-1.23.7-darwin-amd64.tar.gz: 7536c375997cca3d2e1f063958ad0344108ce23aed6bd372b69153bdbda82d13
   https://github.com/golangci/golangci-lint/releases/download/v1.23.7/golangci-lint-1.23.7-linux-amd64.tar.gz: 34df1794a2ea8e168b3c98eed3cc0f3e13ed4cba735e4e40ef141df5c41bc086
