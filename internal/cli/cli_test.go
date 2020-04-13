@@ -82,14 +82,14 @@ func TestRun(t *testing.T) {
 
 	t.Run("config format", func(t *testing.T) {
 		setConfigFileEnvVar(t, createConfigFile(t, "ex1.yaml"))
-		result := runCmd("config", "format")
+		result := runCmd("format")
 		result.assertStdErr(t, "")
 		result.assertStdOut(t, "")
 		assert.Zero(t, result.exitVal)
 	})
 
 	t.Run("config format no config file", func(t *testing.T) {
-		result := runCmd("config", "format")
+		result := runCmd("format")
 		assert.NotZero(t, result.exitVal)
 		result.assertStdOut(t, "")
 		result.assertError(t, "error loading config")
