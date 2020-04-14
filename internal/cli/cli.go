@@ -15,7 +15,7 @@ import (
 var kongVars = kong.Vars{
 	"configfile_help":                 `file with bindown config`,
 	"configfile_default":              `bindown.yml`,
-	"cellar_dir_help":                 `directory where installs will be cached`,
+	"cache_help":                      `directory downloads will be cached`,
 	"install_help":                    `install a dependency`,
 	"system_default":                  fmt.Sprintf("%s/%s", runtime.GOOS, runtime.GOARCH),
 	"system_help":                     `target system in the format of <os>/<architecture>`,
@@ -44,13 +44,16 @@ var cli struct {
 	ExtractPath        extractPathCmd             `kong:"cmd,help=${config_extract_path_help}"`
 	InstallCompletions kong.InstallCompletionFlag `kong:"help=${config_install_completions_help}"`
 	Configfile         string                     `kong:"type=path,help=${configfile_help},default=${configfile_default},env='BINDOWN_CONFIG_FILE'"`
-	CellarDir          string                     `kong:"type=path,help=${cellar_dir_help},env='BINDOWN_CELLAR'"`
+	Cache              string                     `kong:"type=path,help=${cache_help},env='BINDOWN_CACHE'"`
 	JSONConfig         bool                       `kong:"name=json,help='use json instead of yaml for the config file'"`
 }
 
-func configFile(kctx *kong.Context, filename string) *configfile.ConfigFile {
-	config, err := configfile.LoadConfigFile(filename)
+func configFile(kctx *kong.Context, filename string, noDefaultCache bool) *configfile.ConfigFile {
+	config, err := configfile.LoadConfigFile(filename, noDefaultCache)
 	kctx.FatalIfErrorf(err, "error loading config from %q", filename)
+	if cli.Cache != "" {
+		config.Cache = cli.Cache
+	}
 	return config
 }
 
@@ -87,15 +90,10 @@ type extractPathCmd struct {
 }
 
 func (d extractPathCmd) Run(ctx *kong.Context) error {
-	config := configFile(ctx, cli.Configfile)
+	config := configFile(ctx, cli.Configfile, false)
 	binary := path.Base(d.TargetFile)
-	binDir := path.Dir(d.TargetFile)
 
-	cellarDir := cli.CellarDir
-	if cellarDir == "" {
-		cellarDir = filepath.Join(binDir, ".bindown")
-	}
-	extractDir, err := config.ExtractPath(binary, d.System, cellarDir)
+	extractDir, err := config.ExtractPath(binary, d.System)
 	if err != nil {
 		return err
 	}
@@ -113,7 +111,7 @@ type addChecksumsCmd struct {
 }
 
 func (d *addChecksumsCmd) Run(ctx *kong.Context) error {
-	config := configFile(ctx, cli.Configfile)
+	config := configFile(ctx, cli.Configfile, false)
 	err := config.AddChecksums(&bindown.ConfigAddChecksumsOptions{
 		Dependencies: []string{filepath.Base(d.Dependency)},
 		Systems:      d.Systems,
@@ -129,7 +127,8 @@ type fmtCmd struct {
 }
 
 func (c fmtCmd) Run(kctx *kong.Context) error {
-	config := configFile(kctx, cli.Configfile)
+	cli.Cache = ""
+	config := configFile(kctx, cli.Configfile, true)
 	if config != nil {
 		return config.Write(cli.JSONConfig)
 	}
@@ -142,7 +141,7 @@ type validateCmd struct {
 }
 
 func (d validateCmd) Run(kctx *kong.Context) error {
-	config := configFile(kctx, cli.Configfile)
+	config := configFile(kctx, cli.Configfile, false)
 	return config.Validate([]string{d.Dependency}, d.Systems)
 }
 
@@ -153,15 +152,10 @@ type installCmd struct {
 }
 
 func (d *installCmd) Run(kctx *kong.Context) error {
-	config := configFile(kctx, cli.Configfile)
+	config := configFile(kctx, cli.Configfile, false)
 	binary := path.Base(d.TargetFile)
 	binDir := path.Dir(d.TargetFile)
-	cellarDir := cli.CellarDir
-	if cellarDir == "" {
-		cellarDir = filepath.Join(binDir, ".bindown")
-	}
 	return config.Install(binary, d.System, &bindown.ConfigInstallOpts{
-		CellarDir: cellarDir,
 		TargetDir: binDir,
 		Force:     d.Force,
 	})
@@ -175,7 +169,7 @@ type downloadCmd struct {
 }
 
 func (d *downloadCmd) Run(kctx *kong.Context) error {
-	config := configFile(kctx, cli.Configfile)
+	config := configFile(kctx, cli.Configfile, false)
 	pth, err := config.DownloadDependency(d.Dependency, d.System, &bindown.ConfigDownloadDependencyOpts{
 		TargetFile: d.TargetFile,
 		Force:      d.Force,

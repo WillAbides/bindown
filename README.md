@@ -172,27 +172,32 @@ downloaders:
 Usage: bindown <command>
 
 Flags:
-  --help                                     Show context-sensitive help.
-  --configfile="bindown.yml|bindown.json"    file with bindown config
-  --cellar-dir=STRING                        directory where downloads will be cached
+  --help                        Show context-sensitive help.
+  --install-completions         install shell completions
+  --configfile="bindown.yml"    file with bindown config ($BINDOWN_CONFIG_FILE)
+  --cache=STRING                directory downloads will be cached ($BINDOWN_CACHE)
+  --json                        use json instead of yaml for the config file
 
 Commands:
   version
 
-  download <target-file>
-    download a bin
+  install <target-file>
+    install a dependency
 
-  config format
+  download <dependency>
+    download a dependency but don't extract or install it
+
+  format
     formats the config file
 
-  config update-checksums <target-file>
-    name of the binary to update
+  add-checksums <dependency>
+    add checksums to the config file
 
-  config validate <bin>
-    validate that downloads work
+  validate <dependency>
+    validate that installs work
 
-  config install-completions
-    install shell completions
+  extract-path <target-file>
+    output path to directory where the downloaded archive is extracted
 
 Run "bindown <command> --help" for more information on a command.
 ```

@@ -124,6 +124,11 @@
     }
   },
   "properties": {
+    "cache": {
+      "default": "./.bindown",
+      "description": "The directory where bindown will cache downloads and extracted files. This is relative to the directory where the configuration file resides. cache_directory paths should always use / as a delimiter even on Windows or other operating systems where the native delimiter isn't /.\n",
+      "type": "string"
+    },
     "dependencies": {
       "additionalProperties": {
         "$ref": "#/definitions/dependency"

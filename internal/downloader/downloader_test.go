@@ -106,6 +106,7 @@ func TestDownloader_Install(t *testing.T) {
 			OS:      "darwin",
 		}
 		err := d.Install(InstallOpts{
+			Cache:     filepath.Join(dir, ".bindown"),
 			TargetDir: dir,
 			Force:     true,
 			Checksum:  "f044ff8b6007c74bcc1b5a5c92776e5d49d6014f5ff2d551fab115c17f48ac41",
@@ -129,6 +130,7 @@ func TestDownloader_Install(t *testing.T) {
 			OS:      "darwin",
 		}
 		err := d.Install(InstallOpts{
+			Cache:     filepath.Join(dir, ".bindown"),
 			TargetDir: dir,
 			Force:     true,
 			Checksum:  "27dcce60d1ed72920a84dd4bc01e0bbd013e5a841660e9ee2e964e53fb83c0b3",
@@ -142,10 +144,13 @@ func TestDownloader_Install(t *testing.T) {
 	})
 
 	t.Run("invalid url", func(t *testing.T) {
+		dir := testutil.TmpDir(t)
 		d := &Downloader{
 			URL: "://foo.com",
 		}
-		err := d.Install(InstallOpts{})
+		err := d.Install(InstallOpts{
+			Cache: filepath.Join(dir, ".bindown"),
+		})
 		assert.Error(t, err)
 		assert.True(t, strings.Contains(err.Error(), "parse"))
 	})
@@ -154,6 +159,7 @@ func TestDownloader_Install(t *testing.T) {
 		dir := testutil.TmpDir(t) + "/" + string(byte(0)) + "/"
 		d := &Downloader{}
 		err := d.Install(InstallOpts{
+			Cache:     filepath.Join(dir, ".bindown"),
 			TargetDir: dir,
 		})
 		assert.Error(t, err)
@@ -171,6 +177,7 @@ func TestDownloader_Install(t *testing.T) {
 			OS:          "darwin",
 		}
 		err := d.Install(InstallOpts{
+			Cache:     filepath.Join(dir, ".bindown"),
 			TargetDir: dir,
 			Force:     true,
 			Checksum:  testutil.FooChecksum,
@@ -190,6 +197,7 @@ func TestDownloader_Install(t *testing.T) {
 			OS:          "darwin",
 		}
 		err := d.Install(InstallOpts{
+			Cache:     filepath.Join(dir, ".bindown"),
 			TargetDir: dir,
 			Checksum:  "0000000000000000000000000000000000000000000000000000000000000000",
 		})
@@ -213,6 +221,7 @@ func TestDownloader_Install(t *testing.T) {
 		require.NoError(t, err)
 		require.NoError(t, util.CopyFile(testutil.DownloadablesPath("foo.tar.gz"), filepath.Join(downloadsDir, "foo.tar.gz"), nil))
 		err = d.Install(InstallOpts{
+			Cache:     filepath.Join(dir, ".bindown"),
 			Checksum:  testutil.FooChecksum,
 			TargetDir: dir,
 		})
@@ -231,6 +240,7 @@ func TestDownloader_Install(t *testing.T) {
 			OS:          "darwin",
 		}
 		err := d.Install(InstallOpts{
+			Cache:     filepath.Join(dir, ".bindown"),
 			Checksum:  testutil.FooChecksum,
 			TargetDir: dir,
 			Force:     true,
