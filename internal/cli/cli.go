@@ -15,7 +15,7 @@ var kongVars = kong.Vars{
 	"configfile_help":                 `file with bindown config`,
 	"configfile_default":              `bindown.yml`,
 	"cache_help":                      `directory downloads will be cached`,
-	"install_help":                    `install a dependency`,
+	"install_help":                    `download, extract and install a dependency`,
 	"system_default":                  fmt.Sprintf("%s/%s", runtime.GOOS, runtime.GOARCH),
 	"system_help":                     `target system in the format of <os>/<architecture>`,
 	"systems_help":                    `target systems in the format of <os>/<architecture>`,
@@ -34,6 +34,7 @@ var kongVars = kong.Vars{
 	"extract_dependency_help":         `name of the dependency to extract`,
 	"extract_help":                    `download and extract a dependency but don't install it`,
 	"extract_target_dir_help":         `path to extract to. Default extracts to cache.`,
+	"checksums_dep_help":              `name of the dependency to update`,
 }
 
 var cli struct {
@@ -44,7 +45,6 @@ var cli struct {
 	Format             fmtCmd                     `kong:"cmd,help=${config_format_help}"`
 	AddChecksums       addChecksumsCmd            `kong:"cmd,help=${checksums_help}"`
 	Validate           validateCmd                `kong:"cmd,help=${config_validate_help}"`
-	ExtractPath        extractPathCmd             `kong:"cmd,help=${config_extract_path_help}"`
 	InstallCompletions kong.InstallCompletionFlag `kong:"help=${config_install_completions_help}"`
 	Configfile         string                     `kong:"type=path,help=${configfile_help},default=${configfile_default},env='BINDOWN_CONFIG_FILE'"`
 	Cache              string                     `kong:"type=path,help=${cache_help},env='BINDOWN_CACHE'"`
@@ -81,31 +81,6 @@ func Run(args []string, kongOptions ...kong.Option) {
 	parser.FatalIfErrorf(err)
 	err = kongCtx.Run()
 	parser.FatalIfErrorf(err)
-}
-
-func init() {
-	kongVars["extract_path_target_help"] = `file you want the extract path for`
-}
-
-type extractPathCmd struct {
-	TargetFile string             `kong:"arg,required=true,help=${extract_path_target_help},completer=binpath"`
-	System     bindown.SystemInfo `kong:"name=system,default=${system_default},help=${system_help},completer=system"`
-}
-
-func (d extractPathCmd) Run(ctx *kong.Context) error {
-	config := configFile(ctx, cli.Configfile, false)
-	binary := path.Base(d.TargetFile)
-
-	extractDir, err := config.ExtractPath(binary, d.System)
-	if err != nil {
-		return err
-	}
-	_, err = fmt.Fprintln(ctx.Stdout, extractDir)
-	return err
-}
-
-func init() {
-	kongVars["checksums_dep_help"] = `name of the dependency to update`
 }
 
 type addChecksumsCmd struct {
