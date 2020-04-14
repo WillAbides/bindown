@@ -7,6 +7,7 @@ require (
 	github.com/andybalholm/brotli v1.0.0 // indirect
 	github.com/frankban/quicktest v1.4.2 // indirect
 	github.com/ghodss/yaml v1.0.0
+	github.com/golang/mock v1.4.3
 	github.com/mholt/archiver/v3 v3.3.0
 	github.com/pierrec/lz4 v2.3.0+incompatible // indirect
 	github.com/qri-io/jsonschema v0.1.2-0.20191106232816-1fbc1e03ab84

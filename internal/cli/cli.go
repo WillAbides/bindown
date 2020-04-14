@@ -7,8 +7,11 @@ import (
 
 	"github.com/alecthomas/kong"
 	"github.com/willabides/bindown/v3"
+	"github.com/willabides/bindown/v3/internal/cli/ifaces"
 	"github.com/willabides/bindown/v3/internal/configfile"
 )
+
+//go:generate mockgen -source ifaces/ifaces.go -destination mocks/$GOFILE -package mocks
 
 var kongVars = kong.Vars{
 	"configfile_help":                 `file with bindown config`,
@@ -51,14 +54,13 @@ var cli struct {
 	JSONConfig         bool                       `kong:"name=json,help='use json instead of yaml for the config file'"`
 }
 
-func configFile(ctx *kong.Context, filename string, noDefaultDirs bool) *configfile.ConfigFile {
-	config, err := configfile.LoadConfigFile(filename, noDefaultDirs)
-	ctx.FatalIfErrorf(err, "error loading config from %q", filename)
-	if cli.Cache != "" {
-		config.Cache = cli.Cache
-	}
-	return config
+type defaultConfigLoader struct{}
+
+func (d defaultConfigLoader) Load(filename string, noDefaultDirs bool) (ifaces.ConfigFile, error) {
+	return configfile.LoadConfigFile(filename, noDefaultDirs)
 }
+
+var configLoader ifaces.ConfigLoader = defaultConfigLoader{}
 
 func newParser(kongOptions ...kong.Option) *kong.Kong {
 	kongOptions = append(kongOptions,
@@ -87,12 +89,12 @@ type addChecksumsCmd struct {
 	Systems    []bindown.SystemInfo `kong:"name=system,default=${system_default},help=${systems_help},completer=system"`
 }
 
-func (d *addChecksumsCmd) Run(ctx *kong.Context) error {
-	config := configFile(ctx, cli.Configfile, false)
-	err := config.AddChecksums(&bindown.ConfigAddChecksumsOptions{
-		Dependencies: []string{filepath.Base(d.Dependency)},
-		Systems:      d.Systems,
-	})
+func (d *addChecksumsCmd) Run(_ *kong.Context) error {
+	config, err := configLoader.Load(cli.Configfile, true)
+	if err != nil {
+		return err
+	}
+	err = config.AddChecksums([]string{filepath.Base(d.Dependency)}, d.Systems)
 	if err != nil {
 		return err
 	}
@@ -103,13 +105,13 @@ type fmtCmd struct {
 	JSON bool `kong:"help='output json instead of yaml'"`
 }
 
-func (c fmtCmd) Run(ctx *kong.Context) error {
+func (c fmtCmd) Run(_ *kong.Context) error {
 	cli.Cache = ""
-	config := configFile(ctx, cli.Configfile, true)
-	if config != nil {
-		return config.Write(cli.JSONConfig)
+	config, err := configLoader.Load(cli.Configfile, true)
+	if err != nil {
+		return err
 	}
-	return nil
+	return config.Write(cli.JSONConfig)
 }
 
 type validateCmd struct {
@@ -118,7 +120,10 @@ type validateCmd struct {
 }
 
 func (d validateCmd) Run(ctx *kong.Context) error {
-	config := configFile(ctx, cli.Configfile, false)
+	config, err := configLoader.Load(cli.Configfile, false)
+	if err != nil {
+		return err
+	}
 	return config.Validate([]string{d.Dependency}, d.Systems)
 }
 
@@ -130,7 +135,10 @@ type installCmd struct {
 }
 
 func (d *installCmd) Run(ctx *kong.Context) error {
-	config := configFile(ctx, cli.Configfile, false)
+	config, err := configLoader.Load(cli.Configfile, false)
+	if err != nil {
+		return err
+	}
 	pth, err := config.InstallDependency(d.Dependency, d.System, &bindown.ConfigInstallDependencyOpts{
 		TargetPath: d.TargetFile,
 		Force:      d.Force,
@@ -150,7 +158,10 @@ type downloadCmd struct {
 }
 
 func (d *downloadCmd) Run(ctx *kong.Context) error {
-	config := configFile(ctx, cli.Configfile, false)
+	config, err := configLoader.Load(cli.Configfile, false)
+	if err != nil {
+		return err
+	}
 	pth, err := config.DownloadDependency(d.Dependency, d.System, &bindown.ConfigDownloadDependencyOpts{
 		TargetFile: d.TargetFile,
 		Force:      d.Force,
@@ -169,7 +180,10 @@ type extractCmd struct {
 }
 
 func (d *extractCmd) Run(ctx *kong.Context) error {
-	config := configFile(ctx, cli.Configfile, false)
+	config, err := configLoader.Load(cli.Configfile, false)
+	if err != nil {
+		return err
+	}
 	pth, err := config.ExtractDependency(d.Dependency, d.System, &bindown.ConfigExtractDependencyOpts{
 		TargetDirectory: d.TargetDir,
 		Force:           false,
