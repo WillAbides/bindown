@@ -1,5 +1,5 @@
 cache: ./bin/.bindown
-install_dir: /Users/wroden/repos/WillAbides/bindown/bin
+install_dir: ./bin
 dependencies:
   gobin:
     url: https://github.com/myitcv/gobin/releases/download/v{{.version}}/{{.os}}-{{.arch}}
