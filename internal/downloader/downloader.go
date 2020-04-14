@@ -146,9 +146,14 @@ func (d *Downloader) moveOrLinkBin(targetDir, extractDir string) error {
 	return util.CopyFile(extractedBin, target, nil)
 }
 
-func (d *Downloader) extract(downloadDir, extractDir string) error {
-	d.requireApplyTemplates()
-	dlName, err := d.downloadableName()
+//Extract extracts a downloaded file to extractDir
+func (d *Downloader) Extract(downloadDir, extractDir string) error {
+	dl := d.clone()
+	err := dl.applyTemplates()
+	if err != nil {
+		return err
+	}
+	dlName, err := dl.downloadableName()
 	if err != nil {
 		return err
 	}
@@ -410,7 +415,7 @@ func (d *Downloader) Install(opts InstallOpts) error {
 		return err
 	}
 
-	err = dl.extract(downloadDir, extractDir)
+	err = dl.Extract(downloadDir, extractDir)
 	if err != nil {
 		log.Printf("error extracting: %v", err)
 		return err

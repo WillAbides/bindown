@@ -90,7 +90,7 @@ func TestDownloader_extract(t *testing.T) {
 	require.NoError(t, os.MkdirAll(downloadDir, 0750))
 	err := util.CopyFile(testutil.DownloadablesPath("foo.tar.gz"), filepath.Join(downloadDir, "foo.tar.gz"), nil)
 	require.NoError(t, err)
-	err = d.extract(downloadDir, extractDir)
+	err = d.Extract(downloadDir, extractDir)
 	assert.NoError(t, err)
 }
 
