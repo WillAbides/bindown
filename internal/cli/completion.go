@@ -46,7 +46,7 @@ func completionConfig(args []string) *configfile.ConfigFile {
 	if path == "" {
 		return nil
 	}
-	configFile, err := configfile.LoadConfigFile(path)
+	configFile, err := configfile.LoadConfigFile(path, true)
 	if err != nil {
 		return nil
 	}

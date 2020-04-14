@@ -243,8 +243,8 @@ func (d *Downloader) validateChecksum(targetDir, checksum string) error {
 
 //UpdateChecksumOpts options for UpdateChecksum
 type UpdateChecksumOpts struct {
-	// CellarDir is the directory where downloads and extractions will be placed.  Default is a temp directory.
-	CellarDir    string
+	// Cache is the directory where downloads and extractions will be placed.  Default is a temp directory.
+	Cache        string
 	URLChecksums map[string]string
 }
 
@@ -265,18 +265,18 @@ func (d *Downloader) GetUpdatedChecksum(opts UpdateChecksumOpts) (string, error)
 	if err != nil {
 		return "", err
 	}
-	cellarDir := opts.CellarDir
-	if cellarDir == "" {
-		cellarDir, err = ioutil.TempDir("", "bindown")
+	cache := opts.Cache
+	if cache == "" {
+		cache, err = ioutil.TempDir("", "bindown")
 		if err != nil {
 			return "", err
 		}
 		defer func() {
-			_ = os.RemoveAll(cellarDir) //nolint:errcheck
+			_ = os.RemoveAll(cache) //nolint:errcheck
 		}()
 	}
 
-	downloadDir := filepath.Join(cellarDir, "downloads", dl.downloadsSubName(opts.URLChecksums))
+	downloadDir := filepath.Join(cache, "downloads", dl.downloadsSubName(opts.URLChecksums))
 
 	err = dl.download(downloadDir, "")
 	if err != nil {
@@ -346,8 +346,8 @@ func (d *Downloader) Download(outputPath, checksum string, force bool) error {
 type InstallOpts struct {
 	// DownloaderName is the downloader's key from the config file
 	DownloaderName string
-	// CellarDir is the directory where downloads and extractions will be placed.  Default is a <TargetDir>/.bindown
-	CellarDir string
+	// Cache is the directory where downloads and extractions will be placed.  Default is a <TargetDir>/.bindown
+	Cache string
 	// TargetDir is the directory where the executable should end up
 	TargetDir string
 	// Force - whether to force the install even if it already exists
@@ -365,13 +365,10 @@ func (d *Downloader) Install(opts InstallOpts) error {
 	}
 
 	dl.setDefaultBinName(opts.DownloaderName)
-	cellarDir := opts.CellarDir
-	if cellarDir == "" {
-		cellarDir = filepath.Join(opts.TargetDir, ".bindown")
-	}
+	cache := opts.Cache
 
-	downloadDir := filepath.Join(cellarDir, "downloads", util.MustHexHash(fnv.New64a(), []byte(opts.Checksum)))
-	extractDir := filepath.Join(cellarDir, "extracts", util.MustHexHash(fnv.New64a(), []byte(opts.Checksum), []byte(dl.BinName)))
+	downloadDir := filepath.Join(cache, "downloads", util.MustHexHash(fnv.New64a(), []byte(opts.Checksum)))
+	extractDir := filepath.Join(cache, "extracts", util.MustHexHash(fnv.New64a(), []byte(opts.Checksum), []byte(dl.BinName)))
 
 	if opts.Force {
 		err = os.RemoveAll(downloadDir)
@@ -418,14 +415,14 @@ func (d *Downloader) Install(opts InstallOpts) error {
 type ValidateOpts struct {
 	// DownloaderName is the downloader's key from the config file
 	DownloaderName string
-	// CellarDir is the directory where downloads and extractions will be placed.  Default is a temp directory.
-	CellarDir string
+	// Cache is the directory where downloads and extractions will be placed.  Default is a temp directory.
+	Cache string
 	// Checksum is the checksum we want this download to have
 	Checksum string
 }
 
 //Validate installs the downloader to a temporary directory and returns an error if it was unsuccessful.
-// If cellarDir is "", it will use a temp directory
+// If Cache is "", it will use a temp directory
 func (d *Downloader) Validate(opts ValidateOpts) error {
 	err := d.applyTemplates()
 	if err != nil {
@@ -443,8 +440,8 @@ func (d *Downloader) Validate(opts ValidateOpts) error {
 	if err != nil {
 		return err
 	}
-	if opts.CellarDir == "" {
-		opts.CellarDir = filepath.Join(tmpDir, "cellar")
+	if opts.Cache == "" {
+		opts.Cache = filepath.Join(tmpDir, "cache")
 	}
 
 	dlYAML, err := yaml.Marshal(d)
@@ -456,7 +453,7 @@ func (d *Downloader) Validate(opts ValidateOpts) error {
 		DownloaderName: opts.DownloaderName,
 		TargetDir:      binDir,
 		Force:          true,
-		CellarDir:      opts.CellarDir,
+		Cache:          opts.Cache,
 		Checksum:       opts.Checksum,
 	}
 

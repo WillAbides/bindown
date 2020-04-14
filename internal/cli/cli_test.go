@@ -115,7 +115,7 @@ func TestAddChecksums(t *testing.T) {
 	result.assertStdOut(t, "")
 	result.assertStdErr(t, "")
 	require.Zero(t, result.exitVal)
-	gotCfg, err := configfile.LoadConfigFile(cfgFile)
+	gotCfg, err := configfile.LoadConfigFile(cfgFile, false)
 	require.NoError(t, err)
 	require.Equal(t, testutil.FooChecksum, gotCfg.URLChecksums[dlURL])
 }
@@ -154,10 +154,9 @@ func TestExtractPath(t *testing.T) {
 			dlURL: testutil.FooChecksum,
 		},
 	}
-	dir := testutil.TmpDir(t)
 	cfgFile := writeFileFromConfig(t, cfg, false)
-	result := runCmd("extract-path", "--configfile", cfgFile, "--system", "darwin/amd64", filepath.Join(dir, "foo"))
-	result.assertStdOut(t, filepath.Join(dir, filepath.FromSlash(".bindown/extracts/0c580d4cd271bc3e")))
+	result := runCmd("extract-path", "--configfile", cfgFile, "--system", "darwin/amd64", "foo")
+	result.assertStdOut(t, filepath.Join(filepath.Dir(cfgFile), filepath.FromSlash(".bindown/extracts/0c580d4cd271bc3e")))
 	result.assertStdErr(t, "")
 	require.Zero(t, result.exitVal)
 }
@@ -267,14 +266,6 @@ dependencies:
 		assert.Zero(t, result.exitVal)
 		got := testutil.MustReadFile(t, cfgFile)
 		require.JSONEq(t, want, string(got))
-	})
-
-	t.Run("config format", func(t *testing.T) {
-		setConfigFileEnvVar(t, createConfigFile(t, "ex1.yaml"))
-		result := runCmd("format")
-		result.assertStdErr(t, "")
-		result.assertStdOut(t, "")
-		assert.Zero(t, result.exitVal)
 	})
 
 	t.Run("config format no config file", func(t *testing.T) {

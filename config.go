@@ -14,6 +14,7 @@ import (
 
 //Config is our main config
 type Config struct {
+	Cache        string                 `json:"cache,omitempty" yaml:"cache,omitempty"`
 	Dependencies map[string]*Dependency `json:"dependencies,omitempty" yaml:",omitempty"`
 	Templates    map[string]*Dependency `json:"templates,omitempty" yaml:",omitempty"`
 	URLChecksums map[string]string      `json:"url_checksums,omitempty" yaml:"url_checksums,omitempty"`
@@ -280,8 +281,6 @@ func (c Config) DownloadDependency(dependencyName string, sysInfo SystemInfo, op
 
 //ConfigInstallOpts provides options for Config.Install
 type ConfigInstallOpts struct {
-	// CellarDir is the directory where downloads and extractions will be placed.  Default is a <TargetDir>/.bindown
-	CellarDir string
 	// TargetDir is the directory where the executable should end up
 	TargetDir string
 	// Force - whether to force the install even if it already exists
@@ -307,7 +306,7 @@ func (c Config) Install(dependencyName string, sysInfo SystemInfo, opts *ConfigI
 	}
 	return dl.Install(downloader.InstallOpts{
 		DownloaderName: dependencyName,
-		CellarDir:      opts.CellarDir,
+		Cache:          c.Cache,
 		TargetDir:      opts.TargetDir,
 		Force:          opts.Force,
 		Checksum:       checksum,
@@ -315,11 +314,11 @@ func (c Config) Install(dependencyName string, sysInfo SystemInfo, opts *ConfigI
 }
 
 //ExtractPath returns the path where a dependency will be extracted
-func (c Config) ExtractPath(dependencyName string, sysInfo SystemInfo, cellarDir string) (string, error) {
+func (c Config) ExtractPath(dependencyName string, sysInfo SystemInfo) (string, error) {
 	dl, err := c.buildDownloader(dependencyName, sysInfo)
 	if err != nil {
 		return "", err
 	}
 	sub := dl.ExtractsSubName(c.URLChecksums)
-	return filepath.Join(cellarDir, "extracts", sub), nil
+	return filepath.Join(c.Cache, "extracts", sub), nil
 }
