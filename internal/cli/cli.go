@@ -2,6 +2,7 @@ package cli
 
 import (
 	"fmt"
+	"os"
 	"path"
 	"path/filepath"
 	"runtime"
@@ -27,17 +28,16 @@ var kongVars = kong.Vars{
 	"config_extract_path_help":        `output path to directory where the downloaded archive is extracted`,
 	"install_force_help":              `force install even if it already exists`,
 	"install_target_file_help":        `file to install`,
-}
-
-type configOpts struct {
-	Configfile string `kong:"type=path,help=${configfile_help},default=${configfile_default},env='BINDOWN_CONFIG_FILE'"`
-	CellarDir  string `kong:"type=path,help=${cellar_dir_help},env='BINDOWN_CELLAR'"`
-	JSONConfig bool   `kong:"name=json,help='use json instead of yaml for the config file'"`
+	"download_force_help":             `force download even if the file already exists`,
+	"download_target_file_help":       `filename and path for the downloaded file. Default is the url file name in the current directory.`,
+	"download_dependency_help":        `name of the dependency to download`,
+	"download_help":                   `download a dependency but don't extract or install it`,
 }
 
 var cli struct {
 	Version            versionCmd                 `kong:"cmd"`
 	Install            installCmd                 `kong:"cmd,help=${install_help}"`
+	Download           downloadCmd                `kong:"cmd,help=${download_help}"`
 	Format             fmtCmd                     `kong:"cmd,help=${config_format_help}"`
 	AddChecksums       addChecksumsCmd            `kong:"cmd,help=${checksums_help}"`
 	Validate           validateCmd                `kong:"cmd,help=${config_validate_help}"`
@@ -149,7 +149,6 @@ func (d validateCmd) Run(kctx *kong.Context) error {
 type installCmd struct {
 	Force      bool               `kong:"help=${install_force_help}"`
 	TargetFile string             `kong:"required=true,arg,help=${install_target_file_help},completer=binpath"`
-	ConfigOpts configOpts         `kong:"embed"`
 	System     bindown.SystemInfo `kong:"name=system,default=${system_default},help=${system_help},completer=system"`
 }
 
@@ -166,4 +165,34 @@ func (d *installCmd) Run(kctx *kong.Context) error {
 		TargetDir: binDir,
 		Force:     d.Force,
 	})
+}
+
+type downloadCmd struct {
+	Force      bool               `kong:"help=${download_force_help}"`
+	System     bindown.SystemInfo `kong:"name=system,default=${system_default},help=${system_help},completer=system"`
+	Dependency string             `kong:"required=true,arg,help=${download_dependency_help},completer=bin"`
+	TargetFile string             `kong:"name=output,help=${download_target_file_help}"`
+}
+
+func (d *downloadCmd) Run(kctx *kong.Context) error {
+	config := configFile(kctx, cli.Configfile)
+	pth, err := config.DownloadDependency(d.Dependency, d.System, &bindown.ConfigDownloadDependencyOpts{
+		TargetFile: d.TargetFile,
+		Force:      d.Force,
+	})
+	if err != nil {
+		return err
+	}
+	pwd, err := os.Getwd()
+	if err != nil {
+		return err
+	}
+	if filepath.IsAbs(pth) {
+		pth, err = filepath.Rel(pwd, pth)
+		if err != nil {
+			return err
+		}
+	}
+	fmt.Fprintf(kctx.Stdout, "downloaded %s to %s\n", d.Dependency, pth)
+	return nil
 }
