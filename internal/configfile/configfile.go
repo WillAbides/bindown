@@ -25,7 +25,7 @@ func New(filename string, config bindown.Config) *ConfigFile {
 }
 
 //LoadConfigFile loads a config file
-func LoadConfigFile(filename string, noDefaultCache bool) (*ConfigFile, error) {
+func LoadConfigFile(filename string, noDefaultDirs bool) (*ConfigFile, error) {
 	data, err := ioutil.ReadFile(filename) //nolint:gosec
 	if err != nil {
 		return nil, err
@@ -42,8 +42,16 @@ func LoadConfigFile(filename string, noDefaultCache bool) (*ConfigFile, error) {
 		return nil, err
 	}
 	result.Cache = filepath.FromSlash(result.Cache)
-	if result.Cache == "" && !noDefaultCache {
-		result.Cache = filepath.Join(filepath.Dir(filename), ".bindown")
+	result.InstallDir = filepath.FromSlash(result.InstallDir)
+	configDir := filepath.Dir(filename)
+	if noDefaultDirs {
+		return &result, nil
+	}
+	if result.Cache == "" {
+		result.Cache = filepath.Join(configDir, ".bindown")
+	}
+	if result.InstallDir == "" {
+		result.InstallDir = filepath.Join(configDir, "bin")
 	}
 	return &result, nil
 }

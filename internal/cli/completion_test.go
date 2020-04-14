@@ -80,15 +80,3 @@ func Test_binCompleter(t *testing.T) {
 	sort.Strings(got)
 	assert.Equal(t, []string{"golangci-lint", "goreleaser"}, got)
 }
-
-func Test_binPathCompleter(t *testing.T) {
-	got := binPathCompleter.Options(kong.CompleterArgs{"foo", "bar/baz/"})
-	assert.Empty(t, got)
-	assert.NotNil(t, got)
-
-	configFile := createConfigFile(t, "ex1.yaml")
-	setConfigFileEnvVar(t, configFile)
-	got = binPathCompleter.Options(kong.CompleterArgs{"foo", "bar/baz/"})
-	sort.Strings(got)
-	assert.Equal(t, []string{"bar/baz/golangci-lint", "bar/baz/goreleaser"}, got)
-}

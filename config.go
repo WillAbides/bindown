@@ -3,7 +3,9 @@ package bindown
 import (
 	"bytes"
 	"fmt"
+	"io/ioutil"
 	"net/url"
+	"os"
 	"path"
 	"path/filepath"
 	"runtime"
@@ -14,6 +16,7 @@ import (
 //Config is our main config
 type Config struct {
 	Cache        string                 `json:"cache,omitempty" yaml:"cache,omitempty"`
+	InstallDir   string                 `json:"install_dir,omitempty" yaml:"install_dir,omitempty"`
 	Dependencies map[string]*Dependency `json:"dependencies,omitempty" yaml:",omitempty"`
 	Templates    map[string]*Dependency `json:"templates,omitempty" yaml:",omitempty"`
 	URLChecksums map[string]string      `json:"url_checksums,omitempty" yaml:"url_checksums,omitempty"`
@@ -65,8 +68,12 @@ func (c *Config) BinName(dep string, system SystemInfo) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	if dl.BinName != "" {
-		return dl.BinName, nil
+	binName, err := dl.GetBinName()
+	if err != nil {
+		return "", err
+	}
+	if binName != "" {
+		return binName, nil
 	}
 	return dep, nil
 }
@@ -210,24 +217,26 @@ func (c *Config) Validate(dependencies []string, systems []SystemInfo) error {
 	if len(dependencies) == 0 {
 		dependencies = c.allDependencyNames()
 	}
+	tmpCacheDir, err := ioutil.TempDir("", "bindown-cache")
+	if err != nil {
+		return err
+	}
+	defer func() {
+		_ = os.RemoveAll(tmpCacheDir) //nolint:errcheck
+	}()
+	tmpBinDir, err := ioutil.TempDir("", "bindown-bin")
+	if err != nil {
+		return err
+	}
+	defer func() {
+		_ = os.RemoveAll(tmpBinDir) //nolint:errcheck
+	}()
+	c.InstallDir = tmpBinDir
+	c.Cache = tmpCacheDir
 	for _, depName := range dependencies {
 		for _, system := range systems {
-			dl, err := c.buildDownloader(depName, system)
-			if err != nil {
-				return err
-			}
-			dlURL, err := dl.GetURL()
-			if err != nil {
-				return err
-			}
-
-			checksum, ok := c.URLChecksums[dlURL]
-			if !ok {
-				return fmt.Errorf("no checksum for the url %q", dlURL)
-			}
-			err = dl.Validate(downloader.ValidateOpts{
-				DownloaderName: depName,
-				Checksum:       checksum,
+			_, err = c.InstallDependency(depName, system, &ConfigInstallDependencyOpts{
+				Force: true,
 			})
 			if err != nil {
 				return err
@@ -307,38 +316,43 @@ func (c Config) ExtractDependency(dependencyName string, sysInfo SystemInfo, opt
 	return targetDir, nil
 }
 
-//ConfigInstallOpts provides options for Config.Install
-type ConfigInstallOpts struct {
-	// TargetDir is the directory where the executable should end up
-	TargetDir string
+//ConfigInstallDependencyOpts provides options for Config.InstallDependency
+type ConfigInstallDependencyOpts struct {
+	// TargetPath is the path where the executable should end up
+	TargetPath string
 	// Force - whether to force the install even if it already exists
 	Force bool
 }
 
-//Install installs a dependency
-func (c Config) Install(dependencyName string, sysInfo SystemInfo, opts *ConfigInstallOpts) error {
+//InstallDependency downloads, extracts and installs a dependency
+func (c Config) InstallDependency(dependencyName string, sysInfo SystemInfo, opts *ConfigInstallDependencyOpts) (string, error) {
 	if opts == nil {
-		opts = &ConfigInstallOpts{}
+		opts = &ConfigInstallDependencyOpts{}
+	}
+	extractDir, err := c.ExtractDependency(dependencyName, sysInfo, &ConfigExtractDependencyOpts{
+		Force: opts.Force,
+	})
+	if err != nil {
+		return "", err
+	}
+	targetPath := opts.TargetPath
+	if targetPath == "" {
+		var binName string
+		binName, err = c.BinName(dependencyName, sysInfo)
+		if err != nil {
+			return "", err
+		}
+		targetPath = filepath.Join(c.InstallDir, binName)
 	}
 	dl, err := c.buildDownloader(dependencyName, sysInfo)
 	if err != nil {
-		return err
+		return "", err
 	}
-	dlURL, err := dl.GetURL()
+	err = dl.Install(targetPath, extractDir)
 	if err != nil {
-		return err
+		return "", err
 	}
-	checksum, ok := c.URLChecksums[dlURL]
-	if !ok {
-		return fmt.Errorf("no checksum for the url %q", dlURL)
-	}
-	return dl.Install(downloader.InstallOpts{
-		DownloaderName: dependencyName,
-		Cache:          c.Cache,
-		TargetDir:      opts.TargetDir,
-		Force:          opts.Force,
-		Checksum:       checksum,
-	})
+	return targetPath, nil
 }
 
 //ExtractPath returns the path where a dependency will be extracted

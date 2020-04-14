@@ -2,7 +2,6 @@ package cli
 
 import (
 	"os"
-	"path/filepath"
 	"runtime"
 	"strings"
 
@@ -75,19 +74,6 @@ func allBins(cfg *configfile.ConfigFile) []string {
 var binCompleter = kong.CompleterFunc(func(a kong.CompleterArgs) []string {
 	cfg := completionConfig(a.Completed())
 	return kong.CompleteSet(allBins(cfg)...).Options(a)
-})
-
-var binPathCompleter = kong.CompleterFunc(func(a kong.CompleterArgs) []string {
-	cfg := completionConfig(a.Completed())
-	bins := allBins(cfg)
-	dir, _ := filepath.Split(a.Last())
-	for i, bin := range bins {
-		bins[i] = filepath.Join(dir, bin)
-	}
-	return kong.CompleteOr(
-		kong.CompleteDirs(),
-		kong.CompleteSet(bins...),
-	).Options(a)
 })
 
 var systemCompleter = kong.CompleteSet(strings.Split(goDists, "\n")...)
