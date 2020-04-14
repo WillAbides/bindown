@@ -29,7 +29,7 @@ var kongVars = kong.Vars{
 	"install_force_help":              `force install even if it already exists`,
 	"install_target_file_help":        `file to install`,
 	"download_force_help":             `force download even if the file already exists`,
-	"download_target_file_help":       `filename and path for the downloaded file. Default is the url file name in the current directory.`,
+	"download_target_file_help":       `filename and path for the downloaded file. Default downloads to cache.`,
 	"download_dependency_help":        `name of the dependency to download`,
 	"download_help":                   `download a dependency but don't extract or install it`,
 }

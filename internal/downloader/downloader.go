@@ -303,8 +303,8 @@ func (d *Downloader) downloadsSubName(knownChecksums map[string]string) string {
 	return util.MustHexHash(fnv.New64a(), []byte(checksum))
 }
 
-//ExtractsSubName returns the subdirectory where this will be extracted
-func (d *Downloader) ExtractsSubName(knownChecksums map[string]string) string {
+//DownloadsCacheDir returns a cache directory for this downloading downloader
+func (d *Downloader) DownloadsCacheDir(cache string, knownChecksums map[string]string) string {
 	var checksum string
 	u, err := d.GetURL()
 	if err == nil && knownChecksums != nil {
@@ -312,7 +312,19 @@ func (d *Downloader) ExtractsSubName(knownChecksums map[string]string) string {
 			checksum = knownChecksums[u]
 		}
 	}
-	return util.MustHexHash(fnv.New64a(), []byte(checksum), []byte(d.BinName))
+	return downloadCacheDir(cache, checksum)
+}
+
+//ExtractsCacheDir returns a cache directory for this extracting downloader
+func (d *Downloader) ExtractsCacheDir(cache string, knownChecksums map[string]string) string {
+	var checksum string
+	u, err := d.GetURL()
+	if err == nil && knownChecksums != nil {
+		if knownChecksums[u] != "" {
+			checksum = knownChecksums[u]
+		}
+	}
+	return extractCacheDir(cache, checksum, d.BinName)
 }
 
 //Download download the file to outputPath
@@ -356,6 +368,14 @@ type InstallOpts struct {
 	Checksum string
 }
 
+func downloadCacheDir(cache, checksum string) string {
+	return filepath.Join(cache, "downloads", util.MustHexHash(fnv.New64a(), []byte(checksum)))
+}
+
+func extractCacheDir(cache, checksum, binName string) string {
+	return filepath.Join(cache, "extracts", util.MustHexHash(fnv.New64a(), []byte(checksum), []byte(binName)))
+}
+
 //Install downloads and installs a bin
 func (d *Downloader) Install(opts InstallOpts) error {
 	dl := d.clone()
@@ -367,8 +387,8 @@ func (d *Downloader) Install(opts InstallOpts) error {
 	dl.setDefaultBinName(opts.DownloaderName)
 	cache := opts.Cache
 
-	downloadDir := filepath.Join(cache, "downloads", util.MustHexHash(fnv.New64a(), []byte(opts.Checksum)))
-	extractDir := filepath.Join(cache, "extracts", util.MustHexHash(fnv.New64a(), []byte(opts.Checksum), []byte(dl.BinName)))
+	downloadDir := downloadCacheDir(cache, opts.Checksum)
+	extractDir := extractCacheDir(cache, opts.Checksum, d.BinName)
 
 	if opts.Force {
 		err = os.RemoveAll(downloadDir)

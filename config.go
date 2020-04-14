@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"net/url"
-	"os"
 	"path"
 	"path/filepath"
 	"runtime"
@@ -270,11 +269,7 @@ func (c Config) DownloadDependency(dependencyName string, sysInfo SystemInfo, op
 		if err != nil {
 			return "", err
 		}
-		pwd, err := os.Getwd()
-		if err != nil {
-			return "", err
-		}
-		targetFile = filepath.Join(pwd, path.Base(dlURL.EscapedPath()))
+		targetFile = filepath.Join(dl.DownloadsCacheDir(c.Cache, c.URLChecksums), path.Base(dlURL.EscapedPath()))
 	}
 	return targetFile, dl.Download(targetFile, checksum, opts.Force)
 }
@@ -319,6 +314,5 @@ func (c Config) ExtractPath(dependencyName string, sysInfo SystemInfo) (string, 
 	if err != nil {
 		return "", err
 	}
-	sub := dl.ExtractsSubName(c.URLChecksums)
-	return filepath.Join(c.Cache, "extracts", sub), nil
+	return dl.ExtractsCacheDir(c.Cache, c.URLChecksums), nil
 }
