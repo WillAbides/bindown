@@ -19,23 +19,23 @@ bin/bindown: gobuildcache bin/go
 bins += bin/bindown
 
 bin/golangci-lint: bin/bindown
-	bin/bindown install $@
+	bin/bindown install $(notdir $@)
 bins += bin/golangci-lint
 
 bin/gobin: bin/bindown
-	bin/bindown install $@
+	bin/bindown install $(notdir $@)
 bins += bin/gobin
 
 bin/goreleaser: bin/bindown
-	bin/bindown install $@
+	bin/bindown install $(notdir $@)
 bins += bin/goreleaser
 
 bin/yq: bin/bindown
-	bin/bindown install $@
+	bin/bindown install $(notdir $@)
 bins += bin/yq
 
 bin/semver-next: bin/bindown
-	bin/bindown install $@
+	bin/bindown install $(notdir $@)
 bins += bin/semver-next
 
 bin/go-bindata: bin/gobin

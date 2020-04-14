@@ -15,7 +15,6 @@ import (
 
 	"github.com/mholt/archiver/v3"
 	"github.com/willabides/bindown/v3/internal/util"
-	"gopkg.in/yaml.v2"
 )
 
 // Downloader downloads a binary
@@ -23,10 +22,10 @@ type Downloader struct {
 	OS          string
 	Arch        string
 	URL         string
-	ArchivePath string            `yaml:"archive_path,omitempty"`
-	BinName     string            `yaml:"bin,omitempty"`
-	Link        bool              `yaml:",omitempty"`
-	Vars        map[string]string `yaml:"vars,omitempty"`
+	ArchivePath string
+	BinName     string
+	Link        bool
+	Vars        map[string]string
 
 	//set to true by applyTemplates
 	tmplApplied bool
@@ -86,23 +85,13 @@ func (d *Downloader) downloadablePath(targetDir string) (string, error) {
 	return filepath.Join(targetDir, name), nil
 }
 
-func (d *Downloader) binPath(targetDir string) string {
-	d.requireApplyTemplates()
-	return filepath.Join(targetDir, d.BinName)
-}
-
-func (d *Downloader) chmod(targetDir string) error {
-	return os.Chmod(d.binPath(targetDir), 0755) //nolint:gosec
-}
-
-func (d *Downloader) moveOrLinkBin(targetDir, extractDir string) error {
+func (d *Downloader) moveOrLinkBin(target, extractDir string) error {
 	d.requireApplyTemplates()
 	archivePath := filepath.FromSlash(d.ArchivePath)
 	if archivePath == "" {
 		archivePath = filepath.FromSlash(d.BinName)
 	}
 	var err error
-	target := d.binPath(targetDir)
 	if util.FileExists(target) {
 		err = os.RemoveAll(target)
 		if err != nil {
@@ -117,12 +106,13 @@ func (d *Downloader) moveOrLinkBin(targetDir, extractDir string) error {
 	extractedBin := filepath.Join(extractDir, archivePath)
 
 	if d.Link {
-		targetDir, err = filepath.Abs(filepath.Dir(target))
+		var linkTargetDir string
+		linkTargetDir, err = filepath.Abs(filepath.Dir(target))
 		if err != nil {
 			return err
 		}
 
-		targetDir, err = filepath.EvalSymlinks(targetDir)
+		linkTargetDir, err = filepath.EvalSymlinks(linkTargetDir)
 		if err != nil {
 			return err
 		}
@@ -133,7 +123,7 @@ func (d *Downloader) moveOrLinkBin(targetDir, extractDir string) error {
 		}
 
 		var dst string
-		dst, err = filepath.Rel(targetDir, extractedBin)
+		dst, err = filepath.Rel(linkTargetDir, extractedBin)
 		if err != nil {
 			return err
 		}
@@ -211,12 +201,6 @@ func (d *Downloader) download(downloadDir, wantChecksum string) error {
 	return downloadFile(dlPath, d.URL)
 }
 
-func (d *Downloader) setDefaultBinName(defaultName string) {
-	if d.BinName == "" {
-		d.BinName = defaultName
-	}
-}
-
 func validateFileChecksum(filename, checksum string) error {
 	result, err := util.FileChecksum(filename)
 	if err != nil {
@@ -253,7 +237,17 @@ type UpdateChecksumOpts struct {
 	URLChecksums map[string]string
 }
 
-//GetURL returns the downloaders url after applying templates
+//GetBinName returns the downloader's bin name after applying templates
+func (d *Downloader) GetBinName() (string, error) {
+	dl := d.clone()
+	err := dl.applyTemplates()
+	if err != nil {
+		return "", err
+	}
+	return dl.BinName, nil
+}
+
+//GetURL returns the downloader/s url after applying templates
 func (d *Downloader) GetURL() (string, error) {
 	dl := d.clone()
 	err := dl.applyTemplates()
@@ -340,7 +334,7 @@ func (d *Downloader) Download(outputPath, checksum string, force bool) error {
 		return err
 	}
 	if force {
-		err = os.Remove(outputPath)
+		err = os.RemoveAll(outputPath)
 		if err != nil {
 			return err
 		}
@@ -352,25 +346,15 @@ func (d *Downloader) Download(outputPath, checksum string, force bool) error {
 	if ok {
 		return nil
 	}
+	err = os.MkdirAll(filepath.Dir(outputPath), 0750)
+	if err != nil {
+		return err
+	}
 	err = downloadFile(outputPath, dl.URL)
 	if err != nil {
 		return err
 	}
 	return validateFileChecksum(outputPath, checksum)
-}
-
-//InstallOpts options for Install
-type InstallOpts struct {
-	// DownloaderName is the downloader's key from the config file
-	DownloaderName string
-	// Cache is the directory where downloads and extractions will be placed.  Default is a <TargetDir>/.bindown
-	Cache string
-	// TargetDir is the directory where the executable should end up
-	TargetDir string
-	// Force - whether to force the install even if it already exists
-	Force bool
-	// Checksum is the checksum we want this download to have
-	Checksum string
 }
 
 func downloadCacheDir(cache, checksum string) string {
@@ -381,112 +365,18 @@ func extractCacheDir(cache, checksum, binName string) string {
 	return filepath.Join(cache, "extracts", util.MustHexHash(fnv.New64a(), []byte(checksum), []byte(binName)))
 }
 
-//Install downloads and installs a bin
-func (d *Downloader) Install(opts InstallOpts) error {
+//Install installs a bin
+func (d *Downloader) Install(targetPath, extractDir string) error {
 	dl := d.clone()
 	err := dl.applyTemplates()
 	if err != nil {
 		return err
 	}
-
-	dl.setDefaultBinName(opts.DownloaderName)
-	cache := opts.Cache
-
-	downloadDir := downloadCacheDir(cache, opts.Checksum)
-	extractDir := extractCacheDir(cache, opts.Checksum, d.BinName)
-
-	if opts.Force {
-		err = os.RemoveAll(downloadDir)
-		if err != nil {
-			return err
-		}
-	}
-
-	dlPath, err := dl.downloadablePath(downloadDir)
+	err = dl.moveOrLinkBin(targetPath, extractDir)
 	if err != nil {
 		return err
 	}
-	err = os.MkdirAll(downloadDir, 0750)
-	if err != nil {
-		return err
-	}
-	err = dl.Download(dlPath, opts.Checksum, false)
-	if err != nil {
-		return err
-	}
-
-	err = dl.Extract(downloadDir, extractDir)
-	if err != nil {
-		log.Printf("error extracting: %v", err)
-		return err
-	}
-
-	err = dl.moveOrLinkBin(opts.TargetDir, extractDir)
-	if err != nil {
-		log.Printf("error moving: %v", err)
-		return err
-	}
-
-	err = dl.chmod(opts.TargetDir)
-	if err != nil {
-		log.Printf("error chmodding: %v", err)
-		return err
-	}
-
-	return nil
-}
-
-//ValidateOpts is options for Validate
-type ValidateOpts struct {
-	// DownloaderName is the downloader's key from the config file
-	DownloaderName string
-	// Cache is the directory where downloads and extractions will be placed.  Default is a temp directory.
-	Cache string
-	// Checksum is the checksum we want this download to have
-	Checksum string
-}
-
-//Validate installs the downloader to a temporary directory and returns an error if it was unsuccessful.
-// If Cache is "", it will use a temp directory
-func (d *Downloader) Validate(opts ValidateOpts) error {
-	err := d.applyTemplates()
-	if err != nil {
-		return err
-	}
-	tmpDir, err := ioutil.TempDir("", "bindown")
-	if err != nil {
-		return err
-	}
-	defer func() {
-		_ = os.RemoveAll(tmpDir) //nolint:errcheck
-	}()
-	binDir := filepath.Join(tmpDir, "bin")
-	err = os.MkdirAll(binDir, 0700)
-	if err != nil {
-		return err
-	}
-	if opts.Cache == "" {
-		opts.Cache = filepath.Join(tmpDir, "cache")
-	}
-
-	dlYAML, err := yaml.Marshal(d)
-	if err != nil {
-		return err
-	}
-
-	installOpts := InstallOpts{
-		DownloaderName: opts.DownloaderName,
-		TargetDir:      binDir,
-		Force:          true,
-		Cache:          opts.Cache,
-		Checksum:       opts.Checksum,
-	}
-
-	err = d.Install(installOpts)
-	if err != nil {
-		return fmt.Errorf("could not validate downloader:\n%s", string(dlYAML))
-	}
-	return nil
+	return os.Chmod(targetPath, 0750) //nolint:gosec
 }
 
 func downloadFile(targetPath, url string) error {

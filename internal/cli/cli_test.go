@@ -158,8 +158,8 @@ func TestInstall(t *testing.T) {
 
 	cfgFile := writeFileFromConfig(t, cfg, false)
 	dir := testutil.TmpDir(t)
-	result := runCmd("install", "--configfile", cfgFile, "--system", "darwin/amd64", filepath.Join(dir, "foo"))
-	result.assertStdOut(t, "")
+	result := runCmd("install", "--configfile", cfgFile, "--system", "darwin/amd64", "--output", filepath.Join(dir, "foo"), "foo")
+	result.assertStdOut(t, fmt.Sprintf("installed foo to %s/foo", dir))
 	result.assertStdErr(t, "")
 	require.Zero(t, result.exitVal)
 	got := testutil.MustReadFile(t, filepath.Join(dir, "foo"))

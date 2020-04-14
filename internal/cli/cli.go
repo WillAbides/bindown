@@ -2,7 +2,6 @@ package cli
 
 import (
 	"fmt"
-	"path"
 	"path/filepath"
 	"runtime"
 
@@ -26,7 +25,8 @@ var kongVars = kong.Vars{
 	"config_install_completions_help": `install shell completions`,
 	"config_extract_path_help":        `output path to directory where the downloaded archive is extracted`,
 	"install_force_help":              `force install even if it already exists`,
-	"install_target_file_help":        `file to install`,
+	"install_target_file_help":        `where to write the file`,
+	"install_dependency_help":         `dependency to install`,
 	"download_force_help":             `force download even if the file already exists`,
 	"download_target_file_help":       `filename and path for the downloaded file. Default downloads to cache.`,
 	"download_dependency_help":        `name of the dependency to download`,
@@ -51,8 +51,8 @@ var cli struct {
 	JSONConfig         bool                       `kong:"name=json,help='use json instead of yaml for the config file'"`
 }
 
-func configFile(ctx *kong.Context, filename string, noDefaultCache bool) *configfile.ConfigFile {
-	config, err := configfile.LoadConfigFile(filename, noDefaultCache)
+func configFile(ctx *kong.Context, filename string, noDefaultDirs bool) *configfile.ConfigFile {
+	config, err := configfile.LoadConfigFile(filename, noDefaultDirs)
 	ctx.FatalIfErrorf(err, "error loading config from %q", filename)
 	if cli.Cache != "" {
 		config.Cache = cli.Cache
@@ -63,9 +63,8 @@ func configFile(ctx *kong.Context, filename string, noDefaultCache bool) *config
 func newParser(kongOptions ...kong.Option) *kong.Kong {
 	kongOptions = append(kongOptions,
 		kong.Completers{
-			"binpath": binPathCompleter,
-			"bin":     binCompleter,
-			"system":  systemCompleter,
+			"bin":    binCompleter,
+			"system": systemCompleter,
 		},
 		kongVars,
 		kong.UsageOnError(),
@@ -125,18 +124,22 @@ func (d validateCmd) Run(ctx *kong.Context) error {
 
 type installCmd struct {
 	Force      bool               `kong:"help=${install_force_help}"`
-	TargetFile string             `kong:"required=true,arg,help=${install_target_file_help},completer=binpath"`
+	Dependency string             `kong:"required=true,arg,help=${download_dependency_help},completer=bin"`
+	TargetFile string             `kong:"type=path,name=output,type=file,help=${install_target_file_help}"`
 	System     bindown.SystemInfo `kong:"name=system,default=${system_default},help=${system_help},completer=system"`
 }
 
 func (d *installCmd) Run(ctx *kong.Context) error {
 	config := configFile(ctx, cli.Configfile, false)
-	binary := path.Base(d.TargetFile)
-	binDir := path.Dir(d.TargetFile)
-	return config.Install(binary, d.System, &bindown.ConfigInstallOpts{
-		TargetDir: binDir,
-		Force:     d.Force,
+	pth, err := config.InstallDependency(d.Dependency, d.System, &bindown.ConfigInstallDependencyOpts{
+		TargetPath: d.TargetFile,
+		Force:      d.Force,
 	})
+	if err != nil {
+		return err
+	}
+	fmt.Fprintf(ctx.Stdout, "installed %s to %s\n", d.Dependency, pth)
+	return nil
 }
 
 type downloadCmd struct {

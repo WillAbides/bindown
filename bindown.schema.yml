@@ -100,9 +100,16 @@ properties:
   cache:
     description: >
       The directory where bindown will cache downloads and extracted files. This is relative to the directory where
-      the configuration file resides. cache_directory paths should always use / as a delimiter even on Windows or other
+      the configuration file resides. cache paths should always use / as a delimiter even on Windows or other
       operating systems where the native delimiter isn't /.
     default: ./.bindown
+    type: string
+  install_directory:
+    description: >
+      The directory that bindown installs files to. This is relative to the directory where the configuration file
+      resides. install_directory paths should always use / as a delimiter even on Windows or other operating systems
+      where the native delimiter isn't /.
+    default: ./bin
     type: string
   dependencies:
     description: Dependencies available for bindown to install.
