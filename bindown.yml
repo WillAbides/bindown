@@ -1,5 +1,5 @@
 cache: ./bin/.bindown
-install_directory: ./bin
+install_dir: /Users/wroden/repos/WillAbides/bindown/bin
 dependencies:
   gobin:
     url: https://github.com/myitcv/gobin/releases/download/v{{.version}}/{{.os}}-{{.arch}}
@@ -14,6 +14,10 @@ dependencies:
     template: goreleaser
     vars:
       version: 0.120.7
+  mockgen:
+    template: mockgen
+    vars:
+      version: 1.4.3
   semver-next:
     template: semver-next
     vars:
@@ -61,6 +65,18 @@ templates:
         darwin: Darwin
         linux: Linux
         windows: Windows
+  mockgen:
+    url: https://github.com/golang/mock/releases/download/v{{.version}}/mock_{{.version}}_{{.os}}_{{.arch}}.tar.gz
+    archive_path: mock_{{.version}}_{{.os}}_{{.arch}}/mockgen{{.archivepathsuffix}}
+    vars:
+      archivepathsuffix: ""
+    overrides:
+    - matcher:
+        os:
+        - windows
+      dependency:
+        vars:
+          archivepathsuffix: .exe
   semver-next:
     url: https://github.com/WillAbides/semver-next/releases/download/v{{.version}}/semver-next_{{.version}}_{{.os}}_{{.arch}}.tar.gz
     archive_path: semver-next{{.archivepathsuffix}}
@@ -89,6 +105,9 @@ url_checksums:
   https://github.com/WillAbides/semver-next/releases/download/v0.4.0/semver-next_0.4.0_darwin_amd64.tar.gz: a519f2c3bbe8972deb094d56c196fec89496f663431321c22be343ced23839fb
   https://github.com/WillAbides/semver-next/releases/download/v0.4.0/semver-next_0.4.0_linux_amd64.tar.gz: 6317c36bec63158038381e8878601151ae996310fef58306f70cb03f1b46ef7f
   https://github.com/WillAbides/semver-next/releases/download/v0.4.0/semver-next_0.4.0_windows_amd64.tar.gz: 573ea65ef3b40442626fbb19d07880bb4929e7b12fd7161e41732a03f23b2c95
+  https://github.com/golang/mock/releases/download/v1.4.3/mock_1.4.3_darwin_amd64.tar.gz: e9358415e26f710a6d559342f8c4e1cf5befc41b8146106a79947f4d152c9324
+  https://github.com/golang/mock/releases/download/v1.4.3/mock_1.4.3_linux_amd64.tar.gz: cf2b1497584844d8f5479f915c3174418ee8c0f1ca693a90ac691713463bd320
+  https://github.com/golang/mock/releases/download/v1.4.3/mock_1.4.3_windows_amd64.tar.gz: ea2a2c089059003d677899f9f168b7dac67521efccdd42a244d93091b5b04f81
   https://github.com/golangci/golangci-lint/releases/download/v1.23.7/golangci-lint-1.23.7-darwin-amd64.tar.gz: 7536c375997cca3d2e1f063958ad0344108ce23aed6bd372b69153bdbda82d13
   https://github.com/golangci/golangci-lint/releases/download/v1.23.7/golangci-lint-1.23.7-linux-amd64.tar.gz: 34df1794a2ea8e168b3c98eed3cc0f3e13ed4cba735e4e40ef141df5c41bc086
   https://github.com/golangci/golangci-lint/releases/download/v1.23.7/golangci-lint-1.23.7-windows-amd64.zip: 8ccb76466e4cdaebfc1633c137043c0bec23173749a6bca42846c7350402dcfe
