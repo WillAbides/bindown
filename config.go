@@ -147,24 +147,20 @@ type ConfigAddChecksumsOptions struct {
 
 //AddChecksums downloads, calculates checksums and adds them to the config's URLChecksums. AddChecksums skips urls that
 //already exist in URLChecksums.
-func (c *Config) AddChecksums(opts *ConfigAddChecksumsOptions) error {
-	if opts == nil {
-		opts = &ConfigAddChecksumsOptions{}
-	}
-	deps := opts.Dependencies
-	if len(deps) == 0 && c.Dependencies != nil {
-		deps = make([]string, 0, len(c.Dependencies))
+func (c *Config) AddChecksums(dependencies []string, systems []SystemInfo) error {
+	if len(dependencies) == 0 && c.Dependencies != nil {
+		dependencies = make([]string, 0, len(c.Dependencies))
 		for dlName := range c.Dependencies {
-			deps = append(deps, dlName)
+			dependencies = append(dependencies, dlName)
 		}
 	}
 	var err error
-	for _, depName := range deps {
+	for _, depName := range dependencies {
 		dp := c.getDependency(depName)
 		if dp == nil {
 			return fmt.Errorf("no dependency configured with the name %q", depName)
 		}
-		for _, system := range opts.Systems {
+		for _, system := range systems {
 			err = c.addChecksum(depName, system)
 			if err != nil {
 				return err

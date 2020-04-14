@@ -146,11 +146,9 @@ func TestConfig_addChecksums(t *testing.T) {
 			},
 		},
 	}
-	err := cfg.AddChecksums(&ConfigAddChecksumsOptions{
-		Systems: []SystemInfo{
-			newSystemInfo("darwin", "amd64"),
-			newSystemInfo("linux", "amd64"),
-		},
+	err := cfg.AddChecksums(nil, []SystemInfo{
+		newSystemInfo("darwin", "amd64"),
+		newSystemInfo("linux", "amd64"),
 	})
 	require.NoError(t, err)
 	require.Len(t, cfg.URLChecksums, 4)
