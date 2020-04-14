@@ -141,26 +141,6 @@ func TestValidate(t *testing.T) {
 	require.Zero(t, result.exitVal)
 }
 
-func TestExtractPath(t *testing.T) {
-	dlURL := `https://localhost:8080/whatever`
-	cfg := bindown.Config{
-		Dependencies: map[string]*bindown.Dependency{
-			"foo": {
-				URL:         &dlURL,
-				ArchivePath: strPtr("bin/foo.txt"),
-			},
-		},
-		URLChecksums: map[string]string{
-			dlURL: testutil.FooChecksum,
-		},
-	}
-	cfgFile := writeFileFromConfig(t, cfg, false)
-	result := runCmd("extract-path", "--configfile", cfgFile, "--system", "darwin/amd64", "foo")
-	result.assertStdOut(t, filepath.Join(filepath.Dir(cfgFile), filepath.FromSlash(".bindown/extracts/0c580d4cd271bc3e")))
-	result.assertStdErr(t, "")
-	require.Zero(t, result.exitVal)
-}
-
 func TestInstall(t *testing.T) {
 	ts := testutil.ServeFile(t, testutil.DownloadablesPath("foo.tar.gz"), "/foo/foo.tar.gz", "")
 	dlURL := ts.URL + "/foo/foo.tar.gz"

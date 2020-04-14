@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"net/url"
-	"os"
 	"path"
 	"path/filepath"
 	"runtime"
@@ -244,7 +243,7 @@ type ConfigDownloadDependencyOpts struct {
 	Force      bool
 }
 
-//DownloadDependency download a dependency
+//DownloadDependency downloads a dependency
 func (c Config) DownloadDependency(dependencyName string, sysInfo SystemInfo, opts *ConfigDownloadDependencyOpts) (string, error) {
 	if opts == nil {
 		opts = &ConfigDownloadDependencyOpts{}
@@ -270,13 +269,42 @@ func (c Config) DownloadDependency(dependencyName string, sysInfo SystemInfo, op
 		if err != nil {
 			return "", err
 		}
-		pwd, err := os.Getwd()
-		if err != nil {
-			return "", err
-		}
-		targetFile = filepath.Join(pwd, path.Base(dlURL.EscapedPath()))
+		targetFile = filepath.Join(dl.DownloadsCacheDir(c.Cache, c.URLChecksums), path.Base(dlURL.EscapedPath()))
 	}
 	return targetFile, dl.Download(targetFile, checksum, opts.Force)
+}
+
+//ConfigExtractDependencyOpts options for Config.ExtractDependency
+type ConfigExtractDependencyOpts struct {
+	TargetDirectory string
+	Force           bool
+}
+
+//ExtractDependency downloads and extracts a dependency
+func (c Config) ExtractDependency(dependencyName string, sysInfo SystemInfo, opts *ConfigExtractDependencyOpts) (string, error) {
+	if opts == nil {
+		opts = &ConfigExtractDependencyOpts{}
+	}
+	downloadPath, err := c.DownloadDependency(dependencyName, sysInfo, &ConfigDownloadDependencyOpts{
+		Force: opts.Force,
+	})
+	if err != nil {
+		return "", err
+	}
+	downloadDir := filepath.Dir(downloadPath)
+	dl, err := c.buildDownloader(dependencyName, sysInfo)
+	if err != nil {
+		return "", err
+	}
+	targetDir := opts.TargetDirectory
+	if targetDir == "" {
+		targetDir = dl.ExtractsCacheDir(c.Cache, c.URLChecksums)
+	}
+	err = dl.Extract(downloadDir, targetDir)
+	if err != nil {
+		return "", err
+	}
+	return targetDir, nil
 }
 
 //ConfigInstallOpts provides options for Config.Install
@@ -319,6 +347,5 @@ func (c Config) ExtractPath(dependencyName string, sysInfo SystemInfo) (string, 
 	if err != nil {
 		return "", err
 	}
-	sub := dl.ExtractsSubName(c.URLChecksums)
-	return filepath.Join(c.Cache, "extracts", sub), nil
+	return dl.ExtractsCacheDir(c.Cache, c.URLChecksums), nil
 }

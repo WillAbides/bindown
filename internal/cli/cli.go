@@ -2,7 +2,6 @@ package cli
 
 import (
 	"fmt"
-	"os"
 	"path"
 	"path/filepath"
 	"runtime"
@@ -16,7 +15,7 @@ var kongVars = kong.Vars{
 	"configfile_help":                 `file with bindown config`,
 	"configfile_default":              `bindown.yml`,
 	"cache_help":                      `directory downloads will be cached`,
-	"install_help":                    `install a dependency`,
+	"install_help":                    `download, extract and install a dependency`,
 	"system_default":                  fmt.Sprintf("%s/%s", runtime.GOOS, runtime.GOARCH),
 	"system_help":                     `target system in the format of <os>/<architecture>`,
 	"systems_help":                    `target systems in the format of <os>/<architecture>`,
@@ -29,28 +28,32 @@ var kongVars = kong.Vars{
 	"install_force_help":              `force install even if it already exists`,
 	"install_target_file_help":        `file to install`,
 	"download_force_help":             `force download even if the file already exists`,
-	"download_target_file_help":       `filename and path for the downloaded file. Default is the url file name in the current directory.`,
+	"download_target_file_help":       `filename and path for the downloaded file. Default downloads to cache.`,
 	"download_dependency_help":        `name of the dependency to download`,
 	"download_help":                   `download a dependency but don't extract or install it`,
+	"extract_dependency_help":         `name of the dependency to extract`,
+	"extract_help":                    `download and extract a dependency but don't install it`,
+	"extract_target_dir_help":         `path to extract to. Default extracts to cache.`,
+	"checksums_dep_help":              `name of the dependency to update`,
 }
 
 var cli struct {
 	Version            versionCmd                 `kong:"cmd"`
-	Install            installCmd                 `kong:"cmd,help=${install_help}"`
 	Download           downloadCmd                `kong:"cmd,help=${download_help}"`
+	Extract            extractCmd                 `kong:"cmd,help=${extract_help}"`
+	Install            installCmd                 `kong:"cmd,help=${install_help}"`
 	Format             fmtCmd                     `kong:"cmd,help=${config_format_help}"`
 	AddChecksums       addChecksumsCmd            `kong:"cmd,help=${checksums_help}"`
 	Validate           validateCmd                `kong:"cmd,help=${config_validate_help}"`
-	ExtractPath        extractPathCmd             `kong:"cmd,help=${config_extract_path_help}"`
 	InstallCompletions kong.InstallCompletionFlag `kong:"help=${config_install_completions_help}"`
 	Configfile         string                     `kong:"type=path,help=${configfile_help},default=${configfile_default},env='BINDOWN_CONFIG_FILE'"`
 	Cache              string                     `kong:"type=path,help=${cache_help},env='BINDOWN_CACHE'"`
 	JSONConfig         bool                       `kong:"name=json,help='use json instead of yaml for the config file'"`
 }
 
-func configFile(kctx *kong.Context, filename string, noDefaultCache bool) *configfile.ConfigFile {
+func configFile(ctx *kong.Context, filename string, noDefaultCache bool) *configfile.ConfigFile {
 	config, err := configfile.LoadConfigFile(filename, noDefaultCache)
-	kctx.FatalIfErrorf(err, "error loading config from %q", filename)
+	ctx.FatalIfErrorf(err, "error loading config from %q", filename)
 	if cli.Cache != "" {
 		config.Cache = cli.Cache
 	}
@@ -80,31 +83,6 @@ func Run(args []string, kongOptions ...kong.Option) {
 	parser.FatalIfErrorf(err)
 }
 
-func init() {
-	kongVars["extract_path_target_help"] = `file you want the extract path for`
-}
-
-type extractPathCmd struct {
-	TargetFile string             `kong:"arg,required=true,help=${extract_path_target_help},completer=binpath"`
-	System     bindown.SystemInfo `kong:"name=system,default=${system_default},help=${system_help},completer=system"`
-}
-
-func (d extractPathCmd) Run(ctx *kong.Context) error {
-	config := configFile(ctx, cli.Configfile, false)
-	binary := path.Base(d.TargetFile)
-
-	extractDir, err := config.ExtractPath(binary, d.System)
-	if err != nil {
-		return err
-	}
-	_, err = fmt.Fprintln(ctx.Stdout, extractDir)
-	return err
-}
-
-func init() {
-	kongVars["checksums_dep_help"] = `name of the dependency to update`
-}
-
 type addChecksumsCmd struct {
 	Dependency string               `kong:"required=true,arg,help=${checksums_dep_help},completer=bin"`
 	Systems    []bindown.SystemInfo `kong:"name=system,default=${system_default},help=${systems_help},completer=system"`
@@ -126,9 +104,9 @@ type fmtCmd struct {
 	JSON bool `kong:"help='output json instead of yaml'"`
 }
 
-func (c fmtCmd) Run(kctx *kong.Context) error {
+func (c fmtCmd) Run(ctx *kong.Context) error {
 	cli.Cache = ""
-	config := configFile(kctx, cli.Configfile, true)
+	config := configFile(ctx, cli.Configfile, true)
 	if config != nil {
 		return config.Write(cli.JSONConfig)
 	}
@@ -140,8 +118,8 @@ type validateCmd struct {
 	Systems    []bindown.SystemInfo `kong:"name=system,default=${system_default},completer=system"`
 }
 
-func (d validateCmd) Run(kctx *kong.Context) error {
-	config := configFile(kctx, cli.Configfile, false)
+func (d validateCmd) Run(ctx *kong.Context) error {
+	config := configFile(ctx, cli.Configfile, false)
 	return config.Validate([]string{d.Dependency}, d.Systems)
 }
 
@@ -151,8 +129,8 @@ type installCmd struct {
 	System     bindown.SystemInfo `kong:"name=system,default=${system_default},help=${system_help},completer=system"`
 }
 
-func (d *installCmd) Run(kctx *kong.Context) error {
-	config := configFile(kctx, cli.Configfile, false)
+func (d *installCmd) Run(ctx *kong.Context) error {
+	config := configFile(ctx, cli.Configfile, false)
 	binary := path.Base(d.TargetFile)
 	binDir := path.Dir(d.TargetFile)
 	return config.Install(binary, d.System, &bindown.ConfigInstallOpts{
@@ -168,8 +146,8 @@ type downloadCmd struct {
 	TargetFile string             `kong:"name=output,help=${download_target_file_help}"`
 }
 
-func (d *downloadCmd) Run(kctx *kong.Context) error {
-	config := configFile(kctx, cli.Configfile, false)
+func (d *downloadCmd) Run(ctx *kong.Context) error {
+	config := configFile(ctx, cli.Configfile, false)
 	pth, err := config.DownloadDependency(d.Dependency, d.System, &bindown.ConfigDownloadDependencyOpts{
 		TargetFile: d.TargetFile,
 		Force:      d.Force,
@@ -177,16 +155,25 @@ func (d *downloadCmd) Run(kctx *kong.Context) error {
 	if err != nil {
 		return err
 	}
-	pwd, err := os.Getwd()
+	fmt.Fprintf(ctx.Stdout, "downloaded %s to %s\n", d.Dependency, pth)
+	return nil
+}
+
+type extractCmd struct {
+	System     bindown.SystemInfo `kong:"name=system,default=${system_default},help=${system_help},completer=system"`
+	Dependency string             `kong:"required=true,arg,help=${extract_dependency_help},completer=bin"`
+	TargetDir  string             `kong:"name=output,help=${extract_target_dir_help}"`
+}
+
+func (d *extractCmd) Run(ctx *kong.Context) error {
+	config := configFile(ctx, cli.Configfile, false)
+	pth, err := config.ExtractDependency(d.Dependency, d.System, &bindown.ConfigExtractDependencyOpts{
+		TargetDirectory: d.TargetDir,
+		Force:           false,
+	})
 	if err != nil {
 		return err
 	}
-	if filepath.IsAbs(pth) {
-		pth, err = filepath.Rel(pwd, pth)
-		if err != nil {
-			return err
-		}
-	}
-	fmt.Fprintf(kctx.Stdout, "downloaded %s to %s\n", d.Dependency, pth)
+	fmt.Fprintf(ctx.Stdout, "extracted %s to %s\n", d.Dependency, pth)
 	return nil
 }

@@ -181,11 +181,14 @@ Flags:
 Commands:
   version
 
-  install <target-file>
-    install a dependency
-
   download <dependency>
     download a dependency but don't extract or install it
+
+  extract <dependency>
+    download and extract a dependency but don't install it
+
+  install <target-file>
+    download, extract and install a dependency
 
   format
     formats the config file
@@ -195,9 +198,6 @@ Commands:
 
   validate <dependency>
     validate that installs work
-
-  extract-path <target-file>
-    output path to directory where the downloaded archive is extracted
 
 Run "bindown <command> --help" for more information on a command.
 ```
