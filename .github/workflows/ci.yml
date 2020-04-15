@@ -9,6 +9,9 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - run: script/generate --check
+        if: ${{ matrix.platform }} == ubuntu-latest
       - run: script/test
       - run: make bin/bindown
+        if: ${{ matrix.platform }} == ubuntu-latest
       - run: script/lint
+        if: ${{ matrix.platform }} == ubuntu-latest
