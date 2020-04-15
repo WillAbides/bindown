@@ -9,6 +9,9 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - run: script/generate --check
+        if: "contains(matrix.platform, 'ubuntu')"
       - run: script/test
       - run: make bin/bindown
+        if: "contains(matrix.platform, 'ubuntu')"
       - run: script/lint
+        if: "contains(matrix.platform, 'ubuntu')"
