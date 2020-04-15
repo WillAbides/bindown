@@ -3,7 +3,7 @@ package main
 import (
 	"os"
 
-	"github.com/willabides/bindown/v2/internal/cli"
+	"github.com/willabides/bindown/v3/internal/cli"
 )
 
 var version string

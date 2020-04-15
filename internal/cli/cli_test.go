@@ -5,14 +5,18 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 
 	"github.com/alecthomas/kong"
+	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/willabides/bindown/v2/internal/testutil"
-	"github.com/willabides/bindown/v2/internal/util"
+	"github.com/willabides/bindown/v3"
+	"github.com/willabides/bindown/v3/internal/cli/mocks"
+	"github.com/willabides/bindown/v3/internal/testutil"
+	"github.com/willabides/bindown/v3/internal/util"
 )
 
 type runCmdResult struct {
@@ -32,13 +36,12 @@ func (r runCmdResult) assertStdErr(t *testing.T, want string) {
 	assert.Equal(t, want, strings.TrimSpace(r.stdErr.String()))
 }
 
-func (r runCmdResult) assertError(t *testing.T, msg string) {
+func (r runCmdResult) assertState(t *testing.T, wantStdout, wantStderr string, wantExited bool, wantExitVal int) {
 	t.Helper()
-	assert.NotZero(t, r.exitVal)
-	wantPrefix := fmt.Sprintf("cmdname: error: %s", msg)
-	stdErr := r.stdErr.String()
-	hasPrefix := strings.HasPrefix(stdErr, wantPrefix)
-	assert.True(t, hasPrefix, "stdErr should start with %q\ninstead stdErr was %q", wantPrefix, stdErr)
+	r.assertStdOut(t, wantStdout)
+	r.assertStdErr(t, wantStderr)
+	assert.Equal(t, wantExited, r.exited)
+	assert.Equal(t, wantExitVal, r.exitVal)
 }
 
 func runCmd(commandLine ...string) runCmdResult {
@@ -52,6 +55,193 @@ func runCmd(commandLine ...string) runCmdResult {
 		}),
 	)
 	return result
+}
+
+type cmdRunner func(commandLine ...string) runCmdResult
+
+func setupMocks(t *testing.T) (cmdRunner, *mocks.MockConfigLoader, *mocks.MockConfigFile) {
+	t.Helper()
+	ctrl := gomock.NewController(t)
+	t.Cleanup(func() {
+		ctrl.Finish()
+	})
+	mockConfigLoader := mocks.NewMockConfigLoader(ctrl)
+	mockConfigFile := mocks.NewMockConfigFile(ctrl)
+
+	runner := func(commandLine ...string) runCmdResult {
+		oldCfgLoader := configLoader
+		t.Cleanup(func() {
+			configLoader = oldCfgLoader
+		})
+		configLoader = mockConfigLoader
+		result := runCmdResult{}
+		Run(commandLine,
+			kong.Name("cmdname"),
+			kong.Writers(&result.stdOut, &result.stdErr),
+			kong.Exit(func(i int) {
+				result.exited = true
+				result.exitVal = i
+			}),
+		)
+		return result
+	}
+
+	return runner, mockConfigLoader, mockConfigFile
+}
+
+func wantStderr(msg string) string {
+	return fmt.Sprintf("cmdname: error: %s", msg)
+}
+
+func mustGetwd(t *testing.T) string {
+	t.Helper()
+	pwd, err := os.Getwd()
+	require.NoError(t, err)
+	return pwd
+}
+
+func wdPath(t *testing.T, pth string) string {
+	wd := mustGetwd(t)
+	return filepath.Join(wd, filepath.FromSlash(pth))
+}
+
+func testEnvVar(t *testing.T, name, value string) {
+	t.Helper()
+	existing, ok := os.LookupEnv(name)
+	if ok {
+		t.Cleanup(func() {
+			require.NoError(t, os.Setenv(name, existing))
+		})
+	} else {
+		t.Cleanup(func() {
+			require.NoError(t, os.Unsetenv(name))
+		})
+	}
+	require.NoError(t, os.Setenv(name, value))
+}
+
+func TestFormat(t *testing.T) {
+	t.Run("success", func(t *testing.T) {
+		runner, mockConfigLoader, mockConfigFile := setupMocks(t)
+		mockConfigLoader.EXPECT().Load(filepath.FromSlash("/omg"), true).Return(mockConfigFile, nil)
+		mockConfigFile.EXPECT().Write(false)
+		result := runner("format", "--configfile", "/omg")
+		result.assertState(t, "", "", false, 0)
+	})
+
+	t.Run("with config from environment", func(t *testing.T) {
+		runner, mockConfigLoader, mockConfigFile := setupMocks(t)
+		mockConfigLoader.EXPECT().Load(wdPath(t, "omg"), true).Return(mockConfigFile, nil)
+		mockConfigFile.EXPECT().Write(false)
+		testEnvVar(t, "BINDOWN_CONFIG_FILE", "omg")
+		result := runner("format")
+		result.assertState(t, "", "", false, 0)
+	})
+
+	t.Run("error loading config", func(t *testing.T) {
+		runner, mockConfigLoader, _ := setupMocks(t)
+		mockConfigLoader.EXPECT().Load(wdPath(t, "bindown.yml"), true).Return(nil, assert.AnError)
+		result := runner("format")
+		result.assertState(t, "", wantStderr(assert.AnError.Error()), true, 1)
+	})
+
+	t.Run("json output", func(t *testing.T) {
+		runner, mockConfigLoader, mockConfigFile := setupMocks(t)
+		mockConfigLoader.EXPECT().Load(wdPath(t, "bindown.yml"), true).Return(mockConfigFile, nil)
+		mockConfigFile.EXPECT().Write(true)
+		result := runner("format", "--json")
+		result.assertState(t, "", "", false, 0)
+	})
+
+	t.Run("write error", func(t *testing.T) {
+		runner, mockConfigLoader, mockConfigFile := setupMocks(t)
+		mockConfigLoader.EXPECT().Load(wdPath(t, "bindown.yml"), true).Return(mockConfigFile, nil)
+		mockConfigFile.EXPECT().Write(false).Return(assert.AnError)
+		result := runner("format")
+		result.assertState(t, "", wantStderr(assert.AnError.Error()), true, 1)
+	})
+}
+
+func TestAddChecksums(t *testing.T) {
+	runner, mockConfigLoader, mockConfigFile := setupMocks(t)
+	mockConfigLoader.EXPECT().Load(wdPath(t, "bindown.yml"), true).Return(mockConfigFile, nil)
+	mockConfigFile.EXPECT().AddChecksums([]string{"foo"}, []bindown.SystemInfo{{
+		Arch: runtime.GOARCH,
+		OS:   runtime.GOOS,
+	}})
+	mockConfigFile.EXPECT().Write(true)
+	result := runner("add-checksums", "foo", "--json")
+	result.assertState(t, "", "", false, 0)
+}
+
+func TestValidate(t *testing.T) {
+	t.Run("success", func(t *testing.T) {
+		runner, mockConfigLoader, mockConfigFile := setupMocks(t)
+		mockConfigLoader.EXPECT().Load(wdPath(t, "bindown.yml"), false).Return(mockConfigFile, nil)
+		mockConfigFile.EXPECT().Validate([]string{"foo"}, []bindown.SystemInfo{{
+			Arch: runtime.GOARCH,
+			OS:   runtime.GOOS,
+		}})
+		result := runner("validate", "foo")
+		result.assertState(t, "", "", false, 0)
+	})
+
+	t.Run("error loading config", func(t *testing.T) {
+		runner, mockConfigLoader, _ := setupMocks(t)
+		mockConfigLoader.EXPECT().Load(wdPath(t, "bindown.yml"), false).Return(nil, assert.AnError)
+		result := runner("validate", "foo")
+		result.assertState(t, "", wantStderr(assert.AnError.Error()), true, 1)
+	})
+
+	t.Run("multiple systems", func(t *testing.T) {
+		runner, mockConfigLoader, mockConfigFile := setupMocks(t)
+		mockConfigLoader.EXPECT().Load(wdPath(t, "bindown.yml"), false).Return(mockConfigFile, nil)
+		mockConfigFile.EXPECT().Validate([]string{"foo"}, []bindown.SystemInfo{
+			{OS: "foo", Arch: "bar"},
+			{OS: "baz", Arch: "qux"},
+		})
+		result := runner("validate", "foo", "--system", "foo/bar", "--system=baz/qux")
+		result.assertState(t, "", "", false, 0)
+	})
+}
+
+func TestExtract(t *testing.T) {
+	t.Run("success", func(t *testing.T) {
+		runner, mockConfigLoader, mockConfigFile := setupMocks(t)
+		mockConfigLoader.EXPECT().Load(wdPath(t, "bindown.yml"), false).Return(mockConfigFile, nil)
+		mockConfigFile.EXPECT().ExtractDependency("foo", bindown.SystemInfo{
+			Arch: runtime.GOARCH,
+			OS:   runtime.GOOS,
+		}, &bindown.ConfigExtractDependencyOpts{}).Return("wherever", nil)
+		result := runner("extract", "foo")
+		result.assertState(t, "extracted foo to wherever", "", false, 0)
+	})
+}
+
+func TestDownload(t *testing.T) {
+	t.Run("success", func(t *testing.T) {
+		runner, mockConfigLoader, mockConfigFile := setupMocks(t)
+		mockConfigLoader.EXPECT().Load(wdPath(t, "bindown.yml"), false).Return(mockConfigFile, nil)
+		mockConfigFile.EXPECT().DownloadDependency("foo", bindown.SystemInfo{
+			Arch: runtime.GOARCH,
+			OS:   runtime.GOOS,
+		}, &bindown.ConfigDownloadDependencyOpts{}).Return("wherever", nil)
+		result := runner("download", "foo")
+		result.assertState(t, "downloaded foo to wherever", "", false, 0)
+	})
+}
+
+func TestInstall(t *testing.T) {
+	t.Run("success", func(t *testing.T) {
+		runner, mockConfigLoader, mockConfigFile := setupMocks(t)
+		mockConfigLoader.EXPECT().Load(wdPath(t, "bindown.yml"), false).Return(mockConfigFile, nil)
+		mockConfigFile.EXPECT().InstallDependency("foo", bindown.SystemInfo{
+			Arch: runtime.GOARCH,
+			OS:   runtime.GOOS,
+		}, &bindown.ConfigInstallDependencyOpts{}).Return("wherever", nil)
+		result := runner("install", "foo")
+		result.assertState(t, "installed foo to wherever", "", false, 0)
+	})
 }
 
 func createConfigFile(t *testing.T, sourceFile string) string {
@@ -73,25 +263,8 @@ func setConfigFileEnvVar(t *testing.T, file string) {
 	})
 }
 
-func TestRun(t *testing.T) {
-	t.Run("version", func(t *testing.T) {
-		result := runCmd("version")
-		result.assertStdOut(t, "cmdname: version unknown")
-		result.assertStdErr(t, "")
-	})
-
-	t.Run("config format", func(t *testing.T) {
-		setConfigFileEnvVar(t, createConfigFile(t, "ex1.yaml"))
-		result := runCmd("config", "format")
-		result.assertStdErr(t, "")
-		result.assertStdOut(t, "")
-		assert.Zero(t, result.exitVal)
-	})
-
-	t.Run("config format no config file", func(t *testing.T) {
-		result := runCmd("config", "format")
-		assert.NotZero(t, result.exitVal)
-		result.assertStdOut(t, "")
-		result.assertError(t, "error loading config")
-	})
+func TestVersion(t *testing.T) {
+	result := runCmd("version")
+	result.assertStdOut(t, "cmdname: version unknown")
+	result.assertStdErr(t, "")
 }

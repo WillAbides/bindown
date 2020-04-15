@@ -1,6 +1,6 @@
 # bindown
 
-[![godoc](https://godoc.org/github.com/WillAbides/bindown?status.svg)](https://pkg.go.dev/github.com/willabides/bindown/v2)
+[![godoc](https://godoc.org/github.com/WillAbides/bindown?status.svg)](https://pkg.go.dev/github.com/willabides/bindown/v3)
 [![Go Report Card](https://goreportcard.com/badge/github.com/WillAbides/bindown)](https://goreportcard.com/report/github.com/WillAbides/bindown)
 [![ci](https://github.com/WillAbides/bindown/workflows/ci/badge.svg)](https://github.com/WillAbides/bindown/actions?query=workflow%3Aci+branch%3Amaster+event%3Apush)
 
@@ -36,134 +36,117 @@ If you happen to already have go installed on your system, you can install
 bindown with:
 
 ```
-GO111MODULE=on go get -u github.com/willabides/bindown/v2/cmd/bindown 
+GO111MODULE=on go get -u github.com/willabides/bindown/v3/cmd/bindown 
 ```
 
 Note the lowercase `willabides`. Pro tip: Your life will be easier with a
 lowercase GitHub username.
 
-## Config
+## Config file properties
 
-`bindown` is configured with a yaml file. By default it uses a file named
-`bindown.yml` in the current directory.
+### cache
 
-### Templates
+The directory where bindown will cache downloads and extracted files. This is relative to the directory where
+the configuration file resides. cache paths should always use `/` as a delimiter even on Windows or other
+operating systems where the native delimiter isn't `/`.
 
-Some fields below are marked with "_allows templates_". These fields allow you to use simple go templates that will be 
-evaluated by bindown using the `os`, `arch` and `vars` values.
+Defaults to `<path to config file>/.bindown`
 
-### Downloader values
+### install_directory
 
-#### os 
-_required_
+The directory that bindown installs files to. This is relative to the directory where the configuration file
+resides. install_directory paths should always use `/` as a delimiter even on Windows or other operating systems
+where the native delimiter isn't `/`.
 
-The operating system this binary is built for. Common values are `windows`, `darwin` and `linux`. `macos` and `osx` are
-aliases for `darwin`.
+Defaults to `<path to config file>/bin`
 
-#### arch
-_required_
+### dependencies
 
-The system architecture this binary is build for. Common values are `amd64`, `386` and `arm`.
+Dependencies are all the dependencies that bindown can install. It is a map where the key is the dependency's name.
 
-#### url
-_required_, _allows templates_
+ Property       | Description                                                                                       
+----------------|----------------
+`url`           | The url to download a dependency from.                                                            
+`archive_path`  | The path in the downloaded archive where the binary is located. Default is `./<dependency name>`. 
+`bin`           | The name of the binary to be installed. Default is the name of the dependency.                    
+`link`          | Whether to create a symlink to the bin instead of copying it.                                     
+`template`      | The name of a template to provide default values for this dependency. See [templates](#templates).            
+`vars`          | A map of variables that will be interpolated in the `url`, `archive_path` and `bin` values. See [vars](#vars)
+`overrides`     | A list of value overrides for certain systems. See [overrides](#overrides) 
+`substitutions` | Values that will be substituted for one variable. See [substitutions](#substitutions) 
 
-The url to download from. The url can point to either the binary itself or an archive containing the binary.
+### vars
 
-#### checksum
-_required_
-
-The sha256 hash of the download. Often projects will publish this in a checksums.txt file along with the downloads. You
-can get the value from there or run `bindown config update-checksums <bin-name>` to have `bindown` populate this
-automatically.
-
-#### archive path
-_allows templates_
-
-The path to the binary once the downloaded archive has been extracted. If the download is just the unarchived binary,
-this should just be the downloaded file name.
-
-_default_: the binary name
-
-#### link
-
-Whether bindown should create a symlink instead of moving the binary to its final destination.
-
-_default_: false
-
-#### bin
-_allows templates_
-
-What you want the final binary to be called if different from the downloader name.
-
-_default_: the downloader name
-
-#### vars
-
-A map of string values to use in templated values.
-
-### Example
-
-#### Simple config without templates
+Vars are key value pairs that are used in constructing `url`, `archive_path` and `bin` values using go templates. If
+ you aren't familiar with go templates, all you need to know is that to use the value from a variable named "foo", 
+ you would write `{{.foo}}`. Go templates can do more than this, but that's all that is practical for bindown.
+  
+In addition to variables explicitly defined in `vars`, bindown adds `os` and `arch` variables based on the current
+ system.
+ 
+Consider this dependency:
 
 ```yaml
-downloaders:
-  golangci-lint:
-  - os: darwin
-    arch: amd64
-    url: https://github.com/golangci/golangci-lint/releases/download/v1.21.0/golangci-lint-1.21.0-darwin-amd64.tar.gz
-    checksum: 2b2713ec5007e67883aa501eebb81f22abfab0cf0909134ba90f60a066db3760
-    archive_path: golangci-lint-1.21.0-darwin-amd64/golangci-lint
-    link: true
-  - os: linux
-    arch: amd64
-    url: https://github.com/golangci/golangci-lint/releases/download/v1.21.0/golangci-lint-1.21.0-linux-amd64.tar.gz
-    checksum: 2c861f8dc56b560474aa27cab0c075991628cc01af3451e27ac82f5d10d5106b
-    archive_path: golangci-lint-1.21.0-linux-amd64/golangci-lint
-    link: true
-  - os: windows
-    arch: amd64
-    url: https://github.com/golangci/golangci-lint/releases/download/v1.21.0/golangci-lint-1.21.0-windows-amd64.zip
-    checksum: 2e40ded7adcf11e59013cb15c24438b15a86526ca241edfcfdf1abd73a5280a8
-    archive_path: golangci-lint-1.21.0-windows-amd64/golangci-lint.exe
-    link: true
+myproject:
+  url: https://github.com/me/myproject/releases/download/v{{.version}}/myproject_{{.version}}_{{.os}}_{{.arch}}.tar.gz
+  archive_path: myproject_{{.version}}_{{.os}}_{{.arch}}/myproject
+  vars:
+    version: 1.2.3
 ```
 
-#### With templates
+When bindown is run for a linux/amd64 system, it will download from 
+`https://github.com/me/myproject/releases/download/v1.2.3/myproject_1.2.3_linux_amd64.tar.gz` and use the archive path 
+`myproject_1.2.3_linux_amd64/myproject`
+
+### substitutions
+
+Substitutions provides replacement values for vars. The primary use case is for projects that don't use the same
+ values for os and arch. 
 
 ```yaml
-downloaders:  
-  golangci-lint:
-  - os: darwin
-    arch: amd64
-    url: https://github.com/golangci/golangci-lint/releases/download/v{{.version}}/golangci-lint-{{.version}}-{{.os}}-{{.arch}}{{.urlsuffix}}
-    archive_path: golangci-lint-{{.version}}-{{.os}}-{{.arch}}/golangci-lint{{.archivepathsuffix}}
-    link: true
-    checksum: 7536c375997cca3d2e1f063958ad0344108ce23aed6bd372b69153bdbda82d13
-    vars:
-      archivepathsuffix: ""
-      urlsuffix: .tar.gz
-      version: 1.23.7
-  - os: linux
-    arch: amd64
-    url: https://github.com/golangci/golangci-lint/releases/download/v{{.version}}/golangci-lint-{{.version}}-{{.os}}-{{.arch}}{{.urlsuffix}}
-    archive_path: golangci-lint-{{.version}}-{{.os}}-{{.arch}}/golangci-lint{{.archivepathsuffix}}
-    link: true
-    checksum: 34df1794a2ea8e168b3c98eed3cc0f3e13ed4cba735e4e40ef141df5c41bc086
-    vars:
-      archivepathsuffix: ""
-      urlsuffix: .tar.gz
-      version: 1.23.7
-  - os: windows
-    arch: amd64
-    url: https://github.com/golangci/golangci-lint/releases/download/v{{.version}}/golangci-lint-{{.version}}-{{.os}}-{{.arch}}{{.urlsuffix}}
-    archive_path: golangci-lint-{{.version}}-{{.os}}-{{.arch}}/golangci-lint{{.archivepathsuffix}}
-    link: true
-    checksum: 8ccb76466e4cdaebfc1633c137043c0bec23173749a6bca42846c7350402dcfe
-    vars:
-      archivepathsuffix: .exe
-      urlsuffix: .zip
-      version: 1.23.7
+substitutions:
+  arch:
+    "386": i386
+    amd64: x86_64
+  os:
+    darwin: Darwin
+    linux: Linux
+    windows: Windows
+```
+
+### templates
+
+Templates provide base values for dependencies. If a dependency has an unset value, the value from its template is used.
+
+For `vars`, the value is initially set to the template's `var` map which is then overridden by values from the
+ dependency. `substitutions` is handled similarly.
+ 
+`overrides` concatenated with the template values coming first.
+
+Template configuration is identical to dependencies.
+
+### overrides
+
+Overrides allow you to override values for certain operating systems or system architectures. 
+
+It is a list of overrides that each contain a matcher and a dependency. Dependency properties are the same as
+ described in [dependencies](#dependencies). Matchers have two properties: `os` and `arch` that each contain a list
+  of values to match. A system matches when it's os or arch value matches one of the values listed. 
+
+```yaml
+overrides:
+  - matcher:
+      os:
+        - windows
+    dependency:
+      vars:
+        archivepathsuffix: .exe
+  - matcher:
+      arch:
+        - arm
+        - arm64
+    dependency:
+      archive_path: special/path/for/arm
 ```
 
 ## Usage
@@ -172,27 +155,32 @@ downloaders:
 Usage: bindown <command>
 
 Flags:
-  --help                                     Show context-sensitive help.
-  --configfile="bindown.yml|bindown.json"    file with bindown config
-  --cellar-dir=STRING                        directory where downloads will be cached
+  --help                        Show context-sensitive help.
+  --install-completions         install shell completions
+  --configfile="bindown.yml"    file with bindown config ($BINDOWN_CONFIG_FILE)
+  --cache=STRING                directory downloads will be cached ($BINDOWN_CACHE)
+  --json                        use json instead of yaml for the config file
 
 Commands:
   version
 
-  download <target-file>
-    download a bin
+  download <dependency>
+    download a dependency but don't extract or install it
 
-  config format
+  extract <dependency>
+    download and extract a dependency but don't install it
+
+  install <dependency>
+    download, extract and install a dependency
+
+  format
     formats the config file
 
-  config update-checksums <target-file>
-    name of the binary to update
+  add-checksums <dependency>
+    add checksums to the config file
 
-  config validate <bin>
-    validate that downloads work
-
-  config install-completions
-    install shell completions
+  validate <dependency>
+    validate that installs work
 
 Run "bindown <command> --help" for more information on a command.
 ```

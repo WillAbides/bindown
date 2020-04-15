@@ -9,8 +9,7 @@ import (
 	"github.com/alecthomas/kong"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/willabides/bindown/v2"
-	"github.com/willabides/bindown/v2/internal/testutil"
+	"github.com/willabides/bindown/v3/internal/testutil"
 )
 
 func Test_findConfigFileForCompletion(t *testing.T) {
@@ -56,7 +55,7 @@ func Test_completionConfig(t *testing.T) {
 		setConfigFileEnvVar(t, configFile)
 		got := completionConfig(nil)
 		assert.NotNil(t, got)
-		assert.NotNil(t, got.Downloader("gobin", "darwin", "amd64"))
+		assert.NotNil(t, got.Dependencies["golangci-lint"])
 	})
 
 	t.Run("empty config file", func(t *testing.T) {
@@ -70,28 +69,6 @@ func Test_completionConfig(t *testing.T) {
 	})
 }
 
-func Test_allBins(t *testing.T) {
-	assert.Equal(t, []string{}, allBins(nil))
-
-	cfg := &bindown.ConfigFile{
-		Config: bindown.Config{
-			Downloaders: map[string][]*bindown.Downloader{
-				"foo": {{}},
-				"bar": {
-					{BinName: "baz"},
-					{BinName: "qux"},
-					{BinName: "qux"},
-					{BinName: "qux"},
-				},
-			},
-		},
-	}
-
-	got := allBins(cfg)
-	sort.Strings(got)
-	assert.Equal(t, []string{"baz", "foo", "qux"}, got)
-}
-
 func Test_binCompleter(t *testing.T) {
 	got := binCompleter.Options(kong.CompleterArgs{})
 	assert.Empty(t, got)
@@ -100,16 +77,6 @@ func Test_binCompleter(t *testing.T) {
 	configFile := createConfigFile(t, "ex1.yaml")
 	setConfigFileEnvVar(t, configFile)
 	got = binCompleter.Options(kong.CompleterArgs{})
-	assert.Equal(t, []string{"gobin"}, got)
-}
-
-func Test_binPathCompleter(t *testing.T) {
-	got := binPathCompleter.Options(kong.CompleterArgs{"foo", "bar/baz/"})
-	assert.Empty(t, got)
-	assert.NotNil(t, got)
-
-	configFile := createConfigFile(t, "ex1.yaml")
-	setConfigFileEnvVar(t, configFile)
-	got = binPathCompleter.Options(kong.CompleterArgs{"foo", "bar/baz/"})
-	assert.Equal(t, []string{"bar/baz/gobin"}, got)
+	sort.Strings(got)
+	assert.Equal(t, []string{"golangci-lint", "goreleaser"}, got)
 }

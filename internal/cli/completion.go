@@ -2,12 +2,12 @@ package cli
 
 import (
 	"os"
-	"path/filepath"
+	"runtime"
 	"strings"
 
 	"github.com/alecthomas/kong"
-	"github.com/killa-beez/gopkgs/sets/builtins"
-	"github.com/willabides/bindown/v2"
+	"github.com/willabides/bindown/v3"
+	"github.com/willabides/bindown/v3/internal/configfile"
 )
 
 func findConfigFileForCompletion(args []string) string {
@@ -40,33 +40,35 @@ func prepCompletionConfigFile(path string) string {
 	return path
 }
 
-func completionConfig(args []string) *bindown.ConfigFile {
+func completionConfig(args []string) *configfile.ConfigFile {
 	path := findConfigFileForCompletion(args)
 	if path == "" {
 		return nil
 	}
-	configFile, err := bindown.LoadConfigFile(path)
+	configFile, err := configfile.LoadConfigFile(path, true)
 	if err != nil {
 		return nil
 	}
 	return configFile
 }
 
-func allBins(cfg *bindown.ConfigFile) []string {
+func allBins(cfg *configfile.ConfigFile) []string {
 	if cfg == nil {
 		return []string{}
 	}
-	bins := builtins.NewStringSet(len(cfg.Downloaders) * 10)
-	for dlName, downloaders := range cfg.Downloaders {
-		for _, dl := range downloaders {
-			if dl.BinName == "" {
-				bins.Add(dlName)
-				continue
-			}
-			bins.Add(dl.BinName)
-		}
+	system := bindown.SystemInfo{
+		OS:   runtime.GOOS,
+		Arch: runtime.GOARCH,
 	}
-	return bins.Values()
+	bins := make([]string, 0, len(cfg.Dependencies))
+	for dlName := range cfg.Dependencies {
+		bn, err := cfg.BinName(dlName, system)
+		if err != nil {
+			return []string{}
+		}
+		bins = append(bins, bn)
+	}
+	return bins
 }
 
 var binCompleter = kong.CompleterFunc(func(a kong.CompleterArgs) []string {
@@ -74,50 +76,49 @@ var binCompleter = kong.CompleterFunc(func(a kong.CompleterArgs) []string {
 	return kong.CompleteSet(allBins(cfg)...).Options(a)
 })
 
-var binPathCompleter = kong.CompleterFunc(func(a kong.CompleterArgs) []string {
-	cfg := completionConfig(a.Completed())
-	bins := allBins(cfg)
-	dir, _ := filepath.Split(a.Last())
-	for i, bin := range bins {
-		bins[i] = filepath.Join(dir, bin)
-	}
-	return kong.CompleteOr(
-		kong.CompleteDirs(),
-		kong.CompleteSet(bins...),
-	).Options(a)
-})
+var systemCompleter = kong.CompleteSet(strings.Split(goDists, "\n")...)
 
-var osCompleter = kong.CompleteSet(strings.Split(goosVals, "\n")...)
-
-//from `go tool dist list | cut -f 1 -d '/' | sort | uniq`
-const goosVals = `aix
-android
-darwin
-dragonfly
-freebsd
-illumos
-js
-linux
-nacl
-netbsd
-openbsd
-plan9
-solaris
-windows`
-
-var archCompleter = kong.CompleteSet(strings.Split(goarchVals, "\n")...)
-
-//from `go tool dist list | cut -f 2 -d '/' | sort | uniq`
-const goarchVals = `386
-amd64
-amd64p32
-arm
-arm64
-mips
-mips64
-mips64le
-mipsle
-ppc64
-ppc64le
-s390x
-wasm`
+// from `go tool dist list`
+const goDists = `aix/ppc64
+android/386
+android/amd64
+android/arm
+android/arm64
+darwin/386
+darwin/amd64
+darwin/arm
+darwin/arm64
+dragonfly/amd64
+freebsd/386
+freebsd/amd64
+freebsd/arm
+freebsd/arm64
+illumos/amd64
+js/wasm
+linux/386
+linux/amd64
+linux/arm
+linux/arm64
+linux/mips
+linux/mips64
+linux/mips64le
+linux/mipsle
+linux/ppc64
+linux/ppc64le
+linux/riscv64
+linux/s390x
+netbsd/386
+netbsd/amd64
+netbsd/arm
+netbsd/arm64
+openbsd/386
+openbsd/amd64
+openbsd/arm
+openbsd/arm64
+plan9/386
+plan9/amd64
+plan9/arm
+solaris/amd64
+windows/386
+windows/amd64
+windows/arm`
