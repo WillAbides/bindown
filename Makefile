@@ -10,8 +10,7 @@ bins += bin/bootstrapped/bindown
 
 bin/go:
 	$(MAKE) bin/bootstrapped/bindown
-	BINDOWN_CONFIG_FILE="bindown-v2.yml" \
-	bin/bootstrapped/bindown download $@
+	bin/bootstrapped/bindown install $(notdir $@)
 bins += bin/go
 
 bin/bindown: gobuildcache bin/go
