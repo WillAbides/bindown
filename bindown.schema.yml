@@ -131,6 +131,11 @@ properties:
     type: object
     additionalProperties:
       type: string
+  systems:
+    description: list of systems dependencies should support
+    type: array
+    additionalItems:
+      type: string
   url_checksums:
     description: Checksums of downloaded files.
     type: object

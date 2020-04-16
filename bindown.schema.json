@@ -148,6 +148,13 @@
       "description": "The directory that bindown installs files to. This is relative to the directory where the configuration file resides. install_directory paths should always use / as a delimiter even on Windows or other operating systems where the native delimiter isn't /.\n",
       "type": "string"
     },
+    "systems": {
+      "additionalItems": {
+        "type": "string"
+      },
+      "description": "list of systems dependencies should support",
+      "type": "array"
+    },
     "template_sources": {
       "additionalProperties": {
         "type": "string"

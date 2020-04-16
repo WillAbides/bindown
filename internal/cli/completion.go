@@ -90,7 +90,16 @@ var binCompleter = kong.CompleterFunc(func(a kong.CompleterArgs) []string {
 	return kong.CompleteSet(allDependencies(cfg)...).Options(a)
 })
 
-var systemCompleter = kong.CompleteSet(strings.Split(goDists, "\n")...)
+var systemCompleter = kong.CompleterFunc(func(a kong.CompleterArgs) []string {
+	cfg := completionConfig(a.Completed())
+	opts := make([]string, 0, len(cfg.Systems))
+	for _, system := range cfg.Systems {
+		opts = append(opts, system.String())
+	}
+	return kong.CompleteSet(opts...).Options(a)
+})
+
+var allSystemsCompleter = kong.CompleteSet(strings.Split(goDists, "\n")...)
 
 // from `go tool dist list`
 const goDists = `aix/ppc64

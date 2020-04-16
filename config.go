@@ -23,6 +23,7 @@ import (
 type Config struct {
 	Cache           string                 `json:"cache,omitempty" yaml:"cache,omitempty"`
 	InstallDir      string                 `json:"install_dir,omitempty" yaml:"install_dir,omitempty"`
+	Systems         []SystemInfo           `json:"systems,omitempty" yaml:"systems,omitempty"`
 	Dependencies    map[string]*Dependency `json:"dependencies,omitempty" yaml:",omitempty"`
 	Templates       map[string]*Dependency `json:"templates,omitempty" yaml:",omitempty"`
 	TemplateSources map[string]string      `json:"template_sources,omitempty" yaml:"template_sources,omitempty"`
@@ -148,9 +149,25 @@ type ConfigAddChecksumsOptions struct {
 	Systems []SystemInfo
 }
 
+func (c *Config) defaultSystems(systems []SystemInfo) []SystemInfo {
+	if len(systems) > 0 {
+		return systems
+	}
+	if len(c.Systems) > 0 {
+		return c.Systems
+	}
+	return []SystemInfo{
+		{
+			OS:   runtime.GOOS,
+			Arch: runtime.GOARCH,
+		},
+	}
+}
+
 //AddChecksums downloads, calculates checksums and adds them to the config's URLChecksums. AddChecksums skips urls that
 //already exist in URLChecksums.
 func (c *Config) AddChecksums(dependencies []string, systems []SystemInfo) error {
+	systems = c.defaultSystems(systems)
 	if len(dependencies) == 0 && c.Dependencies != nil {
 		dependencies = make([]string, 0, len(c.Dependencies))
 		for dlName := range c.Dependencies {
@@ -209,6 +226,7 @@ type ConfigValidateOptions struct {
 
 //Validate installs the downloader to a temporary directory and returns an error if it was unsuccessful.
 func (c *Config) Validate(dependencies []string, systems []SystemInfo) error {
+	systems = c.defaultSystems(systems)
 	runtime.Version()
 	if len(dependencies) == 0 {
 		dependencies = c.allDependencyNames()

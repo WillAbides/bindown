@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"path/filepath"
+	"sort"
 
 	"gopkg.in/yaml.v2"
 )
@@ -48,6 +49,11 @@ func (c *ConfigFile) Write(outputJSON bool) error {
 	if filepath.Ext(c.filename) == ".json" {
 		outputJSON = true
 	}
+	if len(c.Systems) > 0 {
+		sort.Slice(c.Systems, func(i, j int) bool {
+			return c.Systems[i].String() < c.Systems[j].String()
+		})
+	}
 	switch outputJSON {
 	case true:
 		data, err = json.MarshalIndent(&c.Config, "", "  ")
@@ -57,5 +63,6 @@ func (c *ConfigFile) Write(outputJSON bool) error {
 	if err != nil {
 		return err
 	}
+
 	return ioutil.WriteFile(c.filename, data, 0600)
 }

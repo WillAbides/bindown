@@ -1,5 +1,9 @@
 cache: ./bin/.bindown
 install_dir: ./bin
+systems:
+- darwin/amd64
+- linux/amd64
+- windows/amd64
 dependencies:
   go:
     template: bt#go

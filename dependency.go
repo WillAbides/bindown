@@ -110,6 +110,21 @@ func (d *Dependency) clone() *Dependency {
 	if d.Vars != nil {
 		dep.Vars = util.CopyStringMap(d.Vars)
 	}
+	if d.URL != nil {
+		d.URL = stringPtr(*d.URL)
+	}
+	if d.ArchivePath != nil {
+		d.ArchivePath = stringPtr(*d.ArchivePath)
+	}
+	if d.Template != nil {
+		d.Template = stringPtr(*d.Template)
+	}
+	if d.BinName != nil {
+		d.BinName = stringPtr(*d.BinName)
+	}
+	if d.Link != nil {
+		d.Link = boolPtr(*d.Link)
+	}
 	if d.Overrides != nil {
 		dep.Overrides = make([]DependencyOverride, len(d.Overrides))
 		for i, override := range d.Overrides {
