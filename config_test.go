@@ -19,6 +19,47 @@ func configFromYaml(t *testing.T, yml string) *Config {
 	return got
 }
 
+func TestConfig_addTemplateFromSource(t *testing.T) {
+	t.Run("file", func(t *testing.T) {
+		t.Run("success", func(t *testing.T) {
+			cfg := new(Config)
+			src := testutil.ProjectPath("testdata", "configs", "ex1.yaml")
+			srcCfg, err := LoadConfigFile(src, true)
+			require.NoError(t, err)
+			err = cfg.addTemplateFromSource(src, "goreleaser", "mygoreleaser")
+			require.NoError(t, err)
+			require.Equal(t, srcCfg.Templates["goreleaser"], cfg.Templates["mygoreleaser"])
+		})
+
+		t.Run("missing template", func(t *testing.T) {
+			cfg := new(Config)
+			src := testutil.ProjectPath("testdata", "configs", "ex1.yaml")
+			err := cfg.addTemplateFromSource(src, "fake", "myfake")
+			require.EqualError(t, err, `src has no template named "fake"`)
+		})
+
+		t.Run("missing file", func(t *testing.T) {
+			cfg := new(Config)
+			src := testutil.ProjectPath("testdata", "configs", "thisdoesnotexist.yaml")
+			err := cfg.addTemplateFromSource(src, "fake", "myfake")
+			require.Error(t, err)
+			require.True(t, os.IsNotExist(err))
+		})
+	})
+
+	t.Run("http", func(t *testing.T) {
+		srcFile := testutil.ProjectPath("testdata", "configs", "ex1.yaml")
+		ts := testutil.ServeFile(t, srcFile, "/ex1.yaml", "")
+		cfg := new(Config)
+		src := ts.URL + "/ex1.yaml"
+		srcCfg, err := LoadConfigFile(srcFile, true)
+		require.NoError(t, err)
+		err = cfg.addTemplateFromSource(src, "goreleaser", "mygoreleaser")
+		require.NoError(t, err)
+		require.Equal(t, srcCfg.Templates["goreleaser"], cfg.Templates["mygoreleaser"])
+	})
+}
+
 func TestConfig_InstallDependency(t *testing.T) {
 	t.Run("raw file", func(t *testing.T) {
 		dir := testutil.TmpDir(t)

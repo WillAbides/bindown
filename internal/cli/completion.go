@@ -3,11 +3,11 @@ package cli
 import (
 	"os"
 	"runtime"
+	"sort"
 	"strings"
 
 	"github.com/alecthomas/kong"
 	"github.com/willabides/bindown/v3"
-	"github.com/willabides/bindown/v3/internal/configfile"
 )
 
 func findConfigFileForCompletion(args []string) string {
@@ -40,19 +40,19 @@ func prepCompletionConfigFile(path string) string {
 	return path
 }
 
-func completionConfig(args []string) *configfile.ConfigFile {
+func completionConfig(args []string) *bindown.ConfigFile {
 	path := findConfigFileForCompletion(args)
 	if path == "" {
 		return nil
 	}
-	configFile, err := configfile.LoadConfigFile(path, true)
+	configFile, err := bindown.LoadConfigFile(path, true)
 	if err != nil {
 		return nil
 	}
 	return configFile
 }
 
-func allBins(cfg *configfile.ConfigFile) []string {
+func allDependencies(cfg *bindown.ConfigFile) []string {
 	if cfg == nil {
 		return []string{}
 	}
@@ -60,23 +60,46 @@ func allBins(cfg *configfile.ConfigFile) []string {
 		OS:   runtime.GOOS,
 		Arch: runtime.GOARCH,
 	}
-	bins := make([]string, 0, len(cfg.Dependencies))
-	for dlName := range cfg.Dependencies {
-		bn, err := cfg.BinName(dlName, system)
+	dependencies := make([]string, 0, len(cfg.Dependencies))
+	for depName := range cfg.Dependencies {
+		bn, err := cfg.BinName(depName, system)
 		if err != nil {
 			return []string{}
 		}
-		bins = append(bins, bn)
+		dependencies = append(dependencies, bn)
 	}
-	return bins
+	sort.Strings(dependencies)
+	return dependencies
 }
+
+var templateSourceCompleter = kong.CompleterFunc(func(a kong.CompleterArgs) []string {
+	cfg := completionConfig(a.Completed())
+	if cfg == nil {
+		return []string{}
+	}
+
+	opts := make([]string, 0, len(cfg.TemplateSources))
+	for src := range cfg.TemplateSources {
+		opts = append(opts, src)
+	}
+	return kong.CompleteSet(opts...).Options(a)
+})
 
 var binCompleter = kong.CompleterFunc(func(a kong.CompleterArgs) []string {
 	cfg := completionConfig(a.Completed())
-	return kong.CompleteSet(allBins(cfg)...).Options(a)
+	return kong.CompleteSet(allDependencies(cfg)...).Options(a)
 })
 
-var systemCompleter = kong.CompleteSet(strings.Split(goDists, "\n")...)
+var systemCompleter = kong.CompleterFunc(func(a kong.CompleterArgs) []string {
+	cfg := completionConfig(a.Completed())
+	opts := make([]string, 0, len(cfg.Systems))
+	for _, system := range cfg.Systems {
+		opts = append(opts, system.String())
+	}
+	return kong.CompleteSet(opts...).Options(a)
+})
+
+var allSystemsCompleter = kong.CompleteSet(strings.Split(goDists, "\n")...)
 
 // from `go tool dist list`
 const goDists = `aix/ppc64

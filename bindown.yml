@@ -1,8 +1,12 @@
 cache: ./bin/.bindown
 install_dir: ./bin
+systems:
+- darwin/amd64
+- linux/amd64
+- windows/amd64
 dependencies:
   go:
-    template: go
+    template: bt#go
     vars:
       version: 1.14.1
   gobin:
@@ -11,33 +15,35 @@ dependencies:
     vars:
       version: 0.0.13
   golangci-lint:
-    template: golangci-lint
+    template: bt#golangci-lint
     vars:
       version: 1.23.7
   goreleaser:
-    template: goreleaser
+    template: bt#goreleaser
     vars:
       version: 0.120.7
   mockgen:
-    template: mockgen
+    template: bt#mockgen
     vars:
       version: 1.4.3
   semver-next:
-    template: semver-next
+    template: bt#semver-next
     vars:
       version: 0.4.0
   yq:
-    template: yq
+    template: bt#yq
     vars:
       version: 3.2.1
 templates:
-  go:
+  bt#go:
     url: https://dl.google.com/go/go{{.version}}.{{.os}}-{{.arch}}{{.urlsuffix}}
     archive_path: go/bin/go{{.archivepathsuffix}}
     link: true
     vars:
       archivepathsuffix: ""
       urlsuffix: .tar.gz
+    required_vars:
+    - version
     overrides:
     - matcher:
         os:
@@ -46,13 +52,15 @@ templates:
         vars:
           archivepathsuffix: .exe
           urlsuffix: .zip
-  golangci-lint:
+  bt#golangci-lint:
     url: https://github.com/golangci/golangci-lint/releases/download/v{{.version}}/golangci-lint-{{.version}}-{{.os}}-{{.arch}}{{.urlsuffix}}
     archive_path: golangci-lint-{{.version}}-{{.os}}-{{.arch}}/golangci-lint{{.archivepathsuffix}}
     link: true
     vars:
       archivepathsuffix: ""
       urlsuffix: .tar.gz
+    required_vars:
+    - version
     overrides:
     - matcher:
         os:
@@ -61,13 +69,14 @@ templates:
         vars:
           archivepathsuffix: .exe
           urlsuffix: .zip
-  goreleaser:
+  bt#goreleaser:
     url: https://github.com/goreleaser/goreleaser/releases/download/v{{.version}}/goreleaser_{{.os}}_{{.arch}}{{.urlsuffix}}
     archive_path: goreleaser{{.archivepathsuffix}}
     vars:
       archivepathsuffix: ""
       urlsuffix: .tar.gz
-      version: 0.120.7
+    required_vars:
+    - version
     overrides:
     - matcher:
         os:
@@ -84,11 +93,13 @@ templates:
         darwin: Darwin
         linux: Linux
         windows: Windows
-  mockgen:
+  bt#mockgen:
     url: https://github.com/golang/mock/releases/download/v{{.version}}/mock_{{.version}}_{{.os}}_{{.arch}}.tar.gz
     archive_path: mock_{{.version}}_{{.os}}_{{.arch}}/mockgen{{.archivepathsuffix}}
     vars:
       archivepathsuffix: ""
+    required_vars:
+    - version
     overrides:
     - matcher:
         os:
@@ -96,11 +107,13 @@ templates:
       dependency:
         vars:
           archivepathsuffix: .exe
-  semver-next:
+  bt#semver-next:
     url: https://github.com/WillAbides/semver-next/releases/download/v{{.version}}/semver-next_{{.version}}_{{.os}}_{{.arch}}.tar.gz
     archive_path: semver-next{{.archivepathsuffix}}
     vars:
       archivepathsuffix: ""
+    required_vars:
+    - version
     overrides:
     - matcher:
         os:
@@ -108,11 +121,13 @@ templates:
       dependency:
         vars:
           archivepathsuffix: .exe
-  yq:
+  bt#yq:
     url: https://github.com/mikefarah/yq/releases/download/{{.version}}/yq_{{.os}}_{{.arch}}{{.archivepathsuffix}}
     archive_path: yq_{{.os}}_{{.arch}}{{.archivepathsuffix}}
     vars:
       archivepathsuffix: ""
+    required_vars:
+    - version
     overrides:
     - matcher:
         os:
@@ -120,6 +135,8 @@ templates:
       dependency:
         vars:
           archivepathsuffix: .exe
+template_sources:
+  bt: ./bindown_templates.yml
 url_checksums:
   https://dl.google.com/go/go1.14.1.darwin-amd64.tar.gz: 6632f9d53fd95632e431e8c34295349cca3f0a124e3a28b760ae5c42b32816e3
   https://dl.google.com/go/go1.14.1.linux-amd64.tar.gz: 2f49eb17ce8b48c680cdb166ffd7389702c0dec6effa090c324804a5cac8a7f8

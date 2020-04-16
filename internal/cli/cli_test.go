@@ -165,10 +165,7 @@ func TestFormat(t *testing.T) {
 func TestAddChecksums(t *testing.T) {
 	runner, mockConfigLoader, mockConfigFile := setupMocks(t)
 	mockConfigLoader.EXPECT().Load(wdPath(t, "bindown.yml"), true).Return(mockConfigFile, nil)
-	mockConfigFile.EXPECT().AddChecksums([]string{"foo"}, []bindown.SystemInfo{{
-		Arch: runtime.GOARCH,
-		OS:   runtime.GOOS,
-	}})
+	mockConfigFile.EXPECT().AddChecksums([]string{"foo"}, nil)
 	mockConfigFile.EXPECT().Write(true)
 	result := runner("add-checksums", "foo", "--json")
 	result.assertState(t, "", "", false, 0)
@@ -178,10 +175,7 @@ func TestValidate(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
 		runner, mockConfigLoader, mockConfigFile := setupMocks(t)
 		mockConfigLoader.EXPECT().Load(wdPath(t, "bindown.yml"), false).Return(mockConfigFile, nil)
-		mockConfigFile.EXPECT().Validate([]string{"foo"}, []bindown.SystemInfo{{
-			Arch: runtime.GOARCH,
-			OS:   runtime.GOOS,
-		}})
+		mockConfigFile.EXPECT().Validate([]string{"foo"}, nil)
 		result := runner("validate", "foo")
 		result.assertState(t, "", "", false, 0)
 	})

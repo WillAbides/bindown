@@ -121,6 +121,35 @@ func (mr *MockConfigFileMockRecorder) ExtractDependency(dependencyName, sysInfo,
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ExtractDependency", reflect.TypeOf((*MockConfigFile)(nil).ExtractDependency), dependencyName, sysInfo, opts)
 }
 
+// AddDependencyFromTemplate mocks base method
+func (m *MockConfigFile) AddDependencyFromTemplate(templateName string, opts *bindown.AddDependencyFromTemplateOpts) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "AddDependencyFromTemplate", templateName, opts)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// AddDependencyFromTemplate indicates an expected call of AddDependencyFromTemplate
+func (mr *MockConfigFileMockRecorder) AddDependencyFromTemplate(templateName, opts interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddDependencyFromTemplate", reflect.TypeOf((*MockConfigFile)(nil).AddDependencyFromTemplate), templateName, opts)
+}
+
+// MissingDependencyVars mocks base method
+func (m *MockConfigFile) MissingDependencyVars(depName string) ([]string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "MissingDependencyVars", depName)
+	ret0, _ := ret[0].([]string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// MissingDependencyVars indicates an expected call of MissingDependencyVars
+func (mr *MockConfigFileMockRecorder) MissingDependencyVars(depName interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "MissingDependencyVars", reflect.TypeOf((*MockConfigFile)(nil).MissingDependencyVars), depName)
+}
+
 // MockConfigLoader is a mock of ConfigLoader interface
 type MockConfigLoader struct {
 	ctrl     *gomock.Controller

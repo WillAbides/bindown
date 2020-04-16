@@ -1,14 +1,15 @@
 package cli
 
 import (
+	"bufio"
 	"fmt"
+	"os"
 	"path/filepath"
 	"runtime"
 
 	"github.com/alecthomas/kong"
 	"github.com/willabides/bindown/v3"
 	"github.com/willabides/bindown/v3/internal/cli/ifaces"
-	"github.com/willabides/bindown/v3/internal/configfile"
 )
 
 //go:generate mockgen -source ifaces/ifaces.go -destination mocks/$GOFILE -package mocks
@@ -46,6 +47,10 @@ var cli struct {
 	Extract            extractCmd                 `kong:"cmd,help=${extract_help}"`
 	Install            installCmd                 `kong:"cmd,help=${install_help}"`
 	Format             fmtCmd                     `kong:"cmd,help=${config_format_help}"`
+	Dependency         dependencyCmd              `kong:"cmd,help='manage dependencies'"`
+	Template           templateCmd                `kong:"cmd,help='manage templates'"`
+	TemplateSource     templateSourceCmd          `kong:"cmd,help='manage template sources'"`
+	SupportedSystem    supportedSystemCmd         `kong:"cmd,help='manage supported systems'"`
 	AddChecksums       addChecksumsCmd            `kong:"cmd,help=${checksums_help}"`
 	Validate           validateCmd                `kong:"cmd,help=${config_validate_help}"`
 	InstallCompletions kong.InstallCompletionFlag `kong:"help=${config_install_completions_help}"`
@@ -57,7 +62,7 @@ var cli struct {
 type defaultConfigLoader struct{}
 
 func (d defaultConfigLoader) Load(filename string, noDefaultDirs bool) (ifaces.ConfigFile, error) {
-	return configfile.LoadConfigFile(filename, noDefaultDirs)
+	return bindown.LoadConfigFile(filename, noDefaultDirs)
 }
 
 var configLoader ifaces.ConfigLoader = defaultConfigLoader{}
@@ -65,8 +70,10 @@ var configLoader ifaces.ConfigLoader = defaultConfigLoader{}
 func newParser(kongOptions ...kong.Option) *kong.Kong {
 	kongOptions = append(kongOptions,
 		kong.Completers{
-			"bin":    binCompleter,
-			"system": systemCompleter,
+			"bin":            binCompleter,
+			"allSystems":     allSystemsCompleter,
+			"templateSource": templateSourceCompleter,
+			"system":         systemCompleter,
 		},
 		kongVars,
 		kong.UsageOnError(),
@@ -86,7 +93,7 @@ func Run(args []string, kongOptions ...kong.Option) {
 
 type addChecksumsCmd struct {
 	Dependency string               `kong:"required=true,arg,help=${checksums_dep_help},completer=bin"`
-	Systems    []bindown.SystemInfo `kong:"name=system,default=${system_default},help=${systems_help},completer=system"`
+	Systems    []bindown.SystemInfo `kong:"name=system,help=${systems_help},completer=allSystems"`
 }
 
 func (d *addChecksumsCmd) Run(_ *kong.Context) error {
@@ -116,7 +123,7 @@ func (c fmtCmd) Run(_ *kong.Context) error {
 
 type validateCmd struct {
 	Dependency string               `kong:"required=true,arg,help=${config_validate_bin_help},completer=bin"`
-	Systems    []bindown.SystemInfo `kong:"name=system,default=${system_default},completer=system"`
+	Systems    []bindown.SystemInfo `kong:"name=system,completer=allSystems"`
 }
 
 func (d validateCmd) Run(ctx *kong.Context) error {
@@ -131,7 +138,7 @@ type installCmd struct {
 	Force      bool               `kong:"help=${install_force_help}"`
 	Dependency string             `kong:"required=true,arg,help=${download_dependency_help},completer=bin"`
 	TargetFile string             `kong:"type=path,name=output,type=file,help=${install_target_file_help}"`
-	System     bindown.SystemInfo `kong:"name=system,default=${system_default},help=${system_help},completer=system"`
+	System     bindown.SystemInfo `kong:"name=system,default=${system_default},help=${system_help},completer=allSystems"`
 }
 
 func (d *installCmd) Run(ctx *kong.Context) error {
@@ -152,7 +159,7 @@ func (d *installCmd) Run(ctx *kong.Context) error {
 
 type downloadCmd struct {
 	Force      bool               `kong:"help=${download_force_help}"`
-	System     bindown.SystemInfo `kong:"name=system,default=${system_default},help=${system_help},completer=system"`
+	System     bindown.SystemInfo `kong:"name=system,default=${system_default},help=${system_help},completer=allSystems"`
 	Dependency string             `kong:"required=true,arg,help=${download_dependency_help},completer=bin"`
 	TargetFile string             `kong:"name=output,help=${download_target_file_help}"`
 }
@@ -174,7 +181,7 @@ func (d *downloadCmd) Run(ctx *kong.Context) error {
 }
 
 type extractCmd struct {
-	System     bindown.SystemInfo `kong:"name=system,default=${system_default},help=${system_help},completer=system"`
+	System     bindown.SystemInfo `kong:"name=system,default=${system_default},help=${system_help},completer=allSystems"`
 	Dependency string             `kong:"required=true,arg,help=${extract_dependency_help},completer=bin"`
 	TargetDir  string             `kong:"name=output,help=${extract_target_dir_help}"`
 }
@@ -193,4 +200,18 @@ func (d *extractCmd) Run(ctx *kong.Context) error {
 	}
 	fmt.Fprintf(ctx.Stdout, "extracted %s to %s\n", d.Dependency, pth)
 	return nil
+}
+
+func requestRequiredVar(ctx *kong.Context, name string, vars map[string]string) (map[string]string, error) {
+	fmt.Fprintf(ctx.Stdout, "Please enter a value for required variable %q:\t", name)
+	scanner := bufio.NewScanner(os.Stdin)
+	scanner.Scan()
+	err := scanner.Err()
+	if err != nil {
+		return nil, err
+	}
+	val := scanner.Text()
+
+	vars[name] = val
+	return vars, nil
 }

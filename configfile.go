@@ -1,27 +1,18 @@
-package configfile
+package bindown
 
 import (
 	"encoding/json"
 	"io/ioutil"
 	"path/filepath"
+	"sort"
 
-	"github.com/willabides/bindown/v3"
-	"github.com/willabides/bindown/v3/internal/jsonschema"
 	"gopkg.in/yaml.v2"
 )
 
 //ConfigFile is a file containing config
 type ConfigFile struct {
 	filename string
-	bindown.Config
-}
-
-//New returns a new *ConfigFile
-func New(filename string, config bindown.Config) *ConfigFile {
-	return &ConfigFile{
-		filename: filename,
-		Config:   config,
-	}
+	Config
 }
 
 //LoadConfigFile loads a config file
@@ -30,19 +21,14 @@ func LoadConfigFile(filename string, noDefaultDirs bool) (*ConfigFile, error) {
 	if err != nil {
 		return nil, err
 	}
+	cfg, err := configFromYAML(data)
+	if err != nil {
+		return nil, err
+	}
 	result := ConfigFile{
 		filename: filename,
+		Config:   *cfg,
 	}
-	err = jsonschema.ValidateConfig(data)
-	if err != nil {
-		return nil, err
-	}
-	err = yaml.Unmarshal(data, &result.Config)
-	if err != nil {
-		return nil, err
-	}
-	result.Cache = filepath.FromSlash(result.Cache)
-	result.InstallDir = filepath.FromSlash(result.InstallDir)
 	configDir := filepath.Dir(filename)
 	if noDefaultDirs {
 		return &result, nil
@@ -63,6 +49,11 @@ func (c *ConfigFile) Write(outputJSON bool) error {
 	if filepath.Ext(c.filename) == ".json" {
 		outputJSON = true
 	}
+	if len(c.Systems) > 0 {
+		sort.Slice(c.Systems, func(i, j int) bool {
+			return c.Systems[i].String() < c.Systems[j].String()
+		})
+	}
 	switch outputJSON {
 	case true:
 		data, err = json.MarshalIndent(&c.Config, "", "  ")
@@ -72,5 +63,6 @@ func (c *ConfigFile) Write(outputJSON bool) error {
 	if err != nil {
 		return err
 	}
+
 	return ioutil.WriteFile(c.filename, data, 0600)
 }

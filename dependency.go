@@ -70,6 +70,7 @@ type Dependency struct {
 	BinName       *string                      `json:"bin,omitempty" yaml:"bin,omitempty"`
 	Link          *bool                        `json:"link,omitempty" yaml:",omitempty"`
 	Vars          map[string]string            `json:"vars,omitempty" yaml:",omitempty"`
+	RequiredVars  []string                     `json:"required_vars,omitempty" yaml:"required_vars,omitempty"`
 	Overrides     []DependencyOverride         `json:"overrides,omitempty" yaml:",omitempty"`
 	Substitutions map[string]map[string]string `json:"substitutions,omitempty" yaml:",omitempty"`
 }
@@ -108,6 +109,21 @@ func (d *Dependency) clone() *Dependency {
 	dep := *d
 	if d.Vars != nil {
 		dep.Vars = util.CopyStringMap(d.Vars)
+	}
+	if d.URL != nil {
+		d.URL = stringPtr(*d.URL)
+	}
+	if d.ArchivePath != nil {
+		d.ArchivePath = stringPtr(*d.ArchivePath)
+	}
+	if d.Template != nil {
+		d.Template = stringPtr(*d.Template)
+	}
+	if d.BinName != nil {
+		d.BinName = stringPtr(*d.BinName)
+	}
+	if d.Link != nil {
+		d.Link = boolPtr(*d.Link)
 	}
 	if d.Overrides != nil {
 		dep.Overrides = make([]DependencyOverride, len(d.Overrides))
@@ -186,6 +202,9 @@ func (d *Dependency) applyTemplate(templates map[string]*Dependency, depth int) 
 	}
 	if d.Link != nil {
 		newDL.Link = d.Link
+	}
+	if d.RequiredVars != nil {
+		newDL.RequiredVars = append(newDL.RequiredVars, d.RequiredVars...)
 	}
 	newDL.addOverrides(d.Overrides)
 	*d = *newDL

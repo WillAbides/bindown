@@ -5,22 +5,29 @@ import (
 	"fmt"
 	"hash/fnv"
 	"io/ioutil"
+	"net/http"
 	"net/url"
 	"os"
 	"path"
 	"path/filepath"
 	"runtime"
+	"sort"
+	"strings"
 
+	"github.com/willabides/bindown/v3/internal/jsonschema"
 	"github.com/willabides/bindown/v3/internal/util"
+	"gopkg.in/yaml.v2"
 )
 
 //Config is our main config
 type Config struct {
-	Cache        string                 `json:"cache,omitempty" yaml:"cache,omitempty"`
-	InstallDir   string                 `json:"install_dir,omitempty" yaml:"install_dir,omitempty"`
-	Dependencies map[string]*Dependency `json:"dependencies,omitempty" yaml:",omitempty"`
-	Templates    map[string]*Dependency `json:"templates,omitempty" yaml:",omitempty"`
-	URLChecksums map[string]string      `json:"url_checksums,omitempty" yaml:"url_checksums,omitempty"`
+	Cache           string                 `json:"cache,omitempty" yaml:"cache,omitempty"`
+	InstallDir      string                 `json:"install_dir,omitempty" yaml:"install_dir,omitempty"`
+	Systems         []SystemInfo           `json:"systems,omitempty" yaml:"systems,omitempty"`
+	Dependencies    map[string]*Dependency `json:"dependencies,omitempty" yaml:",omitempty"`
+	Templates       map[string]*Dependency `json:"templates,omitempty" yaml:",omitempty"`
+	TemplateSources map[string]string      `json:"template_sources,omitempty" yaml:"template_sources,omitempty"`
+	URLChecksums    map[string]string      `json:"url_checksums,omitempty" yaml:"url_checksums,omitempty"`
 }
 
 //SystemInfo contains os and architecture for a target system
@@ -66,6 +73,29 @@ func (c *Config) BinName(depName string, system SystemInfo) (string, error) {
 		return *dep.BinName, nil
 	}
 	return depName, nil
+}
+
+//MissingDependencyVars returns a list of vars that are required but undefined
+func (c *Config) MissingDependencyVars(depName string) ([]string, error) {
+	dep := c.Dependencies[depName]
+	if dep == nil {
+		return nil, fmt.Errorf("no dependency configured with the name %q", depName)
+	}
+	var result []string
+	dep = dep.clone()
+	err := dep.applyTemplate(c.Templates, 0)
+	if err != nil {
+		return nil, err
+	}
+	if dep.Vars == nil {
+		return dep.RequiredVars, nil
+	}
+	for _, requiredVar := range dep.RequiredVars {
+		if _, ok := dep.Vars[requiredVar]; !ok {
+			result = append(result, requiredVar)
+		}
+	}
+	return result, nil
 }
 
 func (c *Config) buildDependency(depName string, info SystemInfo) (*Dependency, error) {
@@ -119,9 +149,25 @@ type ConfigAddChecksumsOptions struct {
 	Systems []SystemInfo
 }
 
+func (c *Config) defaultSystems(systems []SystemInfo) []SystemInfo {
+	if len(systems) > 0 {
+		return systems
+	}
+	if len(c.Systems) > 0 {
+		return c.Systems
+	}
+	return []SystemInfo{
+		{
+			OS:   runtime.GOOS,
+			Arch: runtime.GOARCH,
+		},
+	}
+}
+
 //AddChecksums downloads, calculates checksums and adds them to the config's URLChecksums. AddChecksums skips urls that
 //already exist in URLChecksums.
 func (c *Config) AddChecksums(dependencies []string, systems []SystemInfo) error {
+	systems = c.defaultSystems(systems)
 	if len(dependencies) == 0 && c.Dependencies != nil {
 		dependencies = make([]string, 0, len(c.Dependencies))
 		for dlName := range c.Dependencies {
@@ -180,6 +226,7 @@ type ConfigValidateOptions struct {
 
 //Validate installs the downloader to a temporary directory and returns an error if it was unsuccessful.
 func (c *Config) Validate(dependencies []string, systems []SystemInfo) error {
+	systems = c.defaultSystems(systems)
 	runtime.Version()
 	if len(dependencies) == 0 {
 		dependencies = c.allDependencyNames()
@@ -371,4 +418,151 @@ func (c *Config) InstallDependency(dependencyName string, sysInfo SystemInfo, op
 	}
 
 	return targetPath, copyBin(targetPath, extractDir, strFromPtr(dep.ArchivePath), binName)
+}
+
+//AddDependencyFromTemplateOpts options for AddDependencyFromTemplate
+type AddDependencyFromTemplateOpts struct {
+	TemplateSource string
+	DependencyName string
+	Vars           map[string]string
+}
+
+//AddDependencyFromTemplate adds a dependency to the config
+func (c *Config) AddDependencyFromTemplate(templateName string, opts *AddDependencyFromTemplateOpts) error {
+	if opts == nil {
+		opts = new(AddDependencyFromTemplateOpts)
+	}
+	dependencyName := opts.DependencyName
+	if dependencyName == "" {
+		dependencyName = strings.Split(templateName, "#")[0]
+	}
+	if c.Dependencies[dependencyName] != nil {
+		return fmt.Errorf("dependency named %q already exists", dependencyName)
+	}
+	templateName, err := c.addOrGetTemplate(templateName, opts.TemplateSource)
+	if err != nil {
+		return err
+	}
+	dep := new(Dependency)
+	dep.Vars = opts.Vars
+	dep.Template = &templateName
+	c.Dependencies[dependencyName] = dep
+	return nil
+}
+
+func (c *Config) addOrGetTemplate(name, src string) (string, error) {
+	destName := name
+	if src != "" {
+		destName = fmt.Sprintf("%s#%s", src, name)
+	}
+	if _, ok := c.Templates[destName]; ok {
+		return destName, nil
+	}
+	tmplSrc := src
+	tmplSrcs := c.TemplateSources
+	if tmplSrcs == nil {
+		tmplSrcs = map[string]string{}
+	}
+	if _, ok := tmplSrcs[tmplSrc]; ok {
+		tmplSrc = tmplSrcs[tmplSrc]
+	}
+	err := c.addTemplateFromSource(tmplSrc, name, destName)
+	if err != nil {
+		return "", err
+	}
+	return destName, nil
+}
+
+//AddTemplate copies a template from another config file
+func (c *Config) addTemplateFromSource(src, srcTemplate, destName string) error {
+	srcCfg, err := configFromURL(src)
+	if err != nil {
+		return err
+	}
+	tmpl := srcCfg.Templates[srcTemplate]
+	if tmpl == nil {
+		return fmt.Errorf("src has no template named %q", srcTemplate)
+	}
+	if c.Templates == nil {
+		c.Templates = map[string]*Dependency{}
+	}
+	c.Templates[destName] = tmpl
+	return nil
+}
+
+func (c *Config) templatesList() []string {
+	var templates []string
+	for tmpl := range c.Templates {
+		templates = append(templates, tmpl)
+	}
+	sort.Strings(templates)
+	return templates
+}
+
+//ListTemplates lists templates available in this config or one of its template sources.
+func (c *Config) ListTemplates(templateSource string) ([]string, error) {
+	if templateSource == "" {
+		return c.templatesList(), nil
+	}
+	srcCfg, err := c.templateSourceConfig(templateSource)
+	if err != nil {
+		return nil, err
+	}
+	return srcCfg.templatesList(), nil
+}
+
+func (c *Config) templateSourceConfig(name string) (*Config, error) {
+	if c.TemplateSources == nil || c.TemplateSources[name] == "" {
+		return nil, fmt.Errorf("no template source named %q", name)
+	}
+	return configFromURL(c.TemplateSources[name])
+}
+
+func configFromURL(cfgSrc string) (*Config, error) {
+	cfgURL, err := url.Parse(cfgSrc)
+	if err != nil {
+		return nil, err
+	}
+	switch cfgURL.Scheme {
+	case "", "file":
+		cfg, err := LoadConfigFile(cfgURL.Path, true)
+		if err != nil {
+			return nil, err
+		}
+		return &cfg.Config, nil
+	case "http", "https":
+		return configFromHTTP(cfgSrc)
+	default:
+		return nil, fmt.Errorf("invalid src: %s", cfgSrc)
+	}
+}
+
+func configFromHTTP(src string) (*Config, error) {
+	resp, err := http.Get(src) //nolint:gosec
+	if err != nil {
+		return nil, err
+	}
+	if resp.StatusCode >= 300 {
+		return nil, fmt.Errorf("error downloading %q", src)
+	}
+	data, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+	return configFromYAML(data)
+}
+
+func configFromYAML(data []byte) (*Config, error) {
+	err := jsonschema.ValidateConfig(data)
+	if err != nil {
+		return nil, err
+	}
+	var cfg Config
+	err = yaml.Unmarshal(data, &cfg)
+	if err != nil {
+		return nil, err
+	}
+	cfg.Cache = filepath.FromSlash(cfg.Cache)
+	cfg.InstallDir = filepath.FromSlash(cfg.InstallDir)
+	return &cfg, nil
 }
