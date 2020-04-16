@@ -2,10 +2,9 @@ package ifaces
 
 import (
 	"github.com/willabides/bindown/v3"
-	"github.com/willabides/bindown/v3/internal/configfile"
 )
 
-var _ ConfigFile = new(configfile.ConfigFile)
+var _ ConfigFile = new(bindown.ConfigFile)
 
 //ConfigFile a config file
 type ConfigFile interface {
@@ -15,6 +14,8 @@ type ConfigFile interface {
 	InstallDependency(dependencyName string, sysInfo bindown.SystemInfo, opts *bindown.ConfigInstallDependencyOpts) (string, error)
 	DownloadDependency(dependencyName string, sysInfo bindown.SystemInfo, opts *bindown.ConfigDownloadDependencyOpts) (string, error)
 	ExtractDependency(dependencyName string, sysInfo bindown.SystemInfo, opts *bindown.ConfigExtractDependencyOpts) (string, error)
+	AddDependencyFromTemplate(templateName string, opts *bindown.AddDependencyFromTemplateOpts) error
+	MissingDependencyVars(depName string) ([]string, error)
 }
 
 //ConfigLoader loads config files

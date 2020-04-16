@@ -1,14 +1,15 @@
 package cli
 
 import (
+	"bufio"
 	"fmt"
+	"os"
 	"path/filepath"
 	"runtime"
 
 	"github.com/alecthomas/kong"
 	"github.com/willabides/bindown/v3"
 	"github.com/willabides/bindown/v3/internal/cli/ifaces"
-	"github.com/willabides/bindown/v3/internal/configfile"
 )
 
 //go:generate mockgen -source ifaces/ifaces.go -destination mocks/$GOFILE -package mocks
@@ -47,6 +48,9 @@ var cli struct {
 	Install            installCmd                 `kong:"cmd,help=${install_help}"`
 	Format             fmtCmd                     `kong:"cmd,help=${config_format_help}"`
 	AddChecksums       addChecksumsCmd            `kong:"cmd,help=${checksums_help}"`
+	Dependency         dependencyCmd              `kong:"cmd,help='manage dependencies'"`
+	Template           templateCmd                `kong:"cmd,help='manage templates'"`
+	TemplateSource     templateSourceCmd          `kong:"cmd,help='manage template sources'"`
 	Validate           validateCmd                `kong:"cmd,help=${config_validate_help}"`
 	InstallCompletions kong.InstallCompletionFlag `kong:"help=${config_install_completions_help}"`
 	Configfile         string                     `kong:"type=path,help=${configfile_help},default=${configfile_default},env='BINDOWN_CONFIG_FILE'"`
@@ -57,7 +61,7 @@ var cli struct {
 type defaultConfigLoader struct{}
 
 func (d defaultConfigLoader) Load(filename string, noDefaultDirs bool) (ifaces.ConfigFile, error) {
-	return configfile.LoadConfigFile(filename, noDefaultDirs)
+	return bindown.LoadConfigFile(filename, noDefaultDirs)
 }
 
 var configLoader ifaces.ConfigLoader = defaultConfigLoader{}
@@ -65,8 +69,9 @@ var configLoader ifaces.ConfigLoader = defaultConfigLoader{}
 func newParser(kongOptions ...kong.Option) *kong.Kong {
 	kongOptions = append(kongOptions,
 		kong.Completers{
-			"bin":    binCompleter,
-			"system": systemCompleter,
+			"bin":            binCompleter,
+			"system":         systemCompleter,
+			"templateSource": templateSourceCompleter,
 		},
 		kongVars,
 		kong.UsageOnError(),
@@ -193,4 +198,18 @@ func (d *extractCmd) Run(ctx *kong.Context) error {
 	}
 	fmt.Fprintf(ctx.Stdout, "extracted %s to %s\n", d.Dependency, pth)
 	return nil
+}
+
+func requestRequiredVar(ctx *kong.Context, name string, vars map[string]string) (map[string]string, error) {
+	fmt.Fprintf(ctx.Stdout, "Please enter a value for required variable %q:\t", name)
+	scanner := bufio.NewScanner(os.Stdin)
+	scanner.Scan()
+	err := scanner.Err()
+	if err != nil {
+		return nil, err
+	}
+	val := scanner.Text()
+
+	vars[name] = val
+	return vars, nil
 }

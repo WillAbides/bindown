@@ -41,6 +41,11 @@ definitions:
           oneOf:
             - type: string
             - type: number
+      required_vars:
+        description: A list of variables that must be present for an install to succeed
+        type: array
+        additionalItems:
+          type: string
       overrides:
         description: Overrides allows you to override values depending on the os and architecture of the target system.
         type: array
@@ -121,6 +126,11 @@ properties:
     type: object
     additionalProperties:
       $ref: "#/definitions/dependency"
+  template_sources:
+    description: Upstream sources for templates.
+    type: object
+    additionalProperties:
+      type: string
   url_checksums:
     description: Checksums of downloaded files.
     type: object

@@ -24,6 +24,13 @@
           },
           "type": "array"
         },
+        "required_vars": {
+          "additionalItems": {
+            "type": "string"
+          },
+          "description": "A list of variables that must be present for an install to succeed",
+          "type": "array"
+        },
         "substitutions": {
           "additionalProperties": {
             "additionalProperties": {
@@ -140,6 +147,13 @@
       "default": "./bin",
       "description": "The directory that bindown installs files to. This is relative to the directory where the configuration file resides. install_directory paths should always use / as a delimiter even on Windows or other operating systems where the native delimiter isn't /.\n",
       "type": "string"
+    },
+    "template_sources": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "description": "Upstream sources for templates.",
+      "type": "object"
     },
     "templates": {
       "additionalProperties": {

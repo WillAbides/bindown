@@ -70,6 +70,7 @@ type Dependency struct {
 	BinName       *string                      `json:"bin,omitempty" yaml:"bin,omitempty"`
 	Link          *bool                        `json:"link,omitempty" yaml:",omitempty"`
 	Vars          map[string]string            `json:"vars,omitempty" yaml:",omitempty"`
+	RequiredVars  []string                     `json:"required_vars,omitempty" yaml:"required_vars,omitempty"`
 	Overrides     []DependencyOverride         `json:"overrides,omitempty" yaml:",omitempty"`
 	Substitutions map[string]map[string]string `json:"substitutions,omitempty" yaml:",omitempty"`
 }
@@ -186,6 +187,9 @@ func (d *Dependency) applyTemplate(templates map[string]*Dependency, depth int) 
 	}
 	if d.Link != nil {
 		newDL.Link = d.Link
+	}
+	if d.RequiredVars != nil {
+		newDL.RequiredVars = append(newDL.RequiredVars, d.RequiredVars...)
 	}
 	newDL.addOverrides(d.Overrides)
 	*d = *newDL
