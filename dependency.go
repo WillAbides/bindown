@@ -2,7 +2,15 @@ package bindown
 
 import (
 	"fmt"
+	"io"
+	"io/ioutil"
+	"log"
+	"net/http"
+	"os"
+	"path/filepath"
+	"strings"
 
+	"github.com/mholt/archiver/v3"
 	"github.com/willabides/bindown/v3/internal/util"
 )
 
@@ -111,6 +119,33 @@ func (d *Dependency) clone() *Dependency {
 	return &dep
 }
 
+//interpolateVars executes go templates in values
+func (d *Dependency) interpolateVars(system SystemInfo) error {
+	interpolate := func(tmpl string) (string, error) {
+		return util.ExecuteTemplate(tmpl, system.OS, system.Arch, d.Vars)
+	}
+	var err error
+	if d.URL != nil {
+		*d.URL, err = interpolate(*d.URL)
+		if err != nil {
+			return err
+		}
+	}
+	if d.ArchivePath != nil {
+		*d.ArchivePath, err = interpolate(*d.ArchivePath)
+		if err != nil {
+			return err
+		}
+	}
+	if d.BinName != nil {
+		*d.BinName, err = interpolate(*d.BinName)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 const maxTemplateDepth = 2
 
 func (d *Dependency) applyTemplate(templates map[string]*Dependency, depth int) error {
@@ -217,4 +252,221 @@ func boolPtr(val bool) *bool {
 
 func stringPtr(val string) *string {
 	return &val
+}
+
+func boolFromPtr(bPtr *bool) bool {
+	if bPtr == nil {
+		return false
+	}
+	return *bPtr
+}
+
+func strFromPtr(sPtr *string) string {
+	if sPtr == nil {
+		return ""
+	}
+	return *sPtr
+}
+
+func linkBin(target, extractDir, archivePath, binName string) error {
+	archivePath = filepath.FromSlash(archivePath)
+	if archivePath == "" {
+		archivePath = filepath.FromSlash(binName)
+	}
+	var err error
+	if util.FileExists(target) {
+		err = os.RemoveAll(target)
+		if err != nil {
+			return err
+		}
+	}
+	extractDir, err = filepath.Abs(extractDir)
+	if err != nil {
+		return err
+	}
+	extractedBin := filepath.Join(extractDir, archivePath)
+	err = os.MkdirAll(filepath.Dir(target), 0750)
+	if err != nil {
+		return err
+	}
+	var linkTargetDir string
+	linkTargetDir, err = filepath.Abs(filepath.Dir(target))
+	if err != nil {
+		return err
+	}
+
+	linkTargetDir, err = filepath.EvalSymlinks(linkTargetDir)
+	if err != nil {
+		return err
+	}
+
+	extractedBin, err = filepath.EvalSymlinks(extractedBin)
+	if err != nil {
+		return err
+	}
+
+	var dst string
+	dst, err = filepath.Rel(linkTargetDir, extractedBin)
+	if err != nil {
+		return err
+	}
+	err = os.Symlink(dst, target)
+	if err != nil {
+		return err
+	}
+	return os.Chmod(target, 0750) //nolint:gosec
+}
+
+func copyBin(target, extractDir, archivePath, binName string) error {
+	archivePath = filepath.FromSlash(archivePath)
+	if archivePath == "" {
+		archivePath = filepath.FromSlash(binName)
+	}
+	var err error
+	if util.FileExists(target) {
+		err = os.RemoveAll(target)
+		if err != nil {
+			return err
+		}
+	}
+	extractDir, err = filepath.Abs(extractDir)
+	if err != nil {
+		return err
+	}
+	extractedBin := filepath.Join(extractDir, archivePath)
+	err = os.MkdirAll(filepath.Dir(target), 0750)
+	if err != nil {
+		return err
+	}
+	err = util.CopyFile(extractedBin, target, nil)
+	if err != nil {
+		return err
+	}
+	return os.Chmod(target, 0750) //nolint:gosec
+}
+
+func logCloseErr(closer io.Closer) {
+	err := closer.Close()
+	if err != nil {
+		log.Println(err)
+	}
+}
+
+//extract extracts an archive
+func extract(archivePath, extractDir string) error {
+	dlName := filepath.Base(archivePath)
+	downloadDir := filepath.Dir(archivePath)
+	extractSumFile := filepath.Join(downloadDir, ".extractsum")
+
+	if wantSum, sumErr := ioutil.ReadFile(extractSumFile); sumErr == nil { //nolint:gosec
+		var exs string
+		exs, sumErr = util.DirectoryChecksum(extractDir)
+		if sumErr == nil && exs == strings.TrimSpace(string(wantSum)) {
+			return nil
+		}
+	}
+
+	err := os.RemoveAll(extractDir)
+	if err != nil {
+		return err
+	}
+	err = os.MkdirAll(extractDir, 0750)
+	if err != nil {
+		return err
+	}
+	tarPath := filepath.Join(downloadDir, dlName)
+	_, err = archiver.ByExtension(dlName)
+	if err != nil {
+		return util.CopyFile(tarPath, filepath.Join(extractDir, dlName), logCloseErr)
+	}
+	err = archiver.Unarchive(tarPath, extractDir)
+	if err != nil {
+		return err
+	}
+	extractSum, err := util.DirectoryChecksum(extractDir)
+	if err != nil {
+		return err
+	}
+
+	return ioutil.WriteFile(extractSumFile, []byte(extractSum), 0640)
+}
+
+//getURLChecksum returns the checksum of what is returned from this url
+func getURLChecksum(dlURL string) (string, error) {
+	downloadDir, err := ioutil.TempDir("", "bindown")
+	if err != nil {
+		return "", err
+	}
+	defer func() {
+		_ = os.RemoveAll(downloadDir) //nolint:errcheck
+	}()
+	dlPath := filepath.Join(downloadDir, "foo")
+	err = downloadFile(dlPath, dlURL)
+	if err != nil {
+		return "", err
+	}
+	return util.FileChecksum(dlPath)
+}
+
+func downloadFile(targetPath, url string) error {
+	err := os.MkdirAll(filepath.Dir(targetPath), 0750)
+	if err != nil {
+		return err
+	}
+	resp, err := http.Get(url) //nolint:gosec
+	if err != nil {
+		return err
+	}
+	defer logCloseErr(resp.Body)
+	if resp.StatusCode >= 300 {
+		return fmt.Errorf("failed downloading %s", url)
+	}
+	out, err := os.Create(targetPath)
+	if err != nil {
+		return err
+	}
+	defer logCloseErr(out)
+	_, err = io.Copy(out, resp.Body)
+	return err
+}
+
+func download(dlURL, outputPath, checksum string, force bool) error {
+	var err error
+	if force {
+		err = os.RemoveAll(outputPath)
+		if err != nil {
+			return err
+		}
+	}
+	ok, err := util.FileExistsWithChecksum(outputPath, checksum)
+	if err != nil {
+		return err
+	}
+	if ok {
+		return nil
+	}
+	err = downloadFile(outputPath, dlURL)
+	if err != nil {
+		return err
+	}
+	return validateFileChecksum(outputPath, checksum)
+}
+
+func validateFileChecksum(filename, checksum string) error {
+	result, err := util.FileChecksum(filename)
+	if err != nil {
+		return err
+	}
+	if checksum != result {
+		defer func() {
+			delErr := os.RemoveAll(filename)
+			if delErr != nil {
+				log.Printf("Error deleting suspicious file at %q. Please delete it manually", filename)
+			}
+		}()
+		return fmt.Errorf(`checksum mismatch in downloaded file %q 
+wanted: %s
+got: %s`, filename, checksum, result)
+	}
+	return nil
 }
