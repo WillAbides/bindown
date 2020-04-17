@@ -47,17 +47,17 @@ var cli struct {
 	Cache              string                     `kong:"type=path,help=${cache_help},env='BINDOWN_CACHE'"`
 	InstallCompletions kong.InstallCompletionFlag `kong:"help=${config_install_completions_help}"`
 
-	Version            versionCmd                 `kong:"cmd,help='show bindown version'"`
-	Download           downloadCmd                `kong:"cmd,help=${download_help}"`
-	Extract            extractCmd                 `kong:"cmd,help=${extract_help}"`
-	Install            installCmd                 `kong:"cmd,help=${install_help}"`
-	Format             fmtCmd                     `kong:"cmd,help=${config_format_help}"`
-	Dependency         dependencyCmd              `kong:"cmd,help='manage dependencies'"`
-	Template           templateCmd                `kong:"cmd,help='manage templates'"`
-	TemplateSource     templateSourceCmd          `kong:"cmd,help='manage template sources'"`
-	SupportedSystem    supportedSystemCmd         `kong:"cmd,help='manage supported systems'"`
-	AddChecksums       addChecksumsCmd            `kong:"cmd,help=${checksums_help}"`
-	Validate           validateCmd                `kong:"cmd,help=${config_validate_help}"`
+	Version         versionCmd         `kong:"cmd,help='show bindown version'"`
+	Download        downloadCmd        `kong:"cmd,help=${download_help}"`
+	Extract         extractCmd         `kong:"cmd,help=${extract_help}"`
+	Install         installCmd         `kong:"cmd,help=${install_help}"`
+	Format          fmtCmd             `kong:"cmd,help=${config_format_help}"`
+	Dependency      dependencyCmd      `kong:"cmd,help='manage dependencies'"`
+	Template        templateCmd        `kong:"cmd,help='manage templates'"`
+	TemplateSource  templateSourceCmd  `kong:"cmd,help='manage template sources'"`
+	SupportedSystem supportedSystemCmd `kong:"cmd,help='manage supported systems'"`
+	AddChecksums    addChecksumsCmd    `kong:"cmd,help=${checksums_help}"`
+	Validate        validateCmd        `kong:"cmd,help=${config_validate_help}"`
 }
 
 type defaultConfigLoader struct{}
@@ -114,7 +114,7 @@ func (d *addChecksumsCmd) Run(_ *kong.Context) error {
 	return config.Write(cli.JSONConfig)
 }
 
-type fmtCmd struct {}
+type fmtCmd struct{}
 
 func (c fmtCmd) Run(_ *kong.Context) error {
 	cli.Cache = ""
