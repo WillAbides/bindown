@@ -73,6 +73,7 @@ type Dependency struct {
 	RequiredVars  []string                     `json:"required_vars,omitempty" yaml:"required_vars,omitempty"`
 	Overrides     []DependencyOverride         `json:"overrides,omitempty" yaml:",omitempty"`
 	Substitutions map[string]map[string]string `json:"substitutions,omitempty" yaml:",omitempty"`
+	Systems       []SystemInfo                 `json:"systems,omitempty" yaml:"systems,omitempty"`
 }
 
 func cloneSubstitutions(subs map[string]map[string]string) map[string]map[string]string {
@@ -164,6 +165,7 @@ func (d *Dependency) interpolateVars(system SystemInfo) error {
 
 const maxTemplateDepth = 2
 
+//nolint:gocyclo
 func (d *Dependency) applyTemplate(templates map[string]*Dependency, depth int) error {
 	if depth > maxTemplateDepth {
 		return nil
@@ -205,6 +207,10 @@ func (d *Dependency) applyTemplate(templates map[string]*Dependency, depth int) 
 	}
 	if d.RequiredVars != nil {
 		newDL.RequiredVars = append(newDL.RequiredVars, d.RequiredVars...)
+	}
+	if len(d.Systems) > 0 {
+		newDL.Systems = make([]SystemInfo, len(d.Systems))
+		copy(newDL.Systems, d.Systems)
 	}
 	newDL.addOverrides(d.Overrides)
 	*d = *newDL

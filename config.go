@@ -1,7 +1,6 @@
 package bindown
 
 import (
-	"bytes"
 	"fmt"
 	"hash/fnv"
 	"io/ioutil"
@@ -28,39 +27,6 @@ type Config struct {
 	Templates       map[string]*Dependency `json:"templates,omitempty" yaml:",omitempty"`
 	TemplateSources map[string]string      `json:"template_sources,omitempty" yaml:"template_sources,omitempty"`
 	URLChecksums    map[string]string      `json:"url_checksums,omitempty" yaml:"url_checksums,omitempty"`
-}
-
-//SystemInfo contains os and architecture for a target system
-type SystemInfo struct {
-	OS   string
-	Arch string
-}
-
-func newSystemInfo(os, arch string) SystemInfo {
-	return SystemInfo{
-		OS:   os,
-		Arch: arch,
-	}
-}
-
-func (s *SystemInfo) String() string {
-	return fmt.Sprintf("%s/%s", s.OS, s.Arch)
-}
-
-//UnmarshalText implements encoding.TextUnmarshaler
-func (s *SystemInfo) UnmarshalText(text []byte) error {
-	parts := bytes.Split(text, []byte{'/'})
-	if len(parts) != 2 {
-		return fmt.Errorf(`systemInfo must be in the form "os/architecture"`)
-	}
-	s.OS = string(parts[0])
-	s.Arch = string(parts[1])
-	return nil
-}
-
-//MarshalText implements encoding.TextMarshaler
-func (s SystemInfo) MarshalText() (text []byte, err error) {
-	return []byte(s.String()), nil
 }
 
 //BinName returns the bin name for a downloader on a given system
@@ -166,9 +132,6 @@ func (c *Config) DefaultSystems() []SystemInfo {
 //AddChecksums downloads, calculates checksums and adds them to the config's URLChecksums. AddChecksums skips urls that
 //already exist in URLChecksums.
 func (c *Config) AddChecksums(dependencies []string, systems []SystemInfo) error {
-	if len(systems) == 0 {
-		systems = c.DefaultSystems()
-	}
 	if len(dependencies) == 0 && c.Dependencies != nil {
 		dependencies = make([]string, 0, len(c.Dependencies))
 		for dlName := range c.Dependencies {
@@ -177,11 +140,18 @@ func (c *Config) AddChecksums(dependencies []string, systems []SystemInfo) error
 	}
 	var err error
 	for _, depName := range dependencies {
+		depSystems := systems
+		if len(depSystems) == 0 {
+			depSystems, err = c.DependencySystems(depName)
+			if err != nil {
+				return err
+			}
+		}
 		dp := c.Dependencies[depName]
 		if dp == nil {
 			return fmt.Errorf("no dependency configured with the name %q", depName)
 		}
-		for _, system := range systems {
+		for _, system := range depSystems {
 			err = c.addChecksum(depName, system)
 			if err != nil {
 				return err
@@ -227,9 +197,6 @@ type ConfigValidateOptions struct {
 
 //Validate installs the downloader to a temporary directory and returns an error if it was unsuccessful.
 func (c *Config) Validate(dependencies []string, systems []SystemInfo) error {
-	if len(systems) == 0 {
-		systems = c.DefaultSystems()
-	}
 	runtime.Version()
 	if len(dependencies) == 0 {
 		dependencies = c.allDependencyNames()
@@ -251,7 +218,14 @@ func (c *Config) Validate(dependencies []string, systems []SystemInfo) error {
 	c.InstallDir = tmpBinDir
 	c.Cache = tmpCacheDir
 	for _, depName := range dependencies {
-		for _, system := range systems {
+		depSystems := systems
+		if len(depSystems) == 0 {
+			depSystems, err = c.DependencySystems(depName)
+			if err != nil {
+				return err
+			}
+		}
+		for _, system := range depSystems {
 			_, err = c.InstallDependency(depName, system, &ConfigInstallDependencyOpts{
 				Force: true,
 			})
@@ -476,7 +450,19 @@ func (c *Config) addOrGetTemplate(name, src string) (string, error) {
 	return destName, nil
 }
 
-//AddTemplate copies a template from another config file
+//CopyTemplateFromSource copies a template from source
+func (c *Config) CopyTemplateFromSource(src, srcTemplate, destName string) error {
+	if c.TemplateSources == nil {
+		return fmt.Errorf("no template source named %q", src)
+	}
+	tmplSrc := c.TemplateSources[src]
+	if tmplSrc == "" {
+		return fmt.Errorf("no template source named %q", src)
+	}
+	return c.addTemplateFromSource(tmplSrc, srcTemplate, destName)
+}
+
+//addTemplateFromSource copies a template from another config file
 func (c *Config) addTemplateFromSource(src, srcTemplate, destName string) error {
 	srcCfg, err := configFromURL(src)
 	if err != nil {
@@ -519,6 +505,39 @@ func (c *Config) templateSourceConfig(name string) (*Config, error) {
 		return nil, fmt.Errorf("no template source named %q", name)
 	}
 	return configFromURL(c.TemplateSources[name])
+}
+
+//DependencySystems returns the supported systems of either the config or the dependency if one is not empty
+// if both are not empty, it returns the intersection of the lists
+func (c *Config) DependencySystems(depName string) ([]SystemInfo, error) {
+	if c.Dependencies == nil || c.Dependencies[depName] == nil {
+		return c.Systems, nil
+	}
+	dep := c.Dependencies[depName]
+
+	dep = dep.clone()
+	err := dep.applyTemplate(c.Templates, 0)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(dep.Systems) == 0 {
+		return c.DefaultSystems(), nil
+	}
+	if len(c.Systems) == 0 {
+		return dep.Systems, nil
+	}
+	mp := make(map[SystemInfo]bool, len(c.Systems))
+	for _, system := range c.Systems {
+		mp[system] = true
+	}
+	result := make([]SystemInfo, 0, len(dep.Systems))
+	for _, system := range dep.Systems {
+		if mp[system] {
+			result = append(result, system)
+		}
+	}
+	return result, nil
 }
 
 func configFromURL(cfgSrc string) (*Config, error) {
