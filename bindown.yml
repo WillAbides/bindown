@@ -31,10 +31,47 @@ dependencies:
     vars:
       version: 0.4.0
   yq:
-    template: origin#yq
+    template: local-origin#yq
     vars:
       version: 3.2.1
 templates:
+  local-origin#yq:
+    url: https://github.com/mikefarah/yq/releases/download/{{.version}}/yq_{{.os}}_{{.arch}}{{.archivepathsuffix}}
+    archive_path: yq_{{.os}}_{{.arch}}{{.archivepathsuffix}}
+    vars:
+      archivepathsuffix: ""
+    required_vars:
+    - version
+    overrides:
+    - matcher:
+        os:
+        - windows
+      dependency:
+        vars:
+          archivepathsuffix: .exe
+    systems:
+    - darwin/386
+    - darwin/amd64
+    - freebsd/386
+    - freebsd/amd64
+    - freebsd/arm
+    - linux/386
+    - linux/amd64
+    - linux/arm
+    - linux/arm64
+    - linux/mips
+    - linux/mips64
+    - linux/mips64le
+    - linux/mipsle
+    - linux/ppc64
+    - linux/s390x
+    - netbsd/386
+    - netbsd/arm
+    - netbsd/arm64
+    - openbsd/386
+    - openbsd/amd64
+    - windows/386
+    - windows/amd64
   origin#go:
     url: https://dl.google.com/go/go{{.version}}.{{.os}}-{{.arch}}{{.urlsuffix}}
     archive_path: go/bin/go{{.archivepathsuffix}}
@@ -136,6 +173,7 @@ templates:
         vars:
           archivepathsuffix: .exe
 template_sources:
+  local-origin: ./bindown_templates.yml
   origin: https://raw.githubusercontent.com/WillAbides/bindown/master/bindown_templates.yml
 url_checksums:
   https://dl.google.com/go/go1.14.1.darwin-amd64.tar.gz: 6632f9d53fd95632e431e8c34295349cca3f0a124e3a28b760ae5c42b32816e3

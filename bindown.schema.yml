@@ -41,6 +41,11 @@ definitions:
           oneOf:
             - type: string
             - type: number
+      systems:
+        description: List of systems this dependency is known to support
+        type: array
+        additionalItems:
+          type: string
       required_vars:
         description: A list of variables that must be present for an install to succeed
         type: array

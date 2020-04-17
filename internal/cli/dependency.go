@@ -53,7 +53,10 @@ func (c *dependencyInfoCmd) Run(ctx *kong.Context) error {
 	cfg := cfgIface.(*bindown.ConfigFile)
 	systems := c.Systems
 	if len(systems) == 0 {
-		systems = cfg.DefaultSystems()
+		systems, err = cfg.DependencySystems(c.Dependency)
+		if err != nil {
+			return err
+		}
 	}
 	result := map[string]*bindown.Dependency{}
 	for _, system := range systems {
@@ -64,6 +67,7 @@ func (c *dependencyInfoCmd) Run(ctx *kong.Context) error {
 		if dep.BinName == nil {
 			dep.BinName = &c.Dependency
 		}
+		dep.Systems = nil
 		if !c.Vars {
 			dep.Vars = nil
 			dep.RequiredVars = nil
