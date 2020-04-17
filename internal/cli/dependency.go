@@ -1,16 +1,82 @@
 package cli
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 
 	"github.com/alecthomas/kong"
 	"github.com/willabides/bindown/v3"
+	"gopkg.in/yaml.v2"
 )
 
 type dependencyCmd struct {
-	List dependencyListCmd `kong:"cmd,help='list configured dependencies'"`
-	Add  dependencyAddCmd  `kong:"cmd,help='add a template-based dependency'"`
+	List       dependencyListCmd       `kong:"cmd,help='list configured dependencies'"`
+	Add        dependencyAddCmd        `kong:"cmd,help='add a template-based dependency'"`
+	Remove     dependencyRemoveCmd     `kong:"cmd,help='remove a dependency'"`
+	Info       dependencyInfoCmd       `kong:"cmd,help='info about a dependency'"`
+	ShowConfig dependencyShowConfigCmd `kong:"cmd,help='show dependency config'"`
+}
+
+type dependencyShowConfigCmd struct {
+	Dependency string `kong:"arg,completer=bin"`
+}
+
+func (c *dependencyShowConfigCmd) Run(ctx *kong.Context) error {
+	cfgIface, err := configLoader.Load(cli.Configfile, true)
+	if err != nil {
+		return err
+	}
+	cfg := cfgIface.(*bindown.ConfigFile)
+	if cfg.Dependencies == nil || cfg.Dependencies[c.Dependency] == nil {
+		return fmt.Errorf("no dependency named %q", c.Dependency)
+	}
+	if cli.JSONConfig {
+		encoder := json.NewEncoder(ctx.Stdout)
+		encoder.SetIndent("", "  ")
+		return encoder.Encode(cfg.Dependencies[c.Dependency])
+	}
+	return yaml.NewEncoder(ctx.Stdout).Encode(cfg.Dependencies[c.Dependency])
+}
+
+type dependencyInfoCmd struct {
+	Dependency string               `kong:"arg,completer=bin"`
+	Systems    []bindown.SystemInfo `kong:"name=system,help=${systems_help},completer=allSystems"`
+	Vars       bool                 `kong:"help='include vars'"`
+}
+
+func (c *dependencyInfoCmd) Run(ctx *kong.Context) error {
+	cfgIface, err := configLoader.Load(cli.Configfile, true)
+	if err != nil {
+		return err
+	}
+	cfg := cfgIface.(*bindown.ConfigFile)
+	systems := c.Systems
+	if len(systems) == 0 {
+		systems = cfg.DefaultSystems()
+	}
+	result := map[string]*bindown.Dependency{}
+	for _, system := range systems {
+		dep, err := cfg.BuildDependency(c.Dependency, system)
+		if err != nil {
+			return err
+		}
+		if dep.BinName == nil {
+			dep.BinName = &c.Dependency
+		}
+		if !c.Vars {
+			dep.Vars = nil
+			dep.RequiredVars = nil
+		}
+		result[system.String()] = dep
+	}
+
+	if cli.JSONConfig {
+		encoder := json.NewEncoder(ctx.Stdout)
+		encoder.SetIndent("", "  ")
+		return encoder.Encode(result)
+	}
+	return yaml.NewEncoder(ctx.Stdout).Encode(result)
 }
 
 type dependencyListCmd struct{}
@@ -22,6 +88,26 @@ func (c *dependencyListCmd) Run(ctx *kong.Context) error {
 	}
 	fmt.Fprintln(ctx.Stdout, strings.Join(allDependencies(cfg.(*bindown.ConfigFile)), "\n"))
 	return nil
+}
+
+type dependencyRemoveCmd struct {
+	Dependency string `kong:"arg,completer=bin"`
+}
+
+func (c *dependencyRemoveCmd) Run() error {
+	cfgIface, err := configLoader.Load(cli.Configfile, true)
+	if err != nil {
+		return err
+	}
+	cfg := cfgIface.(*bindown.ConfigFile)
+	if cfg.Dependencies == nil {
+		return fmt.Errorf("no dependency named %q", c.Dependency)
+	}
+	if _, ok := cfg.Dependencies[c.Dependency]; !ok {
+		return fmt.Errorf("no dependency named %q", c.Dependency)
+	}
+	delete(cfg.Dependencies, c.Dependency)
+	return cfg.Write(cli.JSONConfig)
 }
 
 type dependencyAddCmd struct {

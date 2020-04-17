@@ -156,31 +156,32 @@ Usage: bindown <command>
 
 Flags:
   --help                        Show context-sensitive help.
-  --install-completions         install shell completions
+  --json                        write json instead of yaml
   --configfile="bindown.yml"    file with bindown config ($BINDOWN_CONFIG_FILE)
   --cache=STRING                directory downloads will be cached ($BINDOWN_CACHE)
-  --json                        use json instead of yaml for the config file
+  --install-completions         install shell completions
 
 Commands:
-  version
-
-  download <dependency>
-    download a dependency but don't extract or install it
-
-  extract <dependency>
-    download and extract a dependency but don't install it
-
-  install <dependency>
-    download, extract and install a dependency
-
-  format
-    formats the config file
-
-  add-checksums <dependency>
-    add checksums to the config file
-
-  validate <dependency>
-    validate that installs work
+  version                    show bindown version
+  download                   download a dependency but don't extract or install it
+  extract                    download and extract a dependency but don't install it
+  install                    download, extract and install a dependency
+  format                     formats the config file
+  dependency list            list configured dependencies
+  dependency add             add a template-based dependency
+  dependency remove          remove a dependency
+  dependency info            info about a dependency
+  dependency show-config     show dependency config
+  template list              list templates
+  template remove            remove a template
+  template-source list       list configured template sources
+  template-source add        add a template source
+  template-source remove     remove a template source
+  supported-system list      list supported systems
+  supported-system add       add a supported system
+  supported-system remove    remove a supported system
+  add-checksums              add checksums to the config file
+  validate                   validate that installs work
 
 Run "bindown <command> --help" for more information on a command.
 ```
