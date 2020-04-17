@@ -65,7 +65,7 @@ func (s SystemInfo) MarshalText() (text []byte, err error) {
 
 //BinName returns the bin name for a downloader on a given system
 func (c *Config) BinName(depName string, system SystemInfo) (string, error) {
-	dep, err := c.buildDependency(depName, system)
+	dep, err := c.BuildDependency(depName, system)
 	if err != nil {
 		return "", err
 	}
@@ -98,7 +98,8 @@ func (c *Config) MissingDependencyVars(depName string) ([]string, error) {
 	return result, nil
 }
 
-func (c *Config) buildDependency(depName string, info SystemInfo) (*Dependency, error) {
+//BuildDependency returns a dependency with templates and overrides applied and variables interpolated for the given system.
+func (c *Config) BuildDependency(depName string, info SystemInfo) (*Dependency, error) {
 	dep := c.Dependencies[depName]
 	if dep == nil {
 		return nil, fmt.Errorf("no dependency configured with the name %q", depName)
@@ -149,10 +150,8 @@ type ConfigAddChecksumsOptions struct {
 	Systems []SystemInfo
 }
 
-func (c *Config) defaultSystems(systems []SystemInfo) []SystemInfo {
-	if len(systems) > 0 {
-		return systems
-	}
+//DefaultSystems returns c.Systems if it isn't empty. Otherwise returns the runtime system.
+func (c *Config) DefaultSystems() []SystemInfo {
 	if len(c.Systems) > 0 {
 		return c.Systems
 	}
@@ -167,7 +166,9 @@ func (c *Config) defaultSystems(systems []SystemInfo) []SystemInfo {
 //AddChecksums downloads, calculates checksums and adds them to the config's URLChecksums. AddChecksums skips urls that
 //already exist in URLChecksums.
 func (c *Config) AddChecksums(dependencies []string, systems []SystemInfo) error {
-	systems = c.defaultSystems(systems)
+	if len(systems) == 0 {
+		systems = c.DefaultSystems()
+	}
 	if len(dependencies) == 0 && c.Dependencies != nil {
 		dependencies = make([]string, 0, len(c.Dependencies))
 		for dlName := range c.Dependencies {
@@ -191,7 +192,7 @@ func (c *Config) AddChecksums(dependencies []string, systems []SystemInfo) error
 }
 
 func (c *Config) addChecksum(dependencyName string, sysInfo SystemInfo) error {
-	dep, err := c.buildDependency(dependencyName, sysInfo)
+	dep, err := c.BuildDependency(dependencyName, sysInfo)
 	if err != nil {
 		return err
 	}
@@ -226,7 +227,9 @@ type ConfigValidateOptions struct {
 
 //Validate installs the downloader to a temporary directory and returns an error if it was unsuccessful.
 func (c *Config) Validate(dependencies []string, systems []SystemInfo) error {
-	systems = c.defaultSystems(systems)
+	if len(systems) == 0 {
+		systems = c.DefaultSystems()
+	}
 	runtime.Version()
 	if len(dependencies) == 0 {
 		dependencies = c.allDependencyNames()
@@ -282,7 +285,7 @@ func (c *Config) DownloadDependency(dependencyName string, sysInfo SystemInfo, o
 		opts = &ConfigDownloadDependencyOpts{}
 	}
 	targetFile := opts.TargetFile
-	dep, err := c.buildDependency(dependencyName, sysInfo)
+	dep, err := c.BuildDependency(dependencyName, sysInfo)
 	if err != nil {
 		return "", err
 	}
@@ -315,7 +318,7 @@ func urlFilename(dlURL string) (string, error) {
 }
 
 func (c *Config) dependencyChecksum(dependencyName string, sysInfo SystemInfo) (string, error) {
-	dep, err := c.buildDependency(dependencyName, sysInfo)
+	dep, err := c.BuildDependency(dependencyName, sysInfo)
 	if err != nil {
 		return "", err
 	}
@@ -347,7 +350,7 @@ func (c *Config) ExtractDependency(dependencyName string, sysInfo SystemInfo, op
 		return "", err
 	}
 	downloadDir := filepath.Dir(downloadPath)
-	dep, err := c.buildDependency(dependencyName, sysInfo)
+	dep, err := c.BuildDependency(dependencyName, sysInfo)
 	if err != nil {
 		return "", err
 	}
@@ -403,7 +406,7 @@ func (c *Config) InstallDependency(dependencyName string, sysInfo SystemInfo, op
 		}
 		targetPath = filepath.Join(c.InstallDir, binName)
 	}
-	dep, err := c.buildDependency(dependencyName, sysInfo)
+	dep, err := c.BuildDependency(dependencyName, sysInfo)
 	if err != nil {
 		return "", err
 	}

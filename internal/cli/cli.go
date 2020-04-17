@@ -42,7 +42,12 @@ var kongVars = kong.Vars{
 }
 
 var cli struct {
-	Version            versionCmd                 `kong:"cmd"`
+	JSONConfig         bool                       `kong:"name=json,help='write json instead of yaml'"`
+	Configfile         string                     `kong:"type=path,help=${configfile_help},default=${configfile_default},env='BINDOWN_CONFIG_FILE'"`
+	Cache              string                     `kong:"type=path,help=${cache_help},env='BINDOWN_CACHE'"`
+	InstallCompletions kong.InstallCompletionFlag `kong:"help=${config_install_completions_help}"`
+
+	Version            versionCmd                 `kong:"cmd,help='show bindown version'"`
 	Download           downloadCmd                `kong:"cmd,help=${download_help}"`
 	Extract            extractCmd                 `kong:"cmd,help=${extract_help}"`
 	Install            installCmd                 `kong:"cmd,help=${install_help}"`
@@ -53,10 +58,6 @@ var cli struct {
 	SupportedSystem    supportedSystemCmd         `kong:"cmd,help='manage supported systems'"`
 	AddChecksums       addChecksumsCmd            `kong:"cmd,help=${checksums_help}"`
 	Validate           validateCmd                `kong:"cmd,help=${config_validate_help}"`
-	InstallCompletions kong.InstallCompletionFlag `kong:"help=${config_install_completions_help}"`
-	Configfile         string                     `kong:"type=path,help=${configfile_help},default=${configfile_default},env='BINDOWN_CONFIG_FILE'"`
-	Cache              string                     `kong:"type=path,help=${cache_help},env='BINDOWN_CACHE'"`
-	JSONConfig         bool                       `kong:"name=json,help='use json instead of yaml for the config file'"`
 }
 
 type defaultConfigLoader struct{}
@@ -83,6 +84,11 @@ func newParser(kongOptions ...kong.Option) *kong.Kong {
 
 //Run let's light this candle
 func Run(args []string, kongOptions ...kong.Option) {
+	kongOptions = append(kongOptions,
+		kong.HelpOptions{
+			Compact: true,
+		},
+	)
 	parser := newParser(kongOptions...)
 
 	kongCtx, err := parser.Parse(args)
@@ -108,9 +114,7 @@ func (d *addChecksumsCmd) Run(_ *kong.Context) error {
 	return config.Write(cli.JSONConfig)
 }
 
-type fmtCmd struct {
-	JSON bool `kong:"help='output json instead of yaml'"`
-}
+type fmtCmd struct {}
 
 func (c fmtCmd) Run(_ *kong.Context) error {
 	cli.Cache = ""

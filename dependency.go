@@ -184,7 +184,7 @@ func (d *Dependency) applyTemplate(templates map[string]*Dependency, depth int) 
 	if err != nil {
 		return err
 	}
-	newDL.Template = nil
+	newDL.Template = d.Template
 	if newDL.Vars == nil && d.Vars != nil {
 		newDL.Vars = make(map[string]string, len(d.Vars))
 	}
