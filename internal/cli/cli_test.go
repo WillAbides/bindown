@@ -167,7 +167,7 @@ func TestAddChecksums(t *testing.T) {
 	mockConfigLoader.EXPECT().Load(wdPath(t, "bindown.yml"), true).Return(mockConfigFile, nil)
 	mockConfigFile.EXPECT().AddChecksums([]string{"foo"}, nil)
 	mockConfigFile.EXPECT().Write(true)
-	result := runner("add-checksums", "foo", "--json")
+	result := runner("add-checksums", "--dependency", "foo", "--json")
 	result.assertState(t, "", "", false, 0)
 }
 

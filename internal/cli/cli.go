@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"fmt"
 	"os"
-	"path/filepath"
 	"runtime"
 
 	"github.com/alecthomas/kong"
@@ -98,7 +97,7 @@ func Run(args []string, kongOptions ...kong.Option) {
 }
 
 type addChecksumsCmd struct {
-	Dependency string               `kong:"required=true,arg,help=${checksums_dep_help},completer=bin"`
+	Dependency []string             `kong:"help=${checksums_dep_help},completer=bin"`
 	Systems    []bindown.SystemInfo `kong:"name=system,help=${systems_help},completer=allSystems"`
 }
 
@@ -107,7 +106,7 @@ func (d *addChecksumsCmd) Run(_ *kong.Context) error {
 	if err != nil {
 		return err
 	}
-	err = config.AddChecksums([]string{filepath.Base(d.Dependency)}, d.Systems)
+	err = config.AddChecksums(d.Dependency, d.Systems)
 	if err != nil {
 		return err
 	}
