@@ -151,7 +151,7 @@ func (c *Config) AddChecksums(dependencies []string, systems []SystemInfo) error
 		if dp == nil {
 			return fmt.Errorf("no dependency configured with the name %q", depName)
 		}
-		for _, system := range systems {
+		for _, system := range depSystems {
 			err = c.addChecksum(depName, system)
 			if err != nil {
 				return err
@@ -450,7 +450,19 @@ func (c *Config) addOrGetTemplate(name, src string) (string, error) {
 	return destName, nil
 }
 
-//AddTemplate copies a template from another config file
+//CopyTemplateFromSource copies a template from source
+func (c *Config) CopyTemplateFromSource(src, srcTemplate, destName string) error {
+	if c.TemplateSources == nil {
+		return fmt.Errorf("no template source named %q", src)
+	}
+	tmplSrc := c.TemplateSources[src]
+	if tmplSrc == "" {
+		return fmt.Errorf("no template source named %q", src)
+	}
+	return c.addTemplateFromSource(tmplSrc, srcTemplate, destName)
+}
+
+//addTemplateFromSource copies a template from another config file
 func (c *Config) addTemplateFromSource(src, srcTemplate, destName string) error {
 	srcCfg, err := configFromURL(src)
 	if err != nil {

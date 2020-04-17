@@ -165,6 +165,7 @@ func (d *Dependency) interpolateVars(system SystemInfo) error {
 
 const maxTemplateDepth = 2
 
+//nolint:gocyclo
 func (d *Dependency) applyTemplate(templates map[string]*Dependency, depth int) error {
 	if depth > maxTemplateDepth {
 		return nil

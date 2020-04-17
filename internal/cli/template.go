@@ -9,8 +9,41 @@ import (
 )
 
 type templateCmd struct {
-	List   templateListCmd   `kong:"cmd,help='list templates'"`
-	Remove templateRemoveCmd `kong:"cmd,help='remove a template'"`
+	List             templateListCmd             `kong:"cmd,help='list templates'"`
+	Remove           templateRemoveCmd           `kong:"cmd,help='remove a template'"`
+	UpdateFromSource templateUpdateFromSourceCmd `kong:"cmd,help='update a template from source'"`
+}
+
+type templateUpdateFromSourceCmd struct {
+	Source   string `kong:"help='source of the update'"`
+	Template string `kong:"arg,help='template to update'"`
+}
+
+func (c *templateUpdateFromSourceCmd) Run() error {
+	if c.Source == "" {
+		c.Source = c.Template
+	}
+
+	srcParts := strings.SplitN(c.Source, "#", 2)
+	if len(srcParts) != 2 {
+		return fmt.Errorf("source must be formated as name#source (with the #)")
+	}
+	src := srcParts[0]
+	srcTmpl := srcParts[1]
+
+	cfgIface, err := configLoader.Load(cli.Configfile, true)
+	if err != nil {
+		return err
+	}
+	cfg := cfgIface.(*bindown.ConfigFile)
+	if cfg.Templates == nil {
+		cfg.Templates = map[string]*bindown.Dependency{}
+	}
+	err = cfg.CopyTemplateFromSource(src, srcTmpl, c.Template)
+	if err != nil {
+		return err
+	}
+	return cfg.Write(cli.JSONConfig)
 }
 
 type templateListCmd struct {
