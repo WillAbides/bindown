@@ -54,6 +54,13 @@
           ],
           "type": "object"
         },
+        "systems": {
+          "additionalItems": {
+            "type": "string"
+          },
+          "description": "List of systems this dependency is known to support",
+          "type": "array"
+        },
         "template": {
           "description": "A template for this dependency. Any unset fields in this dependency will be set by values from the template. Overrides in the dependency and its template are concatinated with the template's overrides coming first. Vars and substitutions are both combined with the dependency's value taking precedence.\n",
           "type": "string"
