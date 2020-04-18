@@ -1,4 +1,5 @@
 
 * [Home](/)
-* [Installation](Installation.md)
+* [Installation](installation.md)
 * [Configuration](configuration.md)
+* [Command line usage](cli-usage.md)

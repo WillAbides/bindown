@@ -93,6 +93,41 @@ templates:
     - linux/amd64
     - windows/386
     - windows/amd64
+  jq:
+    url: https://github.com/stedolan/jq/releases/download/jq-{{.version}}/jq-{{.os}}{{.arch}}{{.extension}}
+    archive_path: jq-{{.os}}{{.arch}}{{.extension}}
+    bin: jq
+    vars:
+      extension: ""
+    required_vars:
+    - version
+    overrides:
+    - matcher:
+        os:
+        - darwin
+        arch:
+        - amd64
+      dependency:
+        url: https://github.com/stedolan/jq/releases/download/jq-1.6/jq-osx-amd64
+        archive_path: jq-osx-amd64
+    - matcher:
+        os:
+        - windows
+      dependency:
+        vars:
+          extension: .exe
+    substitutions:
+      arch:
+        "386": "32"
+        amd64: "64"
+      os:
+        windows: win
+    systems:
+    - linux/386
+    - linux/amd64
+    - darwin/amd64
+    - windows/386
+    - windows/amd64
   mockgen:
     url: https://github.com/golang/mock/releases/download/v{{.version}}/mock_{{.version}}_{{.os}}_{{.arch}}.tar.gz
     archive_path: mock_{{.version}}_{{.os}}_{{.arch}}/mockgen{{.archivepathsuffix}}

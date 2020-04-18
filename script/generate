@@ -26,3 +26,4 @@ make -s bin/yq bin/go-bindata bin/mockgen
 
 yq read --prettyPrint -j bindown.schema.yml > bindown.schema.json
 go generate ./...
+script/bindown --help > ./docs/clihelp.txt

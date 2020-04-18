@@ -57,6 +57,7 @@ var cli struct {
 	SupportedSystem supportedSystemCmd `kong:"cmd,help='manage supported systems'"`
 	AddChecksums    addChecksumsCmd    `kong:"cmd,help=${checksums_help}"`
 	Validate        validateCmd        `kong:"cmd,help=${config_validate_help}"`
+	Init            initCmd            `kong:"cmd,help='create an empty config file'"`
 }
 
 type defaultConfigLoader struct{}
@@ -94,6 +95,27 @@ func Run(args []string, kongOptions ...kong.Option) {
 	parser.FatalIfErrorf(err)
 	err = kongCtx.Run()
 	parser.FatalIfErrorf(err)
+}
+
+type initCmd struct{}
+
+func (c *initCmd) Run() error {
+	_, err := os.Stat(cli.Configfile)
+	if !os.IsNotExist(err) {
+		return fmt.Errorf("%s already exists", cli.Configfile)
+	}
+	file, err := os.OpenFile(cli.Configfile, os.O_RDWR|os.O_CREATE, 0666) //nolint:gosec
+	if err != nil {
+		return err
+	}
+	err = file.Close()
+	if err != nil {
+		return err
+	}
+	cfg := &bindown.ConfigFile{
+		Filename: file.Name(),
+	}
+	return cfg.Write(cli.JSONConfig)
 }
 
 type addChecksumsCmd struct {
