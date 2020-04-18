@@ -11,7 +11,7 @@ import (
 
 //ConfigFile is a file containing config
 type ConfigFile struct {
-	filename string
+	Filename string
 	Config
 }
 
@@ -26,7 +26,7 @@ func LoadConfigFile(filename string, noDefaultDirs bool) (*ConfigFile, error) {
 		return nil, err
 	}
 	result := ConfigFile{
-		filename: filename,
+		Filename: filename,
 		Config:   *cfg,
 	}
 	configDir := filepath.Dir(filename)
@@ -46,7 +46,7 @@ func LoadConfigFile(filename string, noDefaultDirs bool) (*ConfigFile, error) {
 func (c *ConfigFile) Write(outputJSON bool) error {
 	var data []byte
 	var err error
-	if filepath.Ext(c.filename) == ".json" {
+	if filepath.Ext(c.Filename) == ".json" {
 		outputJSON = true
 	}
 	if len(c.Systems) > 0 {
@@ -64,5 +64,5 @@ func (c *ConfigFile) Write(outputJSON bool) error {
 		return err
 	}
 
-	return ioutil.WriteFile(c.filename, data, 0600)
+	return ioutil.WriteFile(c.Filename, data, 0600)
 }

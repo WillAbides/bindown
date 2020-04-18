@@ -413,6 +413,9 @@ func (c *Config) AddDependencyFromTemplate(templateName string, opts *AddDepende
 	if dependencyName == "" {
 		dependencyName = strings.Split(templateName, "#")[0]
 	}
+	if c.Dependencies == nil {
+		c.Dependencies = map[string]*Dependency{}
+	}
 	if c.Dependencies[dependencyName] != nil {
 		return fmt.Errorf("dependency named %q already exists", dependencyName)
 	}
