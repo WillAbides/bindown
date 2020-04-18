@@ -25,7 +25,7 @@ To verify that bindown is working:
 
 ```shell
 $ bin/bindown version
-bindown: version 3.3.1
+bindown: version 3.3.2
 ```
 
 #### Create a bindown config
@@ -139,5 +139,22 @@ url_checksums:
 ```
 </p></details>
 
-#### Install jq
+#### Install a dependency
+
+Now that we have it configured, we can install "jq" to `bin/jq` by running
+
+```shell
+$ bin/bindown install jq
+installed jq to ./bin/jq
+```
+
+Let's make sure we have the right version
+
+```shell
+$ bin/jq --version
+jq-1.6
+```
+
+In addition to jq itself, bindown also created a `.bindown` directory that serves as a cache for future installs. You
+ will probably want to add `.bindown/` to your project's `.gitignore` (`bin/` too if it isn't already).
 
