@@ -1,6 +1,7 @@
 package bindown
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -201,13 +202,69 @@ func TestConfig_addChecksums(t *testing.T) {
 	}, cfg.URLChecksums)
 }
 
+func TestConfig_BuildDependency(t *testing.T) {
+	cfg := &Config{
+		Dependencies: map[string]*Dependency{
+			"dut": {
+				URL: stringPtr("https://{{.os}}"),
+				Overrides: []DependencyOverride{
+					{
+						OverrideMatcher: OverrideMatcher{
+							Arch: []string{"testArch"},
+							OS:   []string{"testOS"},
+						},
+						Dependency: Dependency{
+							URL: stringPtr("https://{{.os}}-{{.var1}}-{{.var2}}"),
+							Vars: map[string]string{
+								"var1": "overrideV1",
+								"var2": "overrideV2",
+							},
+						},
+					},
+				},
+				Vars: map[string]string{
+					"var1": "v1",
+					"var2": "v2",
+				},
+			},
+		},
+	}
+	dep, err := cfg.BuildDependency("dut", newSystemInfo("testOS", "testArch"))
+	require.NoError(t, err)
+	require.Equal(t, "https://testOS-overrideV1-overrideV2", *dep.URL)
+	require.Equal(t, "https://{{.os}}-{{.var1}}-{{.var2}}", *cfg.Dependencies["dut"].Overrides[0].Dependency.URL)
+}
+
 func TestConfig_addChecksum(t *testing.T) {
-	ts := testutil.ServeFile(t, testutil.DownloadablesPath("foo.tar.gz"), "/foo/foo.tar.gz", "")
-	dlURL := ts.URL + "/foo/foo.tar.gz"
+	ts1 := testutil.ServeFile(t, testutil.DownloadablesPath("foo.tar.gz"), "/testOS2-v1-v2", "")
+	ts2 := testutil.ServeFile(t, testutil.DownloadablesPath("foo.tar.gz"), "/testOS-overrideV1-overrideV2", "")
+	dlURL := ts1.URL + "/{{.os}}-{{.var1}}-{{.var2}}"
+	dlURL2 := ts2.URL + "/{{.os}}-{{.var1}}-{{.var2}}"
+	overrideCheckedURL := ts2.URL + "/testOS-overrideV1-overrideV2"
+	checkedURL := ts1.URL + "/testOS2-v1-v2"
 	cfg := &Config{
 		Dependencies: map[string]*Dependency{
 			"dut": {
 				URL: stringPtr(dlURL),
+				Overrides: []DependencyOverride{
+					{
+						OverrideMatcher: OverrideMatcher{
+							Arch: []string{"testArch"},
+							OS:   []string{"testOS"},
+						},
+						Dependency: Dependency{
+							URL: stringPtr(dlURL2),
+							Vars: map[string]string{
+								"var1": "overrideV1",
+								"var2": "overrideV2",
+							},
+						},
+					},
+				},
+				Vars: map[string]string{
+					"var1": "v1",
+					"var2": "v2",
+				},
 			},
 		},
 	}
@@ -215,13 +272,39 @@ func TestConfig_addChecksum(t *testing.T) {
 		Dependencies: map[string]*Dependency{
 			"dut": {
 				URL: stringPtr(dlURL),
+				Overrides: []DependencyOverride{
+					{
+						OverrideMatcher: OverrideMatcher{
+							Arch: []string{"testArch"},
+							OS:   []string{"testOS"},
+						},
+						Dependency: Dependency{
+							URL: stringPtr(dlURL2),
+							Vars: map[string]string{
+								"var1": "overrideV1",
+								"var2": "overrideV2",
+							},
+						},
+					},
+				},
+				Vars: map[string]string{
+					"var1": "v1",
+					"var2": "v2",
+				},
 			},
 		},
 		URLChecksums: map[string]string{
-			dlURL: testutil.FooChecksum,
+			checkedURL:         testutil.FooChecksum,
+			overrideCheckedURL: testutil.FooChecksum,
 		},
 	}
 	err := cfg.addChecksum("dut", newSystemInfo("testOS", "testArch"))
 	require.NoError(t, err)
+	err = cfg.addChecksum("dut", newSystemInfo("testOS2", "foo"))
+	require.NoError(t, err)
+
+	b, err := yaml.Marshal(cfg)
+	require.NoError(t, err)
+	fmt.Println(string(b))
 	require.Equal(t, want, cfg)
 }
