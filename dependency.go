@@ -112,19 +112,24 @@ func (d *Dependency) clone() *Dependency {
 		dep.Vars = util.CopyStringMap(d.Vars)
 	}
 	if d.URL != nil {
-		d.URL = stringPtr(*d.URL)
+		val := *d.URL
+		d.URL = &val
 	}
 	if d.ArchivePath != nil {
-		d.ArchivePath = stringPtr(*d.ArchivePath)
+		val := *d.ArchivePath
+		d.ArchivePath = &val
 	}
 	if d.Template != nil {
-		d.Template = stringPtr(*d.Template)
+		val := *d.Template
+		d.Template = &val
 	}
 	if d.BinName != nil {
-		d.BinName = stringPtr(*d.BinName)
+		val := *d.BinName
+		d.BinName = &val
 	}
 	if d.Link != nil {
-		d.Link = boolPtr(*d.Link)
+		val := *d.Link
+		d.Link = &val
 	}
 	if d.Overrides != nil {
 		dep.Overrides = make([]DependencyOverride, len(d.Overrides))
@@ -141,24 +146,26 @@ func (d *Dependency) interpolateVars(system SystemInfo) error {
 	interpolate := func(tmpl string) (string, error) {
 		return util.ExecuteTemplate(tmpl, system.OS, system.Arch, d.Vars)
 	}
-	var err error
 	if d.URL != nil {
-		*d.URL, err = interpolate(*d.URL)
+		val, err := interpolate(*d.URL)
 		if err != nil {
 			return err
 		}
+		d.URL = &val
 	}
 	if d.ArchivePath != nil {
-		*d.ArchivePath, err = interpolate(*d.ArchivePath)
+		val, err := interpolate(*d.ArchivePath)
 		if err != nil {
 			return err
 		}
+		d.ArchivePath = &val
 	}
 	if d.BinName != nil {
-		*d.BinName, err = interpolate(*d.BinName)
+		val, err := interpolate(*d.BinName)
 		if err != nil {
 			return err
 		}
+		d.BinName = &val
 	}
 	return nil
 }
