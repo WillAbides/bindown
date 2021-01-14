@@ -14,6 +14,22 @@ dependencies:
     archive_path: '{{.os}}-{{.arch}}'
     vars:
       version: 0.0.13
+  gofumpt:
+    url: https://github.com/mvdan/gofumpt/releases/download/v{{.version}}/gofumpt_v{{.version}}_{{.os}}_{{.arch}}{{.suffix}}
+    archive_path: gofumpt_v{{.version}}_{{.os}}_{{.arch}}{{.suffix}}
+    bin: gofumpt{{.suffix}}
+    vars:
+      suffix: ""
+      version: 0.1.0
+    required_vars:
+    - version
+    overrides:
+    - matcher:
+        os:
+        - windows
+      dependency:
+        vars:
+          suffix: .exe
   golangci-lint:
     template: local-origin#golangci-lint
     vars:
@@ -236,6 +252,9 @@ url_checksums:
   https://github.com/mikefarah/yq/releases/download/3.2.1/yq_darwin_amd64: 116f74a384d0b4fa31a58dd01cfcdeffa6fcd21c066de223cbb0ebc042a8bc28
   https://github.com/mikefarah/yq/releases/download/3.2.1/yq_linux_amd64: 11a830ffb72aad0eaa7640ef69637068f36469be4f68a93da822fbe454e998f8
   https://github.com/mikefarah/yq/releases/download/3.2.1/yq_windows_amd64.exe: 9b3466ff4e37c8a93d7530e3dc7a047314d0897dbfbffb50b82235695e231fff
+  https://github.com/mvdan/gofumpt/releases/download/v0.1.0/gofumpt_v0.1.0_darwin_amd64: dde8e63fb3c1e2e905a3cf09d5dd320974fe880743a3b9ece910b2c8ff7931f9
+  https://github.com/mvdan/gofumpt/releases/download/v0.1.0/gofumpt_v0.1.0_linux_amd64: 1f97b215686198ae0a020822f7f977a7ba12dda6a9eea84bbe5ee706531b4e8a
+  https://github.com/mvdan/gofumpt/releases/download/v0.1.0/gofumpt_v0.1.0_windows_amd64.exe: 1f98c788cab2846979ff833d6719a9c7abae62da95e73c9da557102fcd9381f5
   https://github.com/myitcv/gobin/releases/download/v0.0.13/darwin-amd64: 4e6b22d1e85634178455059306f30b24a960cbc619abc63d3e2f0e91bc0194b5
   https://github.com/myitcv/gobin/releases/download/v0.0.13/linux-amd64: 07725808fe920a10f7821a4d6f39558c4732279b41e81970e8087e0c3e6d54ba
   https://github.com/myitcv/gobin/releases/download/v0.0.13/windows-amd64: 70d3688c652bba96f377eb5d3a8068a07274024876c6e3b8d3785f0a63348905
