@@ -17,17 +17,17 @@ import (
 // FooChecksum is the checksum of downloadablesPath("foo.tar.gz")
 const FooChecksum = "f7fa712caea646575c920af17de3462fe9d08d7fe062b9a17010117d5fa4ed88"
 
-//MustWriteFile write a file or fails
+// MustWriteFile write a file or fails
 func MustWriteFile(t *testing.T, filename string, content []byte) {
 	t.Helper()
-	err := ioutil.WriteFile(filename, content, 0600)
+	err := ioutil.WriteFile(filename, content, 0o600)
 	require.NoError(t, err)
 }
 
-//MustReadFile reads a file or fails
+// MustReadFile reads a file or fails
 func MustReadFile(t *testing.T, filename string) []byte {
 	t.Helper()
-	got, err := ioutil.ReadFile(filename) //nolint:gosec
+	got, err := ioutil.ReadFile(filename)
 	require.NoError(t, err)
 	return got
 }
@@ -38,7 +38,7 @@ func ProjectRoot() string {
 	return filepath.Join(file, "..", "..", "..")
 }
 
-//DownloadablesPath path to testdata/downloadables
+// DownloadablesPath path to testdata/downloadables
 func DownloadablesPath(path string) string {
 	return filepath.Join(ProjectPath("testdata", "downloadables"), filepath.FromSlash(path))
 }
@@ -52,7 +52,7 @@ func ProjectPath(path ...string) string {
 func TmpDir(t *testing.T) string {
 	t.Helper()
 	projectTmp := ProjectPath("tmp")
-	err := os.MkdirAll(projectTmp, 0750)
+	err := os.MkdirAll(projectTmp, 0o750)
 	require.NoError(t, err)
 	tmpdir, err := ioutil.TempDir(projectTmp, "")
 	require.NoError(t, err)
@@ -62,7 +62,7 @@ func TmpDir(t *testing.T) string {
 	return tmpdir
 }
 
-//ChDir changes the working directory for the duration of the test
+// ChDir changes the working directory for the duration of the test
 func ChDir(t *testing.T, dir string) {
 	t.Helper()
 	wd, err := os.Getwd()
@@ -74,7 +74,7 @@ func ChDir(t *testing.T, dir string) {
 	})
 }
 
-//ServeFile starts an http server
+// ServeFile starts an http server
 func ServeFile(t *testing.T, file, path, query string) *httptest.Server {
 	t.Helper()
 	file = filepath.FromSlash(file)
@@ -91,7 +91,7 @@ func ServeFile(t *testing.T, file, path, query string) *httptest.Server {
 	return ts
 }
 
-//AssertEqualFiles asserts two files are equal
+// AssertEqualFiles asserts two files are equal
 func AssertEqualFiles(t testing.TB, want, actual string) bool {
 	t.Helper()
 	cmp := equalfile.New(nil, equalfile.Options{})

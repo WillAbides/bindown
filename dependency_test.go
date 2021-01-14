@@ -25,7 +25,7 @@ func Test_extract(t *testing.T) {
 	dir := testutil.TmpDir(t)
 	downloadDir := filepath.Join(dir, "download")
 	extractDir := filepath.Join(dir, "extract")
-	require.NoError(t, os.MkdirAll(downloadDir, 0750))
+	require.NoError(t, os.MkdirAll(downloadDir, 0o750))
 	archivePath := filepath.Join(downloadDir, "foo.tar.gz")
 	err := util.CopyFile(testutil.DownloadablesPath("foo.tar.gz"), archivePath, nil)
 	require.NoError(t, err)
@@ -37,7 +37,7 @@ func Test_copyBin(t *testing.T) {
 	dir := testutil.TmpDir(t)
 	extractDir := filepath.Join(dir, ".bindown", "extracts", "deadbeef")
 	binName := "bleep"
-	require.NoError(t, os.MkdirAll(extractDir, 0750))
+	require.NoError(t, os.MkdirAll(extractDir, 0o750))
 	err := util.CopyFile(testutil.DownloadablesPath("rawfile/foo"), filepath.Join(extractDir, binName), nil)
 	require.NoError(t, err)
 	target := filepath.Join(dir, "bin", "foo")
@@ -50,7 +50,7 @@ func Test_linkBin(t *testing.T) {
 	dir := testutil.TmpDir(t)
 	extractDir := filepath.Join(dir, ".bindown", "extracts", "deadbeef")
 	binName := "bleep"
-	require.NoError(t, os.MkdirAll(extractDir, 0750))
+	require.NoError(t, os.MkdirAll(extractDir, 0o750))
 	err := util.CopyFile(testutil.DownloadablesPath("rawfile/foo"), filepath.Join(extractDir, binName), nil)
 	require.NoError(t, err)
 	target := filepath.Join(dir, "bin", "foo")

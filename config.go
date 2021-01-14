@@ -18,7 +18,7 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-//Config is our main config
+// Config is our main config
 type Config struct {
 	Cache           string                 `json:"cache,omitempty" yaml:"cache,omitempty"`
 	InstallDir      string                 `json:"install_dir,omitempty" yaml:"install_dir,omitempty"`
@@ -29,7 +29,7 @@ type Config struct {
 	URLChecksums    map[string]string      `json:"url_checksums,omitempty" yaml:"url_checksums,omitempty"`
 }
 
-//UnsetDependencyVars removes a dependency var. Noop if the var doesn't exist.
+// UnsetDependencyVars removes a dependency var. Noop if the var doesn't exist.
 func (c *Config) UnsetDependencyVars(depName string, vars []string) error {
 	dep := c.Dependencies[depName]
 	if dep == nil {
@@ -44,7 +44,7 @@ func (c *Config) UnsetDependencyVars(depName string, vars []string) error {
 	return nil
 }
 
-//SetDependencyVars sets the value of a dependency's var. Adds or Updates the var.
+// SetDependencyVars sets the value of a dependency's var. Adds or Updates the var.
 func (c *Config) SetDependencyVars(depName string, vars map[string]string) error {
 	dep := c.Dependencies[depName]
 	if dep == nil {
@@ -59,7 +59,7 @@ func (c *Config) SetDependencyVars(depName string, vars map[string]string) error
 	return nil
 }
 
-//UnsetTemplateVars removes a template var. Noop if the var doesn't exist.
+// UnsetTemplateVars removes a template var. Noop if the var doesn't exist.
 func (c *Config) UnsetTemplateVars(tmplName string, vars []string) error {
 	tmpl := c.Templates[tmplName]
 	if tmpl == nil {
@@ -74,7 +74,7 @@ func (c *Config) UnsetTemplateVars(tmplName string, vars []string) error {
 	return nil
 }
 
-//SetTemplateVars sets the value of a template's var. Adds or Updates the var.
+// SetTemplateVars sets the value of a template's var. Adds or Updates the var.
 func (c *Config) SetTemplateVars(tmplName string, vars map[string]string) error {
 	tmpl := c.Templates[tmplName]
 	if tmpl == nil {
@@ -89,7 +89,7 @@ func (c *Config) SetTemplateVars(tmplName string, vars map[string]string) error 
 	return nil
 }
 
-//BinName returns the bin name for a downloader on a given system
+// BinName returns the bin name for a downloader on a given system
 func (c *Config) BinName(depName string, system SystemInfo) (string, error) {
 	dep, err := c.BuildDependency(depName, system)
 	if err != nil {
@@ -101,7 +101,7 @@ func (c *Config) BinName(depName string, system SystemInfo) (string, error) {
 	return depName, nil
 }
 
-//MissingDependencyVars returns a list of vars that are required but undefined
+// MissingDependencyVars returns a list of vars that are required but undefined
 func (c *Config) MissingDependencyVars(depName string) ([]string, error) {
 	dep := c.Dependencies[depName]
 	if dep == nil {
@@ -124,7 +124,7 @@ func (c *Config) MissingDependencyVars(depName string) ([]string, error) {
 	return result, nil
 }
 
-//BuildDependency returns a dependency with templates and overrides applied and variables interpolated for the given system.
+// BuildDependency returns a dependency with templates and overrides applied and variables interpolated for the given system.
 func (c *Config) BuildDependency(depName string, info SystemInfo) (*Dependency, error) {
 	dep := c.Dependencies[depName]
 	if dep == nil {
@@ -164,11 +164,11 @@ func (c *Config) allDependencyNames() []string {
 	return result
 }
 
-//ConfigAddChecksumsOptions contains options for Config.AddChecksums
+// ConfigAddChecksumsOptions contains options for Config.AddChecksums
 type ConfigAddChecksumsOptions struct {
 
 	// Only add checksums for these dependencies. When Dependencies is empty, AddChecksums adds checksums for all
-	//configured dependencies.
+	// configured dependencies.
 	Dependencies []string
 
 	// Only add checksums for these system targets. When Systems is empty, AddChecksums adds checksums for all known
@@ -176,7 +176,7 @@ type ConfigAddChecksumsOptions struct {
 	Systems []SystemInfo
 }
 
-//DefaultSystems returns c.Systems if it isn't empty. Otherwise returns the runtime system.
+// DefaultSystems returns c.Systems if it isn't empty. Otherwise returns the runtime system.
 func (c *Config) DefaultSystems() []SystemInfo {
 	if len(c.Systems) > 0 {
 		return c.Systems
@@ -189,8 +189,8 @@ func (c *Config) DefaultSystems() []SystemInfo {
 	}
 }
 
-//AddChecksums downloads, calculates checksums and adds them to the config's URLChecksums. AddChecksums skips urls that
-//already exist in URLChecksums.
+// AddChecksums downloads, calculates checksums and adds them to the config's URLChecksums. AddChecksums skips urls that
+// already exist in URLChecksums.
 func (c *Config) AddChecksums(dependencies []string, systems []SystemInfo) error {
 	if len(dependencies) == 0 && c.Dependencies != nil {
 		dependencies = make([]string, 0, len(c.Dependencies))
@@ -244,18 +244,18 @@ func (c *Config) addChecksum(dependencyName string, sysInfo SystemInfo) error {
 	return nil
 }
 
-//ConfigValidateOptions contains options for Config.Validate
+// ConfigValidateOptions contains options for Config.Validate
 type ConfigValidateOptions struct {
 
 	// Only validates these dependencies. When Dependencies is empty, Validate validates all configured dependencies.
 	Dependencies []string
 
 	// Only validates system targets. When Systems is empty, AddChecksums validates all known builds configured for each
-	//dependency.
+	// dependency.
 	Systems []SystemInfo
 }
 
-//Validate installs the downloader to a temporary directory and returns an error if it was unsuccessful.
+// Validate installs the downloader to a temporary directory and returns an error if it was unsuccessful.
 func (c *Config) Validate(dependencies []string, systems []SystemInfo) error {
 	runtime.Version()
 	if len(dependencies) == 0 {
@@ -265,55 +265,64 @@ func (c *Config) Validate(dependencies []string, systems []SystemInfo) error {
 	if err != nil {
 		return err
 	}
-	defer func() {
-		_ = os.RemoveAll(tmpCacheDir) //nolint:errcheck
-	}()
 	tmpBinDir, err := ioutil.TempDir("", "bindown-bin")
 	if err != nil {
 		return err
 	}
-	defer func() {
-		_ = os.RemoveAll(tmpBinDir) //nolint:errcheck
-	}()
 	c.InstallDir = tmpBinDir
 	c.Cache = tmpCacheDir
 	for _, depName := range dependencies {
-		depSystems := systems
-		if len(depSystems) == 0 {
-			depSystems, err = c.DependencySystems(depName)
-			if err != nil {
-				return err
-			}
+		err = c.validateDep(systems, depName)
+		if err != nil {
+			break
 		}
-		for _, system := range depSystems {
-			_, err = c.InstallDependency(depName, system, &ConfigInstallDependencyOpts{
-				Force: true,
-			})
-			if err != nil {
-				return err
-			}
+	}
+	for _, d := range []string{tmpBinDir, tmpCacheDir} {
+		cleanupErr := os.RemoveAll(d)
+		if err == nil {
+			err = cleanupErr
+		}
+	}
+	return err
+}
+
+func (c *Config) validateDep(systems []SystemInfo, depName string) error {
+	var err error
+	depSystems := systems
+	if len(depSystems) == 0 {
+		depSystems, err = c.DependencySystems(depName)
+		if err != nil {
+			return err
+		}
+	}
+	for _, system := range depSystems {
+		_, err = c.InstallDependency(depName, system, &ConfigInstallDependencyOpts{
+			Force: true,
+		})
+		if err != nil {
+			return err
 		}
 	}
 	return nil
 }
 
-//ConfigDownloadDependencyOpts options for Config.DownloadDependency
+// ConfigDownloadDependencyOpts options for Config.DownloadDependency
 type ConfigDownloadDependencyOpts struct {
 	TargetFile string
 	Force      bool
 }
 
-//extractsCacheDir returns the cache directory for an extraction based on the download's checksum and dependency name
+// extractsCacheDir returns the cache directory for an extraction based on the download's checksum and dependency name
 func (c *Config) extractsCacheDir(dependencyName, checksum string) string {
 	return filepath.Join(c.Cache, "extracts", util.MustHexHash(fnv.New64a(), []byte(checksum), []byte(dependencyName)))
 }
 
-//downloadCacheDir returns the cache directory for a file based on its checksum
+// downloadCacheDir returns the cache directory for a file based on its checksum
 func (c *Config) downloadCacheDir(checksum string) string {
 	return filepath.Join(c.Cache, "downloads", util.MustHexHash(fnv.New64a(), []byte(checksum)))
 }
 
-//DownloadDependency downloads a dependency
+// DownloadDependency downloads a dependency
 func (c *Config) DownloadDependency(dependencyName string, sysInfo SystemInfo, opts *ConfigDownloadDependencyOpts) (string, error) {
 	if opts == nil {
 		opts = &ConfigDownloadDependencyOpts{}
@@ -366,13 +375,13 @@ func (c *Config) dependencyChecksum(dependencyName string, sysInfo SystemInfo) (
 	return checksum, nil
 }
 
-//ConfigExtractDependencyOpts options for Config.ExtractDependency
+// ConfigExtractDependencyOpts options for Config.ExtractDependency
 type ConfigExtractDependencyOpts struct {
 	TargetDirectory string
 	Force           bool
 }
 
-//ExtractDependency downloads and extracts a dependency
+// ExtractDependency downloads and extracts a dependency
 func (c *Config) ExtractDependency(dependencyName string, sysInfo SystemInfo, opts *ConfigExtractDependencyOpts) (string, error) {
 	if opts == nil {
 		opts = &ConfigExtractDependencyOpts{}
@@ -412,7 +421,7 @@ func (c *Config) ExtractDependency(dependencyName string, sysInfo SystemInfo, op
 	return targetDir, nil
 }
 
-//ConfigInstallDependencyOpts provides options for Config.InstallDependency
+// ConfigInstallDependencyOpts provides options for Config.InstallDependency
 type ConfigInstallDependencyOpts struct {
 	// TargetPath is the path where the executable should end up
 	TargetPath string
@@ -420,7 +429,7 @@ type ConfigInstallDependencyOpts struct {
 	Force bool
 }
 
-//InstallDependency downloads, extracts and installs a dependency
+// InstallDependency downloads, extracts and installs a dependency
 func (c *Config) InstallDependency(dependencyName string, sysInfo SystemInfo, opts *ConfigInstallDependencyOpts) (string, error) {
 	if opts == nil {
 		opts = &ConfigInstallDependencyOpts{}
@@ -457,14 +466,14 @@ func (c *Config) InstallDependency(dependencyName string, sysInfo SystemInfo, op
 	return targetPath, copyBin(targetPath, extractDir, strFromPtr(dep.ArchivePath), binName)
 }
 
-//AddDependencyFromTemplateOpts options for AddDependencyFromTemplate
+// AddDependencyFromTemplateOpts options for AddDependencyFromTemplate
 type AddDependencyFromTemplateOpts struct {
 	TemplateSource string
 	DependencyName string
 	Vars           map[string]string
 }
 
-//AddDependencyFromTemplate adds a dependency to the config
+// AddDependencyFromTemplate adds a dependency to the config
 func (c *Config) AddDependencyFromTemplate(templateName string, opts *AddDependencyFromTemplateOpts) error {
 	if opts == nil {
 		opts = new(AddDependencyFromTemplateOpts)
@@ -513,7 +522,7 @@ func (c *Config) addOrGetTemplate(name, src string) (string, error) {
 	return destName, nil
 }
 
-//CopyTemplateFromSource copies a template from source
+// CopyTemplateFromSource copies a template from source
 func (c *Config) CopyTemplateFromSource(src, srcTemplate, destName string) error {
 	if c.TemplateSources == nil {
 		return fmt.Errorf("no template source named %q", src)
@@ -525,7 +534,7 @@ func (c *Config) CopyTemplateFromSource(src, srcTemplate, destName string) error
 	return c.addTemplateFromSource(tmplSrc, srcTemplate, destName)
 }
 
-//addTemplateFromSource copies a template from another config file
+// addTemplateFromSource copies a template from another config file
 func (c *Config) addTemplateFromSource(src, srcTemplate, destName string) error {
 	srcCfg, err := configFromURL(src)
 	if err != nil {
@@ -551,7 +560,7 @@ func (c *Config) templatesList() []string {
 	return templates
 }
 
-//ListTemplates lists templates available in this config or one of its template sources.
+// ListTemplates lists templates available in this config or one of its template sources.
 func (c *Config) ListTemplates(templateSource string) ([]string, error) {
 	if templateSource == "" {
 		return c.templatesList(), nil
@@ -570,7 +579,7 @@ func (c *Config) templateSourceConfig(name string) (*Config, error) {
 	return configFromURL(c.TemplateSources[name])
 }
 
-//DependencySystems returns the supported systems of either the config or the dependency if one is not empty
+// DependencySystems returns the supported systems of either the config or the dependency if one is not empty
 // if both are not empty, it returns the intersection of the lists
 func (c *Config) DependencySystems(depName string) ([]SystemInfo, error) {
 	if c.Dependencies == nil || c.Dependencies[depName] == nil {
@@ -623,7 +632,7 @@ func configFromURL(cfgSrc string) (*Config, error) {
 }
 
 func configFromHTTP(src string) (*Config, error) {
-	resp, err := http.Get(src) //nolint:gosec
+	resp, err := http.Get(src)
 	if err != nil {
 		return nil, err
 	}

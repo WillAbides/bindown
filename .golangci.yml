@@ -1,6 +1,10 @@
 # configure golangci-lint
 # see https://github.com/golangci/golangci-lint/blob/master/.golangci.example.yml
 issues:
+  exclude:
+    - "G304: Potential file inclusion via variable"
+    - "G107: Potential HTTP request made with variable url"
+    - "G302: Expect file permissions to be 0600 or less"
   exclude-use-default: false
   exclude-rules:
     - path: _test\.go
@@ -18,7 +22,12 @@ linters:
     - goconst
     - goimports
     - gocritic
+    - gofumpt
 linters-settings:
+  gocritic:
+    enabled-tags:
+      - style
+      - diagnostic
   errcheck:
     # report about assignment of errors to blank identifier: `num, _ := strconv.Atoi(numStr)`;
     # default is false: such cases aren't reported by default.
@@ -28,7 +37,7 @@ linters-settings:
     check-shadowing: true
   gocyclo:
     # minimal code complexity to report, 30 by default
-    min-complexity: 15
+    min-complexity: 20
   maligned:
     # print struct with more effective memory layout or not, false by default
     suggest-new: true

@@ -82,7 +82,7 @@ func newParser(kongOptions ...kong.Option) *kong.Kong {
 	return kong.Must(&cli, kongOptions...)
 }
 
-//Run let's light this candle
+// Run let's light this candle
 func Run(args []string, kongOptions ...kong.Option) {
 	kongOptions = append(kongOptions,
 		kong.HelpOptions{
@@ -104,7 +104,7 @@ func (c *initCmd) Run() error {
 	if !os.IsNotExist(err) {
 		return fmt.Errorf("%s already exists", cli.Configfile)
 	}
-	file, err := os.OpenFile(cli.Configfile, os.O_RDWR|os.O_CREATE, 0666) //nolint:gosec
+	file, err := os.OpenFile(cli.Configfile, os.O_RDWR|os.O_CREATE, 0o666)
 	if err != nil {
 		return err
 	}

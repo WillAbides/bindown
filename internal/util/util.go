@@ -15,7 +15,7 @@ import (
 	"text/template"
 )
 
-//CopyFile copies file from src to dst
+// CopyFile copies file from src to dst
 func CopyFile(src, dst string, closeCloser func(io.Closer)) error {
 	if closeCloser == nil {
 		closeCloser = func(_ io.Closer) {}
@@ -28,7 +28,7 @@ func CopyFile(src, dst string, closeCloser func(io.Closer)) error {
 		return fmt.Errorf("not a regular file")
 	}
 
-	rdr, err := os.Open(src) //nolint:gosec
+	rdr, err := os.Open(src)
 	if err != nil {
 		return err
 	}
@@ -44,7 +44,7 @@ func CopyFile(src, dst string, closeCloser func(io.Closer)) error {
 	return err
 }
 
-//CopyStringMap returns a copy of mp
+// CopyStringMap returns a copy of mp
 func CopyStringMap(mp map[string]string) map[string]string {
 	result := make(map[string]string, len(mp))
 	for k, v := range mp {
@@ -53,7 +53,7 @@ func CopyStringMap(mp map[string]string) map[string]string {
 	return result
 }
 
-//setStringMapDefault sets map[key] to val unless it is already set
+// setStringMapDefault sets map[key] to val unless it is already set
 func setStringMapDefault(mp map[string]string, key, val string) {
 	_, ok := mp[key]
 	if ok {
@@ -62,10 +62,10 @@ func setStringMapDefault(mp map[string]string, key, val string) {
 	mp[key] = val
 }
 
-//ExecuteTemplate executes a template
-func ExecuteTemplate(tmplString string, os, arch string, vars map[string]string) (string, error) {
+// ExecuteTemplate executes a template
+func ExecuteTemplate(tmplString, goos, arch string, vars map[string]string) (string, error) {
 	vars = CopyStringMap(vars)
-	setStringMapDefault(vars, "os", os)
+	setStringMapDefault(vars, "os", goos)
 	setStringMapDefault(vars, "arch", arch)
 	tmpl, err := template.New("").Option("missingkey=error").Parse(tmplString)
 	if err != nil {
@@ -80,7 +80,7 @@ func ExecuteTemplate(tmplString string, os, arch string, vars map[string]string)
 	return buf.String(), nil
 }
 
-//DirectoryChecksum returns a hash of directory contents.
+// DirectoryChecksum returns a hash of directory contents.
 func DirectoryChecksum(inputDir string) (string, error) {
 	hasher := fnv.New64a()
 	err := filepath.Walk(inputDir, func(path string, info os.FileInfo, err error) error {
@@ -113,15 +113,17 @@ func DirectoryChecksum(inputDir string) (string, error) {
 			return nil
 		}
 
-		fi, err := os.Open(path) //nolint:gosec
+		fi, err := os.Open(path)
 		if err != nil {
 			return err
 		}
-		defer func() {
-			_ = fi.Close() //nolint:errcheck
-		}()
+
 		_, err = io.Copy(hasher, fi)
-		return err
+		if err != nil {
+			return err
+		}
+
+		return fi.Close()
 	})
 	if err != nil {
 		return "", err
@@ -144,14 +146,14 @@ func HexHash(hasher hash.Hash, data ...[]byte) (string, error) {
 
 // FileChecksum returns the hex checksum of a file
 func FileChecksum(filename string) (string, error) {
-	fileBytes, err := ioutil.ReadFile(filename) //nolint:gosec
+	fileBytes, err := ioutil.ReadFile(filename)
 	if err != nil {
 		return "", err
 	}
 	return HexHash(sha256.New(), fileBytes)
 }
 
-//FileExistsWithChecksum returns true if the file both exists and has a matching checksum
+// FileExistsWithChecksum returns true if the file both exists and has a matching checksum
 func FileExistsWithChecksum(filename, checksum string) (bool, error) {
 	if !FileExists(filename) {
 		return false, nil
@@ -163,7 +165,7 @@ func FileExistsWithChecksum(filename, checksum string) (bool, error) {
 	return checksum == got, nil
 }
 
-//FileExists asserts that a file exists
+// FileExists asserts that a file exists
 func FileExists(path string) bool {
 	if _, err := os.Stat(filepath.FromSlash(path)); !os.IsNotExist(err) {
 		return true

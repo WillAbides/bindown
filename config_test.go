@@ -204,7 +204,7 @@ func TestConfig_InstallDependency(t *testing.T) {
 		ts := testutil.ServeFile(t, servePath, "/foo/foo", "")
 		depURL := ts.URL + "/foo/foo"
 		binDir := filepath.Join(dir, "bin")
-		util.Must(os.MkdirAll(binDir, 0755))
+		util.Must(os.MkdirAll(binDir, 0o755))
 		cacheDir := filepath.Join(dir, ".bindown")
 		config := &Config{
 			InstallDir: binDir,
@@ -226,7 +226,7 @@ func TestConfig_InstallDependency(t *testing.T) {
 		stat, err := os.Stat(wantBin)
 		require.NoError(t, err)
 		require.False(t, stat.IsDir())
-		require.Equal(t, os.FileMode(0750), stat.Mode().Perm())
+		require.Equal(t, os.FileMode(0o750), stat.Mode().Perm())
 	})
 
 	t.Run("bin in root", func(t *testing.T) {
@@ -235,7 +235,7 @@ func TestConfig_InstallDependency(t *testing.T) {
 		ts := testutil.ServeFile(t, servePath, "/foo/fooinroot.tar.gz", "")
 		depURL := ts.URL + "/foo/fooinroot.tar.gz"
 		binDir := filepath.Join(dir, "bin")
-		util.Must(os.MkdirAll(binDir, 0755))
+		util.Must(os.MkdirAll(binDir, 0o755))
 		cacheDir := filepath.Join(dir, ".bindown")
 		config := &Config{
 			InstallDir: binDir,
@@ -257,7 +257,7 @@ func TestConfig_InstallDependency(t *testing.T) {
 		stat, err := os.Stat(wantBin)
 		require.NoError(t, err)
 		require.False(t, stat.IsDir())
-		require.Equal(t, os.FileMode(0750), stat.Mode().Perm())
+		require.Equal(t, os.FileMode(0o750), stat.Mode().Perm())
 	})
 
 	t.Run("wrong checksum", func(t *testing.T) {
@@ -266,7 +266,7 @@ func TestConfig_InstallDependency(t *testing.T) {
 		ts := testutil.ServeFile(t, servePath, "/foo/fooinroot.tar.gz", "")
 		depURL := ts.URL + "/foo/fooinroot.tar.gz"
 		binDir := filepath.Join(dir, "bin")
-		util.Must(os.MkdirAll(binDir, 0755))
+		util.Must(os.MkdirAll(binDir, 0o755))
 		cacheDir := filepath.Join(dir, ".bindown")
 		config := &Config{
 			InstallDir: binDir,

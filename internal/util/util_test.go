@@ -25,7 +25,7 @@ func TestCopyFile(t *testing.T) {
 		dir := testutil.TmpDir(t)
 		src := filepath.Join(dir, "file1")
 		dst := filepath.Join(dir, "file2")
-		err := os.Mkdir(src, 0750)
+		err := os.Mkdir(src, 0o750)
 		require.NoError(t, err)
 		err = CopyFile(src, dst, nil)
 		require.Error(t, err)

@@ -4,7 +4,7 @@ import (
 	"github.com/alecthomas/kong"
 )
 
-//Version version to display for `bindown version`
+// Version version to display for `bindown version`
 var Version = "unknown"
 
 type versionCmd struct{}
