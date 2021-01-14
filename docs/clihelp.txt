@@ -21,9 +21,11 @@ Commands:
   dependency remove              remove a dependency
   dependency info                info about a dependency
   dependency show-config         show dependency config
+  dependency update-vars         update dependency vars
   template list                  list templates
   template remove                remove a template
   template update-from-source    update a template from source
+  template update-vars           update template vars
   template-source list           list configured template sources
   template-source add            add a template source
   template-source remove         remove a template source

@@ -16,6 +16,33 @@ type dependencyCmd struct {
 	Remove     dependencyRemoveCmd     `kong:"cmd,help='remove a dependency'"`
 	Info       dependencyInfoCmd       `kong:"cmd,help='info about a dependency'"`
 	ShowConfig dependencyShowConfigCmd `kong:"cmd,help='show dependency config'"`
+	UpdateVars dependencyUpdateVarCmd  `kong:"cmd,help='update dependency vars'"`
+}
+
+type dependencyUpdateVarCmd struct {
+	Dependency string            `kong:"arg,completer=bin"`
+	Set        map[string]string `kong:"help='add or update a var'"`
+	Unset      []string          `kong:"help='remove a var'"`
+}
+
+func (c *dependencyUpdateVarCmd) Run() error {
+	config, err := configLoader.Load(cli.Configfile, true)
+	if err != nil {
+		return err
+	}
+	if len(c.Set) > 0 {
+		err = config.SetDependencyVars(c.Dependency, c.Set)
+		if err != nil {
+			return err
+		}
+	}
+	if len(c.Unset) > 0 {
+		err = config.UnsetDependencyVars(c.Dependency, c.Unset)
+		if err != nil {
+			return err
+		}
+	}
+	return config.Write(cli.JSONConfig)
 }
 
 type dependencyShowConfigCmd struct {
