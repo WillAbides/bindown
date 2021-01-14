@@ -21,7 +21,7 @@ dependencies:
   golangci-lint:
     template: local-origin#golangci-lint
     vars:
-      version: 1.23.7
+      version: 1.35.2
   goreleaser:
     template: local-origin#goreleaser
     vars:
@@ -249,6 +249,9 @@ url_checksums:
   https://github.com/golangci/golangci-lint/releases/download/v1.23.7/golangci-lint-1.23.7-darwin-amd64.tar.gz: 7536c375997cca3d2e1f063958ad0344108ce23aed6bd372b69153bdbda82d13
   https://github.com/golangci/golangci-lint/releases/download/v1.23.7/golangci-lint-1.23.7-linux-amd64.tar.gz: 34df1794a2ea8e168b3c98eed3cc0f3e13ed4cba735e4e40ef141df5c41bc086
   https://github.com/golangci/golangci-lint/releases/download/v1.23.7/golangci-lint-1.23.7-windows-amd64.zip: 8ccb76466e4cdaebfc1633c137043c0bec23173749a6bca42846c7350402dcfe
+  https://github.com/golangci/golangci-lint/releases/download/v1.35.2/golangci-lint-1.35.2-darwin-amd64.tar.gz: 1f4666e6a303ba76f5c1ab0592390946668dc83607df96c6caba9c10d58e976f
+  https://github.com/golangci/golangci-lint/releases/download/v1.35.2/golangci-lint-1.35.2-linux-amd64.tar.gz: 8f9ede0ec40beca515b619e6aede57e59b86407e110882fbe3f947f1fa10032d
+  https://github.com/golangci/golangci-lint/releases/download/v1.35.2/golangci-lint-1.35.2-windows-amd64.zip: b122f3a4b9862d174f054e9393d1ef41a6b0fe55d155a18ed93111bf4e97e372
   https://github.com/goreleaser/goreleaser/releases/download/v0.120.7/goreleaser_Darwin_x86_64.tar.gz: 2ec8bb354cca2936d0722e7da770c37e2ba6cc90de4a1cea186e20968c47b663
   https://github.com/goreleaser/goreleaser/releases/download/v0.120.7/goreleaser_Linux_x86_64.tar.gz: 771f2ad8219078b16a3e82097e9805309f6516640f0c6ab6b87f9b085a8ad743
   https://github.com/goreleaser/goreleaser/releases/download/v0.120.7/goreleaser_Windows_x86_64.zip: 0e06f50e1b2213a84b493d32a805dd6d8e8ad960ec9526edd8ecd96e2ab91743
