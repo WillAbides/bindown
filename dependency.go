@@ -141,7 +141,7 @@ func (d *Dependency) clone() *Dependency {
 	return &dep
 }
 
-//interpolateVars executes go templates in values
+// interpolateVars executes go templates in values
 func (d *Dependency) interpolateVars(system SystemInfo) error {
 	interpolate := func(tmpl string) (string, error) {
 		return util.ExecuteTemplate(tmpl, system.OS, system.Arch, d.Vars)
@@ -317,7 +317,7 @@ func linkBin(target, extractDir, archivePath, binName string) error {
 		return err
 	}
 	extractedBin := filepath.Join(extractDir, archivePath)
-	err = os.MkdirAll(filepath.Dir(target), 0750)
+	err = os.MkdirAll(filepath.Dir(target), 0o750)
 	if err != nil {
 		return err
 	}
@@ -346,7 +346,7 @@ func linkBin(target, extractDir, archivePath, binName string) error {
 	if err != nil {
 		return err
 	}
-	return os.Chmod(target, 0750) //nolint:gosec
+	return os.Chmod(target, 0o750) //nolint:gosec
 }
 
 func copyBin(target, extractDir, archivePath, binName string) error {
@@ -366,7 +366,7 @@ func copyBin(target, extractDir, archivePath, binName string) error {
 		return err
 	}
 	extractedBin := filepath.Join(extractDir, archivePath)
-	err = os.MkdirAll(filepath.Dir(target), 0750)
+	err = os.MkdirAll(filepath.Dir(target), 0o750)
 	if err != nil {
 		return err
 	}
@@ -374,7 +374,7 @@ func copyBin(target, extractDir, archivePath, binName string) error {
 	if err != nil {
 		return err
 	}
-	return os.Chmod(target, 0750) //nolint:gosec
+	return os.Chmod(target, 0o750) //nolint:gosec
 }
 
 func logCloseErr(closer io.Closer) {
@@ -384,7 +384,7 @@ func logCloseErr(closer io.Closer) {
 	}
 }
 
-//extract extracts an archive
+// extract extracts an archive
 func extract(archivePath, extractDir string) error {
 	dlName := filepath.Base(archivePath)
 	downloadDir := filepath.Dir(archivePath)
@@ -402,7 +402,7 @@ func extract(archivePath, extractDir string) error {
 	if err != nil {
 		return err
 	}
-	err = os.MkdirAll(extractDir, 0750)
+	err = os.MkdirAll(extractDir, 0o750)
 	if err != nil {
 		return err
 	}
@@ -420,10 +420,10 @@ func extract(archivePath, extractDir string) error {
 		return err
 	}
 
-	return ioutil.WriteFile(extractSumFile, []byte(extractSum), 0640)
+	return ioutil.WriteFile(extractSumFile, []byte(extractSum), 0o640)
 }
 
-//getURLChecksum returns the checksum of what is returned from this url
+// getURLChecksum returns the checksum of what is returned from this url
 func getURLChecksum(dlURL string) (string, error) {
 	downloadDir, err := ioutil.TempDir("", "bindown")
 	if err != nil {
@@ -441,7 +441,7 @@ func getURLChecksum(dlURL string) (string, error) {
 }
 
 func downloadFile(targetPath, url string) error {
-	err := os.MkdirAll(filepath.Dir(targetPath), 0750)
+	err := os.MkdirAll(filepath.Dir(targetPath), 0o750)
 	if err != nil {
 		return err
 	}

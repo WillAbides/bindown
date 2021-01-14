@@ -22,7 +22,7 @@ func Test_findConfigFileForCompletion(t *testing.T) {
 		t.Run("exists", func(t *testing.T) {
 			dir := testutil.TmpDir(t)
 			configFile := filepath.Join(dir, "bindown.yml")
-			err := ioutil.WriteFile(configFile, nil, 0600)
+			err := ioutil.WriteFile(configFile, nil, 0o600)
 			require.NoError(t, err)
 			testutil.ChDir(t, dir)
 			got := findConfigFileForCompletion([]string{})
@@ -61,7 +61,7 @@ func Test_completionConfig(t *testing.T) {
 	t.Run("empty config file", func(t *testing.T) {
 		dir := testutil.TmpDir(t)
 		configFile := filepath.Join(dir, "bindown.yml")
-		err := ioutil.WriteFile(configFile, []byte("no valid yaml here"), 0600)
+		err := ioutil.WriteFile(configFile, []byte("no valid yaml here"), 0o600)
 		require.NoError(t, err)
 		testutil.ChDir(t, dir)
 		got := completionConfig(nil)

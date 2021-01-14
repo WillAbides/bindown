@@ -15,7 +15,7 @@ import (
 	"text/template"
 )
 
-//CopyFile copies file from src to dst
+// CopyFile copies file from src to dst
 func CopyFile(src, dst string, closeCloser func(io.Closer)) error {
 	if closeCloser == nil {
 		closeCloser = func(_ io.Closer) {}
@@ -44,7 +44,7 @@ func CopyFile(src, dst string, closeCloser func(io.Closer)) error {
 	return err
 }
 
-//CopyStringMap returns a copy of mp
+// CopyStringMap returns a copy of mp
 func CopyStringMap(mp map[string]string) map[string]string {
 	result := make(map[string]string, len(mp))
 	for k, v := range mp {
@@ -53,7 +53,7 @@ func CopyStringMap(mp map[string]string) map[string]string {
 	return result
 }
 
-//setStringMapDefault sets map[key] to val unless it is already set
+// setStringMapDefault sets map[key] to val unless it is already set
 func setStringMapDefault(mp map[string]string, key, val string) {
 	_, ok := mp[key]
 	if ok {
@@ -62,7 +62,7 @@ func setStringMapDefault(mp map[string]string, key, val string) {
 	mp[key] = val
 }
 
-//ExecuteTemplate executes a template
+// ExecuteTemplate executes a template
 func ExecuteTemplate(tmplString string, os, arch string, vars map[string]string) (string, error) {
 	vars = CopyStringMap(vars)
 	setStringMapDefault(vars, "os", os)
@@ -80,7 +80,7 @@ func ExecuteTemplate(tmplString string, os, arch string, vars map[string]string)
 	return buf.String(), nil
 }
 
-//DirectoryChecksum returns a hash of directory contents.
+// DirectoryChecksum returns a hash of directory contents.
 func DirectoryChecksum(inputDir string) (string, error) {
 	hasher := fnv.New64a()
 	err := filepath.Walk(inputDir, func(path string, info os.FileInfo, err error) error {
@@ -151,7 +151,7 @@ func FileChecksum(filename string) (string, error) {
 	return HexHash(sha256.New(), fileBytes)
 }
 
-//FileExistsWithChecksum returns true if the file both exists and has a matching checksum
+// FileExistsWithChecksum returns true if the file both exists and has a matching checksum
 func FileExistsWithChecksum(filename, checksum string) (bool, error) {
 	if !FileExists(filename) {
 		return false, nil
@@ -163,7 +163,7 @@ func FileExistsWithChecksum(filename, checksum string) (bool, error) {
 	return checksum == got, nil
 }
 
-//FileExists asserts that a file exists
+// FileExists asserts that a file exists
 func FileExists(path string) bool {
 	if _, err := os.Stat(filepath.FromSlash(path)); !os.IsNotExist(err) {
 		return true

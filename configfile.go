@@ -9,13 +9,13 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-//ConfigFile is a file containing config
+// ConfigFile is a file containing config
 type ConfigFile struct {
 	Filename string
 	Config
 }
 
-//LoadConfigFile loads a config file
+// LoadConfigFile loads a config file
 func LoadConfigFile(filename string, noDefaultDirs bool) (*ConfigFile, error) {
 	data, err := ioutil.ReadFile(filename) //nolint:gosec
 	if err != nil {
@@ -42,7 +42,7 @@ func LoadConfigFile(filename string, noDefaultDirs bool) (*ConfigFile, error) {
 	return &result, nil
 }
 
-//Write writes a file to disk
+// Write writes a file to disk
 func (c *ConfigFile) Write(outputJSON bool) error {
 	var data []byte
 	var err error
@@ -64,5 +64,5 @@ func (c *ConfigFile) Write(outputJSON bool) error {
 		return err
 	}
 
-	return ioutil.WriteFile(c.Filename, data, 0600)
+	return ioutil.WriteFile(c.Filename, data, 0o600)
 }

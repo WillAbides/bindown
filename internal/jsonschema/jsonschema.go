@@ -23,7 +23,7 @@ func init() {
 	util.Must(json.Unmarshal(schemaData, jsonSchema))
 }
 
-//ValidateConfig checks whether cfg meets the json schema.
+// ValidateConfig checks whether cfg meets the json schema.
 func ValidateConfig(cfg []byte) error {
 	cfgJSON, err := yaml.YAMLToJSON(cfg)
 	if err != nil {

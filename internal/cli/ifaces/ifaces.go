@@ -6,7 +6,7 @@ import (
 
 var _ ConfigFile = new(bindown.ConfigFile)
 
-//ConfigFile a config file
+// ConfigFile a config file
 type ConfigFile interface {
 	Write(outputJSON bool) error
 	AddChecksums(dependencies []string, systems []bindown.SystemInfo) error
@@ -22,7 +22,7 @@ type ConfigFile interface {
 	UnsetTemplateVars(tmplName string, vars []string) error
 }
 
-//ConfigLoader loads config files
+// ConfigLoader loads config files
 type ConfigLoader interface {
 	Load(filename string, noDefaultDirs bool) (ConfigFile, error)
 }
