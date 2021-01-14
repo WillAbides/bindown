@@ -265,33 +265,42 @@ func (c *Config) Validate(dependencies []string, systems []SystemInfo) error {
 	if err != nil {
 		return err
 	}
-	defer func() {
-		_ = os.RemoveAll(tmpCacheDir) //nolint:errcheck
-	}()
 	tmpBinDir, err := ioutil.TempDir("", "bindown-bin")
 	if err != nil {
 		return err
 	}
-	defer func() {
-		_ = os.RemoveAll(tmpBinDir) //nolint:errcheck
-	}()
 	c.InstallDir = tmpBinDir
 	c.Cache = tmpCacheDir
 	for _, depName := range dependencies {
-		depSystems := systems
-		if len(depSystems) == 0 {
-			depSystems, err = c.DependencySystems(depName)
-			if err != nil {
-				return err
-			}
+		err = c.validateDep(systems, depName)
+		if err != nil {
+			break
 		}
-		for _, system := range depSystems {
-			_, err = c.InstallDependency(depName, system, &ConfigInstallDependencyOpts{
-				Force: true,
-			})
-			if err != nil {
-				return err
-			}
+	}
+	for _, d := range []string{tmpBinDir, tmpCacheDir} {
+		cleanupErr := os.RemoveAll(d)
+		if err == nil {
+			err = cleanupErr
+		}
+	}
+	return err
+}
+
+func (c *Config) validateDep(systems []SystemInfo, depName string) error {
+	var err error
+	depSystems := systems
+	if len(depSystems) == 0 {
+		depSystems, err = c.DependencySystems(depName)
+		if err != nil {
+			return err
+		}
+	}
+	for _, system := range depSystems {
+		_, err = c.InstallDependency(depName, system, &ConfigInstallDependencyOpts{
+			Force: true,
+		})
+		if err != nil {
+			return err
 		}
 	}
 	return nil
@@ -623,7 +632,7 @@ func configFromURL(cfgSrc string) (*Config, error) {
 }
 
 func configFromHTTP(src string) (*Config, error) {
-	resp, err := http.Get(src) //nolint:gosec
+	resp, err := http.Get(src)
 	if err != nil {
 		return nil, err
 	}

@@ -28,7 +28,7 @@ func CopyFile(src, dst string, closeCloser func(io.Closer)) error {
 		return fmt.Errorf("not a regular file")
 	}
 
-	rdr, err := os.Open(src) //nolint:gosec
+	rdr, err := os.Open(src)
 	if err != nil {
 		return err
 	}
@@ -63,9 +63,9 @@ func setStringMapDefault(mp map[string]string, key, val string) {
 }
 
 // ExecuteTemplate executes a template
-func ExecuteTemplate(tmplString string, os, arch string, vars map[string]string) (string, error) {
+func ExecuteTemplate(tmplString, goos, arch string, vars map[string]string) (string, error) {
 	vars = CopyStringMap(vars)
-	setStringMapDefault(vars, "os", os)
+	setStringMapDefault(vars, "os", goos)
 	setStringMapDefault(vars, "arch", arch)
 	tmpl, err := template.New("").Option("missingkey=error").Parse(tmplString)
 	if err != nil {
@@ -113,15 +113,17 @@ func DirectoryChecksum(inputDir string) (string, error) {
 			return nil
 		}
 
-		fi, err := os.Open(path) //nolint:gosec
+		fi, err := os.Open(path)
 		if err != nil {
 			return err
 		}
-		defer func() {
-			_ = fi.Close() //nolint:errcheck
-		}()
+
 		_, err = io.Copy(hasher, fi)
-		return err
+		if err != nil {
+			return err
+		}
+
+		return fi.Close()
 	})
 	if err != nil {
 		return "", err
@@ -144,7 +146,7 @@ func HexHash(hasher hash.Hash, data ...[]byte) (string, error) {
 
 // FileChecksum returns the hex checksum of a file
 func FileChecksum(filename string) (string, error) {
-	fileBytes, err := ioutil.ReadFile(filename) //nolint:gosec
+	fileBytes, err := ioutil.ReadFile(filename)
 	if err != nil {
 		return "", err
 	}

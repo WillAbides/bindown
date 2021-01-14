@@ -27,7 +27,7 @@ func MustWriteFile(t *testing.T, filename string, content []byte) {
 // MustReadFile reads a file or fails
 func MustReadFile(t *testing.T, filename string) []byte {
 	t.Helper()
-	got, err := ioutil.ReadFile(filename) //nolint:gosec
+	got, err := ioutil.ReadFile(filename)
 	require.NoError(t, err)
 	return got
 }

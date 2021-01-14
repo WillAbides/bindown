@@ -17,7 +17,7 @@ type ConfigFile struct {
 
 // LoadConfigFile loads a config file
 func LoadConfigFile(filename string, noDefaultDirs bool) (*ConfigFile, error) {
-	data, err := ioutil.ReadFile(filename) //nolint:gosec
+	data, err := ioutil.ReadFile(filename)
 	if err != nil {
 		return nil, err
 	}

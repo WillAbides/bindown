@@ -38,11 +38,11 @@ func (m OverrideMatcher) matches(info SystemInfo) bool {
 	return m.archMatch(info.Arch) && m.osMatch(info.OS)
 }
 
-func (m OverrideMatcher) osMatch(os string) bool {
+func (m OverrideMatcher) osMatch(goos string) bool {
 	if len(m.OS) == 0 {
 		return true
 	}
-	return stringSliceContains(m.OS, os)
+	return stringSliceContains(m.OS, goos)
 }
 
 func (m OverrideMatcher) archMatch(arch string) bool {
@@ -172,13 +172,12 @@ func (d *Dependency) interpolateVars(system SystemInfo) error {
 
 const maxTemplateDepth = 2
 
-//nolint:gocyclo
 func (d *Dependency) applyTemplate(templates map[string]*Dependency, depth int) error {
 	if depth > maxTemplateDepth {
 		return nil
 	}
 	templateName := d.Template
-	if templateName == nil || len(*templateName) == 0 {
+	if templateName == nil || *templateName == "" {
 		return nil
 	}
 	if templates == nil {
@@ -346,7 +345,7 @@ func linkBin(target, extractDir, archivePath, binName string) error {
 	if err != nil {
 		return err
 	}
-	return os.Chmod(target, 0o750) //nolint:gosec
+	return os.Chmod(target, 0o750)
 }
 
 func copyBin(target, extractDir, archivePath, binName string) error {
@@ -374,7 +373,7 @@ func copyBin(target, extractDir, archivePath, binName string) error {
 	if err != nil {
 		return err
 	}
-	return os.Chmod(target, 0o750) //nolint:gosec
+	return os.Chmod(target, 0o750)
 }
 
 func logCloseErr(closer io.Closer) {
@@ -390,7 +389,7 @@ func extract(archivePath, extractDir string) error {
 	downloadDir := filepath.Dir(archivePath)
 	extractSumFile := filepath.Join(downloadDir, ".extractsum")
 
-	if wantSum, sumErr := ioutil.ReadFile(extractSumFile); sumErr == nil { //nolint:gosec
+	if wantSum, sumErr := ioutil.ReadFile(extractSumFile); sumErr == nil {
 		var exs string
 		exs, sumErr = util.DirectoryChecksum(extractDir)
 		if sumErr == nil && exs == strings.TrimSpace(string(wantSum)) {
@@ -420,7 +419,7 @@ func extract(archivePath, extractDir string) error {
 		return err
 	}
 
-	return ioutil.WriteFile(extractSumFile, []byte(extractSum), 0o640)
+	return ioutil.WriteFile(extractSumFile, []byte(extractSum), 0o600)
 }
 
 // getURLChecksum returns the checksum of what is returned from this url
@@ -429,15 +428,18 @@ func getURLChecksum(dlURL string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	defer func() {
-		_ = os.RemoveAll(downloadDir) //nolint:errcheck
-	}()
 	dlPath := filepath.Join(downloadDir, "foo")
 	err = downloadFile(dlPath, dlURL)
 	if err != nil {
+		_ = os.RemoveAll(downloadDir) //nolint:errcheck // we already have an error to report
 		return "", err
 	}
-	return util.FileChecksum(dlPath)
+	sum, err := util.FileChecksum(dlPath)
+	cleanupErr := os.RemoveAll(downloadDir)
+	if err == nil {
+		err = cleanupErr
+	}
+	return sum, err
 }
 
 func downloadFile(targetPath, url string) error {
@@ -445,7 +447,7 @@ func downloadFile(targetPath, url string) error {
 	if err != nil {
 		return err
 	}
-	resp, err := http.Get(url) //nolint:gosec
+	resp, err := http.Get(url)
 	if err != nil {
 		return err
 	}
