@@ -29,6 +29,54 @@ type Config struct {
 	URLChecksums    map[string]string      `json:"url_checksums,omitempty" yaml:"url_checksums,omitempty"`
 }
 
+//UnsetDependencyVars removes a dependency var. Noop if the var doesn't exist.
+func (c *Config) UnsetDependencyVars(depName string, vars []string) error {
+	dep := c.Dependencies[depName]
+	if dep == nil {
+		return fmt.Errorf("dependency %q does not exist", depName)
+	}
+	for _, v := range vars {
+		delete(dep.Vars, v)
+	}
+	return nil
+}
+
+//SetDependencyVars sets the value of a dependency's var. Adds or Updates the var.
+func (c *Config) SetDependencyVars(depName string, vars map[string]string) error {
+	dep := c.Dependencies[depName]
+	if dep == nil {
+		return fmt.Errorf("dependency %q does not exist", depName)
+	}
+	for k, v := range vars {
+		dep.Vars[k] = v
+	}
+	return nil
+}
+
+//UnsetTemplateVars removes a template var. Noop if the var doesn't exist.
+func (c *Config) UnsetTemplateVars(tmplName string, vars []string) error {
+	tmpl := c.Templates[tmplName]
+	if tmpl == nil {
+		return fmt.Errorf("dependency %q does not exist", tmplName)
+	}
+	for _, v := range vars {
+		delete(tmpl.Vars, v)
+	}
+	return nil
+}
+
+//SetTemplateVars sets the value of a template's var. Adds or Updates the var.
+func (c *Config) SetTemplateVars(tmplName string, vars map[string]string) error {
+	tmpl := c.Templates[tmplName]
+	if tmpl == nil {
+		return fmt.Errorf("template %q does not exist", tmplName)
+	}
+	for k, v := range vars {
+		tmpl.Vars[k] = v
+	}
+	return nil
+}
+
 //BinName returns the bin name for a downloader on a given system
 func (c *Config) BinName(depName string, system SystemInfo) (string, error) {
 	dep, err := c.BuildDependency(depName, system)

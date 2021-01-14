@@ -150,6 +150,62 @@ func (mr *MockConfigFileMockRecorder) MissingDependencyVars(depName interface{})
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "MissingDependencyVars", reflect.TypeOf((*MockConfigFile)(nil).MissingDependencyVars), depName)
 }
 
+// SetDependencyVars mocks base method
+func (m *MockConfigFile) SetDependencyVars(depName string, vars map[string]string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SetDependencyVars", depName, vars)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// SetDependencyVars indicates an expected call of SetDependencyVars
+func (mr *MockConfigFileMockRecorder) SetDependencyVars(depName, vars interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetDependencyVars", reflect.TypeOf((*MockConfigFile)(nil).SetDependencyVars), depName, vars)
+}
+
+// UnsetDependencyVars mocks base method
+func (m *MockConfigFile) UnsetDependencyVars(depName string, vars []string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UnsetDependencyVars", depName, vars)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UnsetDependencyVars indicates an expected call of UnsetDependencyVars
+func (mr *MockConfigFileMockRecorder) UnsetDependencyVars(depName, vars interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UnsetDependencyVars", reflect.TypeOf((*MockConfigFile)(nil).UnsetDependencyVars), depName, vars)
+}
+
+// SetTemplateVars mocks base method
+func (m *MockConfigFile) SetTemplateVars(tmplName string, vars map[string]string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SetTemplateVars", tmplName, vars)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// SetTemplateVars indicates an expected call of SetTemplateVars
+func (mr *MockConfigFileMockRecorder) SetTemplateVars(tmplName, vars interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetTemplateVars", reflect.TypeOf((*MockConfigFile)(nil).SetTemplateVars), tmplName, vars)
+}
+
+// UnsetTemplateVars mocks base method
+func (m *MockConfigFile) UnsetTemplateVars(tmplName string, vars []string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UnsetTemplateVars", tmplName, vars)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UnsetTemplateVars indicates an expected call of UnsetTemplateVars
+func (mr *MockConfigFileMockRecorder) UnsetTemplateVars(tmplName, vars interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UnsetTemplateVars", reflect.TypeOf((*MockConfigFile)(nil).UnsetTemplateVars), tmplName, vars)
+}
+
 // MockConfigLoader is a mock of ConfigLoader interface
 type MockConfigLoader struct {
 	ctrl     *gomock.Controller

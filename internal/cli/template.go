@@ -12,6 +12,33 @@ type templateCmd struct {
 	List             templateListCmd             `kong:"cmd,help='list templates'"`
 	Remove           templateRemoveCmd           `kong:"cmd,help='remove a template'"`
 	UpdateFromSource templateUpdateFromSourceCmd `kong:"cmd,help='update a template from source'"`
+	UpdateVars       templateUpdateVarCmd        `kong:"cmd,help='update template vars'"`
+}
+
+type templateUpdateVarCmd struct {
+	Dependency string            `kong:"arg,completer=bin"`
+	Set        map[string]string `kong:"help='add or update a var'"`
+	Unset      []string          `kong:"help='remove a var'"`
+}
+
+func (c *templateUpdateVarCmd) Run() error {
+	config, err := configLoader.Load(cli.Configfile, true)
+	if err != nil {
+		return err
+	}
+	if len(c.Set) > 0 {
+		err = config.SetTemplateVars(c.Dependency, c.Set)
+		if err != nil {
+			return err
+		}
+	}
+	if len(c.Unset) > 0 {
+		err = config.UnsetTemplateVars(c.Dependency, c.Unset)
+		if err != nil {
+			return err
+		}
+	}
+	return config.Write(cli.JSONConfig)
 }
 
 type templateUpdateFromSourceCmd struct {

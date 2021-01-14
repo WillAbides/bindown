@@ -16,6 +16,10 @@ type ConfigFile interface {
 	ExtractDependency(dependencyName string, sysInfo bindown.SystemInfo, opts *bindown.ConfigExtractDependencyOpts) (string, error)
 	AddDependencyFromTemplate(templateName string, opts *bindown.AddDependencyFromTemplateOpts) error
 	MissingDependencyVars(depName string) ([]string, error)
+	SetDependencyVars(depName string, vars map[string]string) error
+	UnsetDependencyVars(depName string, vars []string) error
+	SetTemplateVars(tmplName string, vars map[string]string) error
+	UnsetTemplateVars(tmplName string, vars []string) error
 }
 
 //ConfigLoader loads config files
