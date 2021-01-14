@@ -35,6 +35,9 @@ func (c *Config) UnsetDependencyVars(depName string, vars []string) error {
 	if dep == nil {
 		return fmt.Errorf("dependency %q does not exist", depName)
 	}
+	if dep.Vars == nil {
+		return nil
+	}
 	for _, v := range vars {
 		delete(dep.Vars, v)
 	}
@@ -46,6 +49,9 @@ func (c *Config) SetDependencyVars(depName string, vars map[string]string) error
 	dep := c.Dependencies[depName]
 	if dep == nil {
 		return fmt.Errorf("dependency %q does not exist", depName)
+	}
+	if dep.Vars == nil {
+		dep.Vars = map[string]string{}
 	}
 	for k, v := range vars {
 		dep.Vars[k] = v
@@ -59,6 +65,9 @@ func (c *Config) UnsetTemplateVars(tmplName string, vars []string) error {
 	if tmpl == nil {
 		return fmt.Errorf("dependency %q does not exist", tmplName)
 	}
+	if tmpl.Vars == nil {
+		return nil
+	}
 	for _, v := range vars {
 		delete(tmpl.Vars, v)
 	}
@@ -70,6 +79,9 @@ func (c *Config) SetTemplateVars(tmplName string, vars map[string]string) error 
 	tmpl := c.Templates[tmplName]
 	if tmpl == nil {
 		return fmt.Errorf("template %q does not exist", tmplName)
+	}
+	if tmpl.Vars == nil {
+		tmpl.Vars = map[string]string{}
 	}
 	for k, v := range vars {
 		tmpl.Vars[k] = v
