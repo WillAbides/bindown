@@ -20,6 +20,142 @@ func configFromYaml(t *testing.T, yml string) *Config {
 	return got
 }
 
+func TestConfig_UnsetDependencyVars(t *testing.T) {
+	t.Run("deletes", func(t *testing.T) {
+		cfg := configFromYaml(t, `
+dependencies:
+  foo:
+    vars:
+      foo: bar
+      baz: qux
+`)
+		want := map[string]string{
+			"baz": "qux",
+		}
+		err := cfg.UnsetDependencyVars("foo", []string{"a", "foo", "b"})
+		require.NoError(t, err)
+		require.Equal(t, want, cfg.Dependencies["foo"].Vars)
+	})
+
+	t.Run("nil vars", func(t *testing.T) {
+		cfg := configFromYaml(t, `
+dependencies:
+  foo: {}
+`)
+		err := cfg.UnsetDependencyVars("foo", []string{"a", "foo", "b"})
+		require.NoError(t, err)
+		require.Nil(t, cfg.Dependencies["foo"].Vars)
+	})
+}
+
+func TestConfig_UnsetTemplateVars(t *testing.T) {
+	t.Run("deletes", func(t *testing.T) {
+		cfg := configFromYaml(t, `
+templates:
+  foo:
+    vars:
+      foo: bar
+      baz: qux
+`)
+		want := map[string]string{
+			"baz": "qux",
+		}
+		err := cfg.UnsetTemplateVars("foo", []string{"a", "foo", "b"})
+		require.NoError(t, err)
+		require.Equal(t, want, cfg.Templates["foo"].Vars)
+	})
+
+	t.Run("nil vars", func(t *testing.T) {
+		cfg := configFromYaml(t, `
+templates:
+  foo: {}
+`)
+		err := cfg.UnsetTemplateVars("foo", []string{"a", "foo", "b"})
+		require.NoError(t, err)
+		require.Nil(t, cfg.Templates["foo"].Vars)
+	})
+}
+
+func TestConfig_SetDependencyVars(t *testing.T) {
+	t.Run("replaces and adds", func(t *testing.T) {
+		cfg := configFromYaml(t, `
+dependencies:
+  foo:
+    vars:
+      foo: bar
+      baz: qux
+`)
+		want := map[string]string{
+			"foo": "a",
+			"baz": "qux",
+			"b":   "c",
+		}
+		err := cfg.SetDependencyVars("foo", map[string]string{
+			"foo": "a",
+			"b":   "c",
+		})
+		require.NoError(t, err)
+		require.Equal(t, want, cfg.Dependencies["foo"].Vars)
+	})
+
+	t.Run("nil vars", func(t *testing.T) {
+		cfg := configFromYaml(t, `
+dependencies:
+  foo: {}
+`)
+		want := map[string]string{
+			"foo": "a",
+			"b":   "c",
+		}
+		err := cfg.SetDependencyVars("foo", map[string]string{
+			"foo": "a",
+			"b":   "c",
+		})
+		require.NoError(t, err)
+		require.Equal(t, want, cfg.Dependencies["foo"].Vars)
+	})
+}
+
+func TestConfig_SetTemplateVars(t *testing.T) {
+	t.Run("replaces and adds", func(t *testing.T) {
+		cfg := configFromYaml(t, `
+templates:
+  foo:
+    vars:
+      foo: bar
+      baz: qux
+`)
+		want := map[string]string{
+			"foo": "a",
+			"baz": "qux",
+			"b":   "c",
+		}
+		err := cfg.SetTemplateVars("foo", map[string]string{
+			"foo": "a",
+			"b":   "c",
+		})
+		require.NoError(t, err)
+		require.Equal(t, want, cfg.Templates["foo"].Vars)
+	})
+
+	t.Run("nil vars", func(t *testing.T) {
+		cfg := configFromYaml(t, `
+templates:
+  foo: {}
+`)
+		want := map[string]string{
+			"foo": "a",
+			"b":   "c",
+		}
+		err := cfg.SetTemplateVars("foo", map[string]string{
+			"foo": "a",
+			"b":   "c",
+		})
+		require.NoError(t, err)
+		require.Equal(t, want, cfg.Templates["foo"].Vars)
+	})
+}
+
 func TestConfig_addTemplateFromSource(t *testing.T) {
 	t.Run("file", func(t *testing.T) {
 		t.Run("success", func(t *testing.T) {
