@@ -20,7 +20,7 @@ dependencies:
   goreleaser:
     template: local-origin#goreleaser
     vars:
-      version: 0.154.0
+      version: 0.184.0
   mockgen:
     template: local-origin#mockgen
     vars:
@@ -128,6 +128,12 @@ templates:
         vars:
           archivepathsuffix: .exe
           urlsuffix: .zip
+    - matcher:
+        os:
+        - darwin
+      dependency:
+        vars:
+          arch: all
     substitutions:
       arch:
         "386": i386
@@ -139,6 +145,7 @@ templates:
     systems:
     - darwin/386
     - darwin/amd64
+    - darwin/arm64
     - linux/386
     - linux/amd64
     - windows/386
@@ -256,6 +263,9 @@ url_checksums:
   https://github.com/goreleaser/goreleaser/releases/download/v0.154.0/goreleaser_Darwin_x86_64.tar.gz: b320e02d4c0da96f319e96cecffea719a4d2a22e2734b10117303d8f63da004f
   https://github.com/goreleaser/goreleaser/releases/download/v0.154.0/goreleaser_Linux_x86_64.tar.gz: 3f982da1c75bb274c7090c2d0d204cbe2820e07f40725676d46c82b87e200366
   https://github.com/goreleaser/goreleaser/releases/download/v0.154.0/goreleaser_Windows_x86_64.zip: 8f555233c77aed5df09449bf376240739736bdce811ef6265b7d0a4017c80f9f
+  https://github.com/goreleaser/goreleaser/releases/download/v0.184.0/goreleaser_Darwin_all.tar.gz: 97a01fae41173e8387a28a54ef4a054f37ccbd3e384fcf88434a9ed3e0200aa9
+  https://github.com/goreleaser/goreleaser/releases/download/v0.184.0/goreleaser_Linux_x86_64.tar.gz: 0972c17d94f2a95aafbef0c9f6d01ea774abfb8d37b85778e8cb4885efc24511
+  https://github.com/goreleaser/goreleaser/releases/download/v0.184.0/goreleaser_Windows_x86_64.zip: a4ccca17576e91ebe8fd244f2e34a83c857a90e861624ad7aab9395c760ddfa5
   https://github.com/mikefarah/yq/releases/download/3.2.1/yq_darwin_amd64: 116f74a384d0b4fa31a58dd01cfcdeffa6fcd21c066de223cbb0ebc042a8bc28
   https://github.com/mikefarah/yq/releases/download/3.2.1/yq_linux_amd64: 11a830ffb72aad0eaa7640ef69637068f36469be4f68a93da822fbe454e998f8
   https://github.com/mikefarah/yq/releases/download/3.2.1/yq_windows_amd64.exe: 9b3466ff4e37c8a93d7530e3dc7a047314d0897dbfbffb50b82235695e231fff
