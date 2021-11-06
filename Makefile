@@ -21,10 +21,6 @@ bin/golangci-lint: bin/bindown
 	bin/bindown install $(notdir $@)
 bins += bin/golangci-lint
 
-bin/gobin: bin/bindown
-	bin/bindown install $(notdir $@)
-bins += bin/gobin
-
 bin/goreleaser: bin/bindown
 	bin/bindown install $(notdir $@)
 bins += bin/goreleaser
@@ -45,20 +41,20 @@ bin/gofumpt: bin/bindown
 	bin/bindown install $(notdir $@)
 bins += bin/bindown
 
-bin/go-bindata: bin/gobin
+bin/go-bindata: Makefile
 	GOBIN=${CURDIR}/bin \
-	bin/gobin github.com/go-bindata/go-bindata/v3/go-bindata@v3.1.3
+	go install github.com/go-bindata/go-bindata/v3/go-bindata@v3.1.3
 bins += bin/go-bindata
 
 HANDCRAFTED_REV := 082e94edadf89c33db0afb48889c8419a2cb46a9
-bin/handcrafted: bin/gobin
+bin/handcrafted: Makefile
 	GOBIN=${CURDIR}/bin \
-	bin/gobin github.com/willabides/handcrafted@$(HANDCRAFTED_REV)
+	go install github.com/willabides/handcrafted@$(HANDCRAFTED_REV)
 
 GOIMPORTS_REF := 8aaa1484dc108aa23dcf2d4a09371c0c9e280f6b
-bin/goimports: bin/gobin
+bin/goimports: Makefile
 	GOBIN=${CURDIR}/bin \
-	bin/gobin golang.org/x/tools/cmd/goimports@$(GOIMPORTS_REF)
+	go install golang.org/x/tools/cmd/goimports@$(GOIMPORTS_REF)
 bins += bin/goimports
 
 .PHONY: clean

@@ -9,11 +9,6 @@ dependencies:
     template: local-origin#go
     vars:
       version: 1.15.5
-  gobin:
-    url: https://github.com/myitcv/gobin/releases/download/v{{.version}}/{{.os}}-{{.arch}}
-    archive_path: '{{.os}}-{{.arch}}'
-    vars:
-      version: 0.0.13
   gofumpt:
     template: local-origin#gofumpt
     vars:
@@ -264,6 +259,3 @@ url_checksums:
   https://github.com/mvdan/gofumpt/releases/download/v0.1.0/gofumpt_v0.1.0_darwin_amd64: dde8e63fb3c1e2e905a3cf09d5dd320974fe880743a3b9ece910b2c8ff7931f9
   https://github.com/mvdan/gofumpt/releases/download/v0.1.0/gofumpt_v0.1.0_linux_amd64: 1f97b215686198ae0a020822f7f977a7ba12dda6a9eea84bbe5ee706531b4e8a
   https://github.com/mvdan/gofumpt/releases/download/v0.1.0/gofumpt_v0.1.0_windows_amd64.exe: 1f98c788cab2846979ff833d6719a9c7abae62da95e73c9da557102fcd9381f5
-  https://github.com/myitcv/gobin/releases/download/v0.0.13/darwin-amd64: 4e6b22d1e85634178455059306f30b24a960cbc619abc63d3e2f0e91bc0194b5
-  https://github.com/myitcv/gobin/releases/download/v0.0.13/linux-amd64: 07725808fe920a10f7821a4d6f39558c4732279b41e81970e8087e0c3e6d54ba
-  https://github.com/myitcv/gobin/releases/download/v0.0.13/windows-amd64: 70d3688c652bba96f377eb5d3a8068a07274024876c6e3b8d3785f0a63348905
