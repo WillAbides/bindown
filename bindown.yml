@@ -8,7 +8,7 @@ dependencies:
   go:
     template: local-origin#go
     vars:
-      version: 1.15.5
+      version: 1.17.2
   gofumpt:
     template: local-origin#gofumpt
     vars:
@@ -235,6 +235,9 @@ url_checksums:
   https://dl.google.com/go/go1.15.5.darwin-amd64.tar.gz: 359a4334b8c8f5e3067e5a76f16419791ac3fef4613d8e8e1eac0b9719915f6d
   https://dl.google.com/go/go1.15.5.linux-amd64.tar.gz: 9a58494e8da722c3aef248c9227b0e9c528c7318309827780f16220998180a0d
   https://dl.google.com/go/go1.15.5.windows-amd64.zip: 1d24be3a200201a74be25e4134fbec467750e834e84e9c7789a9fc13248c5507
+  https://dl.google.com/go/go1.17.2.darwin-amd64.tar.gz: 7914497a302a132a465d33f5ee044ce05568bacdb390ab805cb75a3435a23f94
+  https://dl.google.com/go/go1.17.2.linux-amd64.tar.gz: f242a9db6a0ad1846de7b6d94d507915d14062660616a61ef7c808a76e4f1676
+  https://dl.google.com/go/go1.17.2.windows-amd64.zip: fa6da0b829a66f5fab7e4e312fd6aa1b2d8f045c7ecee83b3d00f6fe5306759a
   https://github.com/WillAbides/semver-next/releases/download/v0.4.0/semver-next_0.4.0_darwin_amd64.tar.gz: a519f2c3bbe8972deb094d56c196fec89496f663431321c22be343ced23839fb
   https://github.com/WillAbides/semver-next/releases/download/v0.4.0/semver-next_0.4.0_linux_amd64.tar.gz: 6317c36bec63158038381e8878601151ae996310fef58306f70cb03f1b46ef7f
   https://github.com/WillAbides/semver-next/releases/download/v0.4.0/semver-next_0.4.0_windows_amd64.tar.gz: 573ea65ef3b40442626fbb19d07880bb4929e7b12fd7161e41732a03f23b2c95
