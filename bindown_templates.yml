@@ -93,6 +93,12 @@ templates:
         vars:
           archivepathsuffix: .exe
           urlsuffix: .zip
+    - matcher:
+        os:
+          - darwin
+      dependency:
+        vars:
+          arch: all
     substitutions:
       arch:
         "386": i386
@@ -104,6 +110,7 @@ templates:
     systems:
     - darwin/386
     - darwin/amd64
+    - darwin/arm64
     - linux/386
     - linux/amd64
     - windows/386
