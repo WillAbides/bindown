@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/Masterminds/semver/v3"
 	"github.com/mholt/archiver/v3"
 	"github.com/willabides/bindown/v3/internal/util"
 )
@@ -30,12 +31,13 @@ func (o *DependencyOverride) clone() *DependencyOverride {
 
 // OverrideMatcher contains a list or oses and arches to match an override. If either os or arch is empty, all oses and arches match.
 type OverrideMatcher struct {
-	OS   []string `json:"os,omitempty" yaml:",omitempty"`
-	Arch []string `json:"arch,omitempty" yaml:",omitempty"`
+	OS   []string            `json:"os,omitempty" yaml:",omitempty"`
+	Arch []string            `json:"arch,omitempty" yaml:",omitempty"`
+	Vars map[string][]string `json:"vars,omitempty" yaml:",omitempty"`
 }
 
-func (m OverrideMatcher) matches(info SystemInfo) bool {
-	return m.archMatch(info.Arch) && m.osMatch(info.OS)
+func (m OverrideMatcher) matches(info SystemInfo, vars map[string]string) bool {
+	return m.archMatch(info.Arch) && m.osMatch(info.OS) && m.varMatch(vars)
 }
 
 func (m OverrideMatcher) osMatch(goos string) bool {
@@ -50,6 +52,37 @@ func (m OverrideMatcher) archMatch(arch string) bool {
 		return true
 	}
 	return stringSliceContains(m.Arch, arch)
+}
+
+func (m OverrideMatcher) varMatch(vars map[string]string) bool {
+	if len(m.Vars) == 0 {
+		return true
+	}
+	for k, patterns := range m.Vars {
+		matched := false
+		for _, pattern := range patterns {
+			if matchSemverConstraintOrString(pattern, vars[k]) {
+				matched = true
+				break
+			}
+		}
+		if !matched {
+			return false
+		}
+	}
+	return true
+}
+
+func matchSemverConstraintOrString(pattern, val string) bool {
+	constraint, err := semver.NewConstraint(pattern)
+	if err != nil {
+		return pattern == val
+	}
+	version, err := semver.NewVersion(val)
+	if err != nil {
+		return pattern == val
+	}
+	return constraint.Check(version)
 }
 
 func (m OverrideMatcher) clone() OverrideMatcher {
@@ -239,7 +272,7 @@ const maxOverrideDepth = 2
 
 func (d *Dependency) applyOverrides(info SystemInfo, depth int) {
 	for i := range d.Overrides {
-		if !d.Overrides[i].OverrideMatcher.matches(info) {
+		if !d.Overrides[i].OverrideMatcher.matches(info, d.Vars) {
 			continue
 		}
 		dependency := &d.Overrides[i].Dependency

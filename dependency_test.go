@@ -194,13 +194,18 @@ func Test_Dependency_applyOverrides(t *testing.T) {
 		dep := &Dependency{
 			ArchivePath: stringPtr("archivePath"),
 			Vars: map[string]string{
-				"foo": "bar",
-				"baz": "qux",
+				"foo":     "bar",
+				"baz":     "qux",
+				"version": "1.2.3",
 			},
 			Overrides: []DependencyOverride{
 				{
 					OverrideMatcher: OverrideMatcher{
 						OS: []string{"linux"},
+						Vars: map[string][]string{
+							"foo":     {"bar"},
+							"version": {"asdf", "1.2.4", "1.x"},
+						},
 					},
 					Dependency: Dependency{
 						Link: boolPtr(true),
@@ -234,9 +239,10 @@ func Test_Dependency_applyOverrides(t *testing.T) {
 			ArchivePath: stringPtr("it's amd64"),
 			Link:        boolPtr(true),
 			Vars: map[string]string{
-				"foo": "not bar",
-				"baz": "qux",
-				"bar": "moo",
+				"foo":     "not bar",
+				"baz":     "qux",
+				"bar":     "moo",
+				"version": "1.2.3",
 			},
 		}
 		dep.applyOverrides(newSystemInfo("linux", "amd64"), 0)

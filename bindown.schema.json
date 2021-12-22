@@ -125,6 +125,25 @@
                 "type": "string"
               },
               "type": "array"
+            },
+            "vars": {
+              "additionalProperties": {
+                "description": "List of values to match. Any matching value will match. If a value can be interpreted as a SemVer, it will be treated as such.",
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "description": "Variables to match. All variables defines in the matcher must match the dependency.",
+              "examples": [
+                {
+                  "version": [
+                    "1.0.0",
+                    "1.x"
+                  ]
+                }
+              ],
+              "type": "object"
             }
           },
           "type": "object"
