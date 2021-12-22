@@ -26,17 +26,17 @@ type runCmdResult struct {
 	exitVal int
 }
 
-func (r runCmdResult) assertStdOut(t *testing.T, want string) {
+func (r *runCmdResult) assertStdOut(t *testing.T, want string) {
 	t.Helper()
 	assert.Equal(t, want, strings.TrimSpace(r.stdOut.String()))
 }
 
-func (r runCmdResult) assertStdErr(t *testing.T, want string) {
+func (r *runCmdResult) assertStdErr(t *testing.T, want string) {
 	t.Helper()
 	assert.Equal(t, want, strings.TrimSpace(r.stdErr.String()))
 }
 
-func (r runCmdResult) assertState(t *testing.T, wantStdout, wantStderr string, wantExited bool, wantExitVal int) {
+func (r *runCmdResult) assertState(t *testing.T, wantStdout, wantStderr string, wantExited bool, wantExitVal int) {
 	t.Helper()
 	r.assertStdOut(t, wantStdout)
 	r.assertStdErr(t, wantStderr)

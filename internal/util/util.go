@@ -8,7 +8,6 @@ import (
 	"hash"
 	"hash/fnv"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -146,7 +145,7 @@ func HexHash(hasher hash.Hash, data ...[]byte) (string, error) {
 
 // FileChecksum returns the hex checksum of a file
 func FileChecksum(filename string) (string, error) {
-	fileBytes, err := ioutil.ReadFile(filename)
+	fileBytes, err := os.ReadFile(filename)
 	if err != nil {
 		return "", err
 	}

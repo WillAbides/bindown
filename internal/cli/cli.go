@@ -104,7 +104,7 @@ func (c *initCmd) Run() error {
 	if !os.IsNotExist(err) {
 		return fmt.Errorf("%s already exists", cli.Configfile)
 	}
-	file, err := os.OpenFile(cli.Configfile, os.O_RDWR|os.O_CREATE, 0o666)
+	file, err := os.Create(cli.Configfile)
 	if err != nil {
 		return err
 	}

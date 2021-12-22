@@ -19,6 +19,7 @@ templates:
           urlsuffix: .zip
     systems:
     - darwin/amd64
+    - darwin/arm64
     - linux/386
     - linux/amd64
     - linux/arm64
@@ -57,14 +58,14 @@ templates:
     overrides:
     - matcher:
         os:
-        - windows
+          - windows
       dependency:
         vars:
           archivepathsuffix: .exe
           urlsuffix: .zip
     systems:
-    - darwin/386
     - darwin/amd64
+    - darwin/arm64
     - linux/386
     - linux/amd64
     - linux/arm64
@@ -108,7 +109,6 @@ templates:
         linux: Linux
         windows: Windows
     systems:
-    - darwin/386
     - darwin/amd64
     - darwin/arm64
     - linux/386
@@ -129,6 +129,7 @@ templates:
         - darwin
         arch:
         - amd64
+        - arm64
       dependency:
         url: https://github.com/stedolan/jq/releases/download/jq-1.6/jq-osx-amd64
         archive_path: jq-osx-amd64
@@ -148,6 +149,7 @@ templates:
     - linux/386
     - linux/amd64
     - darwin/amd64
+    - darwin/arm64
     - windows/386
     - windows/amd64
   mockgen:
@@ -166,8 +168,8 @@ templates:
         vars:
           archivepathsuffix: .exe
     systems:
-    - darwin/386
     - darwin/amd64
+    - darwin/arm64
     - linux/386
     - linux/amd64
     - windows/386
@@ -187,9 +189,18 @@ templates:
       dependency:
         vars:
           archivepathsuffix: .exe
+    - matcher:
+        os:
+        - darwin
+        arch:
+        - arm64
+      dependency:
+        vars:
+          arch: amd64
     systems:
     - darwin/386
     - darwin/amd64
+    - darwin/arm64
     - linux/386
     - linux/amd64
     - windows/386

@@ -11,7 +11,7 @@ import (
 	"github.com/willabides/bindown/v3/internal/util"
 )
 
-func requireEqualDependency(t *testing.T, want, got Dependency) {
+func requireEqualDependency(t *testing.T, want, got *Dependency) {
 	t.Helper()
 	require.Equal(t, want.URL, got.URL)
 	require.Equal(t, want.ArchivePath, got.ArchivePath)
@@ -93,7 +93,7 @@ func TestDependency_applyTemplate(t *testing.T) {
 		}
 		err := dep.applyTemplate(nil, 0)
 		require.NoError(t, err)
-		requireEqualDependency(t, *want, *dep)
+		requireEqualDependency(t, want, dep)
 	})
 
 	t.Run("missing grandparent template", func(t *testing.T) {
@@ -172,7 +172,7 @@ dependencies:
 		dep := cfg.Dependencies["myDependency"]
 		err := dep.applyTemplate(cfg.Templates, 0)
 		require.NoError(t, err)
-		requireEqualDependency(t, *cfg.Dependencies["want"], *dep)
+		requireEqualDependency(t, cfg.Dependencies["want"], dep)
 	})
 }
 
@@ -187,7 +187,7 @@ func Test_Dependency_applyOverrides(t *testing.T) {
 		}
 		dep := want.clone()
 		dep.applyOverrides(newSystemInfo("windows", "amd64"), 0)
-		requireEqualDependency(t, want, *dep)
+		requireEqualDependency(t, &want, dep)
 	})
 
 	t.Run("simple override", func(t *testing.T) {
@@ -240,6 +240,6 @@ func Test_Dependency_applyOverrides(t *testing.T) {
 			},
 		}
 		dep.applyOverrides(newSystemInfo("linux", "amd64"), 0)
-		requireEqualDependency(t, want, *dep)
+		requireEqualDependency(t, &want, dep)
 	})
 }
