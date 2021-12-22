@@ -10,7 +10,7 @@ require (
 	github.com/qri-io/jsonschema v0.1.2-0.20191106232816-1fbc1e03ab84
 	github.com/stretchr/testify v1.4.0
 	github.com/udhos/equalfile v0.3.0
-	gopkg.in/yaml.v2 v2.2.4
+	gopkg.in/yaml.v2 v2.2.8
 )
 
 require (
