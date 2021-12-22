@@ -10,4 +10,4 @@ make -s bin/gofumpt bin/handcrafted >/dev/null
 
 git ls-files -o -c --exclude-standard -- *.go **/*.go |
   bin/handcrafted |
-  xargs bin/gofumpt -w -s
+  xargs bin/gofumpt -w

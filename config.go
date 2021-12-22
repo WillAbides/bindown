@@ -3,6 +3,7 @@ package bindown
 import (
 	"fmt"
 	"hash/fnv"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -639,7 +640,7 @@ func configFromHTTP(src string) (*Config, error) {
 	if resp.StatusCode >= 300 {
 		return nil, fmt.Errorf("error downloading %q", src)
 	}
-	data, err := ioutil.ReadAll(resp.Body)
+	data, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
 	}

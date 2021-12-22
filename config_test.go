@@ -226,7 +226,7 @@ func TestConfig_InstallDependency(t *testing.T) {
 		stat, err := os.Stat(wantBin)
 		require.NoError(t, err)
 		require.False(t, stat.IsDir())
-		require.Equal(t, os.FileMode(0o750), stat.Mode().Perm())
+		require.Equal(t, os.FileMode(0o750), stat.Mode().Perm()&0o750)
 	})
 
 	t.Run("bin in root", func(t *testing.T) {
@@ -257,7 +257,7 @@ func TestConfig_InstallDependency(t *testing.T) {
 		stat, err := os.Stat(wantBin)
 		require.NoError(t, err)
 		require.False(t, stat.IsDir())
-		require.Equal(t, os.FileMode(0o750), stat.Mode().Perm())
+		require.Equal(t, os.FileMode(0o750), stat.Mode().Perm()&0o750)
 	})
 
 	t.Run("wrong checksum", func(t *testing.T) {

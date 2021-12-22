@@ -2,7 +2,7 @@ package bindown
 
 import (
 	"encoding/json"
-	"io/ioutil"
+	"os"
 	"path/filepath"
 	"sort"
 
@@ -17,7 +17,7 @@ type ConfigFile struct {
 
 // LoadConfigFile loads a config file
 func LoadConfigFile(filename string, noDefaultDirs bool) (*ConfigFile, error) {
-	data, err := ioutil.ReadFile(filename)
+	data, err := os.ReadFile(filename)
 	if err != nil {
 		return nil, err
 	}
@@ -64,5 +64,5 @@ func (c *ConfigFile) Write(outputJSON bool) error {
 		return err
 	}
 
-	return ioutil.WriteFile(c.Filename, data, 0o600)
+	return os.WriteFile(c.Filename, data, 0o600)
 }

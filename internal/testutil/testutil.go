@@ -20,14 +20,14 @@ const FooChecksum = "f7fa712caea646575c920af17de3462fe9d08d7fe062b9a17010117d5fa
 // MustWriteFile write a file or fails
 func MustWriteFile(t *testing.T, filename string, content []byte) {
 	t.Helper()
-	err := ioutil.WriteFile(filename, content, 0o600)
+	err := os.WriteFile(filename, content, 0o600)
 	require.NoError(t, err)
 }
 
 // MustReadFile reads a file or fails
 func MustReadFile(t *testing.T, filename string) []byte {
 	t.Helper()
-	got, err := ioutil.ReadFile(filename)
+	got, err := os.ReadFile(filename)
 	require.NoError(t, err)
 	return got
 }

@@ -133,8 +133,8 @@ func (d *Dependency) clone() *Dependency {
 	}
 	if d.Overrides != nil {
 		dep.Overrides = make([]DependencyOverride, len(d.Overrides))
-		for i, override := range d.Overrides {
-			dep.Overrides[i] = *override.clone()
+		for i := range d.Overrides {
+			dep.Overrides[i] = *d.Overrides[i].clone()
 		}
 	}
 	dep.Substitutions = cloneSubstitutions(d.Substitutions)
@@ -230,39 +230,39 @@ func (d *Dependency) addOverrides(overrides []DependencyOverride) {
 	if d.Overrides == nil {
 		d.Overrides = make([]DependencyOverride, 0, len(overrides))
 	}
-	for _, override := range overrides {
-		d.Overrides = append(d.Overrides, *override.clone())
+	for i := range overrides {
+		d.Overrides = append(d.Overrides, *overrides[i].clone())
 	}
 }
 
 const maxOverrideDepth = 2
 
 func (d *Dependency) applyOverrides(info SystemInfo, depth int) {
-	for _, override := range d.Overrides {
-		if !override.OverrideMatcher.matches(info) {
+	for i := range d.Overrides {
+		if !d.Overrides[i].OverrideMatcher.matches(info) {
 			continue
 		}
-		o := &override.Dependency
+		dependency := &d.Overrides[i].Dependency
 		if depth <= maxOverrideDepth {
-			o.applyOverrides(info, depth+1)
+			dependency.applyOverrides(info, depth+1)
 		}
-		if o.Link != nil {
-			d.Link = o.Link
+		if dependency.Link != nil {
+			d.Link = dependency.Link
 		}
 		if d.Vars == nil {
-			d.Vars = make(map[string]string, len(o.Vars))
+			d.Vars = make(map[string]string, len(dependency.Vars))
 		}
-		for k, v := range o.Vars {
+		for k, v := range dependency.Vars {
 			d.Vars[k] = v
 		}
-		if o.ArchivePath != nil {
-			d.ArchivePath = o.ArchivePath
+		if dependency.ArchivePath != nil {
+			d.ArchivePath = dependency.ArchivePath
 		}
-		if o.BinName != nil {
-			d.BinName = o.BinName
+		if dependency.BinName != nil {
+			d.BinName = dependency.BinName
 		}
-		if o.URL != nil {
-			d.URL = o.URL
+		if dependency.URL != nil {
+			d.URL = dependency.URL
 		}
 	}
 	d.Overrides = nil
@@ -345,7 +345,11 @@ func linkBin(target, extractDir, archivePath, binName string) error {
 	if err != nil {
 		return err
 	}
-	return os.Chmod(target, 0o750)
+	info, err := os.Stat(target)
+	if err != nil {
+		return err
+	}
+	return os.Chmod(target, info.Mode().Perm()|0o750)
 }
 
 func copyBin(target, extractDir, archivePath, binName string) error {
@@ -373,7 +377,11 @@ func copyBin(target, extractDir, archivePath, binName string) error {
 	if err != nil {
 		return err
 	}
-	return os.Chmod(target, 0o750)
+	info, err := os.Stat(target)
+	if err != nil {
+		return err
+	}
+	return os.Chmod(target, info.Mode().Perm()|0o750)
 }
 
 func logCloseErr(closer io.Closer) {
@@ -389,7 +397,7 @@ func extract(archivePath, extractDir string) error {
 	downloadDir := filepath.Dir(archivePath)
 	extractSumFile := filepath.Join(downloadDir, ".extractsum")
 
-	if wantSum, sumErr := ioutil.ReadFile(extractSumFile); sumErr == nil {
+	if wantSum, sumErr := os.ReadFile(extractSumFile); sumErr == nil {
 		var exs string
 		exs, sumErr = util.DirectoryChecksum(extractDir)
 		if sumErr == nil && exs == strings.TrimSpace(string(wantSum)) {
@@ -419,7 +427,7 @@ func extract(archivePath, extractDir string) error {
 		return err
 	}
 
-	return ioutil.WriteFile(extractSumFile, []byte(extractSum), 0o600)
+	return os.WriteFile(extractSumFile, []byte(extractSum), 0o600)
 }
 
 // getURLChecksum returns the checksum of what is returned from this url
