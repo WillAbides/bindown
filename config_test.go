@@ -198,7 +198,7 @@ func TestConfig_addTemplateFromSource(t *testing.T) {
 
 func TestConfig_InstallDependency(t *testing.T) {
 	t.Run("raw file", func(t *testing.T) {
-		dir := testutil.TmpDir(t)
+		dir := t.TempDir()
 		servePath := testutil.DownloadablesPath("rawfile/foo")
 		ts := testutil.ServeFile(t, servePath, "/foo/foo", "")
 		depURL := ts.URL + "/foo/foo"
@@ -229,7 +229,7 @@ func TestConfig_InstallDependency(t *testing.T) {
 	})
 
 	t.Run("bin in root", func(t *testing.T) {
-		dir := testutil.TmpDir(t)
+		dir := t.TempDir()
 		servePath := testutil.DownloadablesPath("fooinroot.tar.gz")
 		ts := testutil.ServeFile(t, servePath, "/foo/fooinroot.tar.gz", "")
 		depURL := ts.URL + "/foo/fooinroot.tar.gz"
@@ -260,7 +260,7 @@ func TestConfig_InstallDependency(t *testing.T) {
 	})
 
 	t.Run("wrong checksum", func(t *testing.T) {
-		dir := testutil.TmpDir(t)
+		dir := t.TempDir()
 		servePath := testutil.DownloadablesPath("fooinroot.tar.gz")
 		ts := testutil.ServeFile(t, servePath, "/foo/fooinroot.tar.gz", "")
 		depURL := ts.URL + "/foo/fooinroot.tar.gz"

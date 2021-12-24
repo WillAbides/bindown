@@ -241,7 +241,7 @@ func TestInstall(t *testing.T) {
 func createConfigFile(t *testing.T, sourceFile string) string {
 	t.Helper()
 	sourceFile = testutil.ProjectPath("testdata", "configs", sourceFile)
-	dir := testutil.TmpDir(t)
+	dir := t.TempDir()
 	dest := filepath.Join(dir, "bindown.config")
 	err := util.CopyFile(sourceFile, dest, nil)
 	require.NoError(t, err)

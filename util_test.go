@@ -33,7 +33,7 @@ func TestExecuteTemplate(t *testing.T) {
 
 func Test_fileExistsWithChecksum(t *testing.T) {
 	t.Run("exists", func(t *testing.T) {
-		file := filepath.Join(testutil.TmpDir(t), "myfile")
+		file := filepath.Join(t.TempDir(), "myfile")
 		require.NoError(t, util.CopyFile(testutil.DownloadablesPath("foo.tar.gz"), file, nil))
 		got, err := FileExistsWithChecksum(file, testutil.FooChecksum)
 		require.NoError(t, err)
@@ -41,7 +41,7 @@ func Test_fileExistsWithChecksum(t *testing.T) {
 	})
 
 	t.Run("wrong checksum", func(t *testing.T) {
-		file := filepath.Join(testutil.TmpDir(t), "myfile")
+		file := filepath.Join(t.TempDir(), "myfile")
 		checksum := "0000000000000000000000000000000000000000000000000000000000000000"
 		require.NoError(t, util.CopyFile(testutil.DownloadablesPath("foo.tar.gz"), file, nil))
 		got, err := FileExistsWithChecksum(file, checksum)
@@ -50,7 +50,7 @@ func Test_fileExistsWithChecksum(t *testing.T) {
 	})
 
 	t.Run("doesn't exist", func(t *testing.T) {
-		file := filepath.Join(testutil.TmpDir(t), "myfile")
+		file := filepath.Join(t.TempDir(), "myfile")
 		got, err := FileExistsWithChecksum(file, testutil.FooChecksum)
 		require.NoError(t, err)
 		require.False(t, got)
@@ -59,7 +59,7 @@ func Test_fileExistsWithChecksum(t *testing.T) {
 
 func Test_fileChecksum(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
-		file := filepath.Join(testutil.TmpDir(t), "myfile")
+		file := filepath.Join(t.TempDir(), "myfile")
 		require.NoError(t, util.CopyFile(testutil.DownloadablesPath("foo.tar.gz"), file, nil))
 		got, err := FileChecksum(file)
 		require.NoError(t, err)
@@ -67,7 +67,7 @@ func Test_fileChecksum(t *testing.T) {
 	})
 
 	t.Run("doesn't exist", func(t *testing.T) {
-		file := filepath.Join(testutil.TmpDir(t), "myfile")
+		file := filepath.Join(t.TempDir(), "myfile")
 		got, err := FileChecksum(file)
 		require.Error(t, err)
 		require.Empty(t, got)

@@ -9,7 +9,6 @@ import (
 	"github.com/alecthomas/kong"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/willabides/bindown/v3/internal/testutil"
 )
 
 func Test_findConfigFileForCompletion(t *testing.T) {
@@ -20,13 +19,17 @@ func Test_findConfigFileForCompletion(t *testing.T) {
 		})
 
 		t.Run("exists", func(t *testing.T) {
-			dir := testutil.TmpDir(t)
+			dir := t.TempDir()
 			configFile := filepath.Join(dir, "bindown.yml")
 			err := os.WriteFile(configFile, nil, 0o600)
 			require.NoError(t, err)
-			testutil.ChDir(t, dir)
+			want, err := os.ReadFile(configFile)
+			require.NoError(t, err)
+			require.NoError(t, os.Chdir(dir))
 			got := findConfigFileForCompletion([]string{})
-			assert.Equal(t, configFile, got)
+			gotContent, err := os.ReadFile(got)
+			require.NoError(t, err)
+			assert.Equal(t, string(want), string(gotContent))
 		})
 	})
 
@@ -59,11 +62,11 @@ func Test_completionConfig(t *testing.T) {
 	})
 
 	t.Run("empty config file", func(t *testing.T) {
-		dir := testutil.TmpDir(t)
+		dir := t.TempDir()
 		configFile := filepath.Join(dir, "bindown.yml")
 		err := os.WriteFile(configFile, []byte("no valid yaml here"), 0o600)
 		require.NoError(t, err)
-		testutil.ChDir(t, dir)
+		require.NoError(t, os.Chdir(dir))
 		got := completionConfig(nil)
 		assert.Nil(t, got)
 	})

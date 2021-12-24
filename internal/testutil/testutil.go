@@ -1,17 +1,11 @@
 package testutil
 
 import (
-	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"path/filepath"
 	"runtime"
 	"testing"
-
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-	"github.com/udhos/equalfile"
 )
 
 // FooChecksum is the checksum of downloadablesPath("foo.tar.gz")
@@ -33,32 +27,6 @@ func ProjectPath(path ...string) string {
 	return filepath.Join(ProjectRoot(), filepath.Join(path...))
 }
 
-// TmpDir returns the path to a newly created tmp dir and a function for deleting that dir
-func TmpDir(t *testing.T) string {
-	t.Helper()
-	projectTmp := ProjectPath("tmp")
-	err := os.MkdirAll(projectTmp, 0o750)
-	require.NoError(t, err)
-	tmpdir, err := ioutil.TempDir(projectTmp, "")
-	require.NoError(t, err)
-	t.Cleanup(func() {
-		require.NoError(t, os.RemoveAll(tmpdir))
-	})
-	return tmpdir
-}
-
-// ChDir changes the working directory for the duration of the test
-func ChDir(t *testing.T, dir string) {
-	t.Helper()
-	wd, err := os.Getwd()
-	require.NoError(t, err)
-	require.NoError(t, os.Chdir(dir))
-	t.Cleanup(func() {
-		t.Helper()
-		require.NoError(t, os.Chdir(wd))
-	})
-}
-
 // ServeFile starts an http server
 func ServeFile(t *testing.T, file, path, query string) *httptest.Server {
 	t.Helper()
@@ -74,13 +42,4 @@ func ServeFile(t *testing.T, file, path, query string) *httptest.Server {
 	ts := httptest.NewServer(mux)
 	t.Cleanup(ts.Close)
 	return ts
-}
-
-// AssertEqualFiles asserts two files are equal
-func AssertEqualFiles(t testing.TB, want, actual string) bool {
-	t.Helper()
-	cmp := equalfile.New(nil, equalfile.Options{})
-	equal, err := cmp.CompareFile(want, actual)
-	assert.NoError(t, err)
-	return assert.True(t, equal)
 }

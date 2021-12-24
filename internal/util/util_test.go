@@ -6,12 +6,11 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"github.com/willabides/bindown/v3/internal/testutil"
 )
 
 func TestCopyFile(t *testing.T) {
 	t.Run("doesn't exist", func(t *testing.T) {
-		dir := testutil.TmpDir(t)
+		dir := t.TempDir()
 		src := filepath.Join(dir, "file1")
 		dst := filepath.Join(dir, "file2")
 		err := CopyFile(src, dst, nil)
@@ -19,7 +18,7 @@ func TestCopyFile(t *testing.T) {
 	})
 
 	t.Run("directory", func(t *testing.T) {
-		dir := testutil.TmpDir(t)
+		dir := t.TempDir()
 		src := filepath.Join(dir, "file1")
 		dst := filepath.Join(dir, "file2")
 		err := os.Mkdir(src, 0o750)
@@ -29,7 +28,7 @@ func TestCopyFile(t *testing.T) {
 	})
 
 	t.Run("copies", func(t *testing.T) {
-		dir := testutil.TmpDir(t)
+		dir := t.TempDir()
 		src := filepath.Join(dir, "file1")
 		dst := filepath.Join(dir, "file2")
 		content := []byte("foo")
@@ -43,7 +42,7 @@ func TestCopyFile(t *testing.T) {
 	})
 
 	t.Run("dst directory doesn't exist", func(t *testing.T) {
-		dir := testutil.TmpDir(t)
+		dir := t.TempDir()
 		src := filepath.Join(dir, "file1")
 		dst := filepath.Join(dir, "dst", "file2")
 		content := []byte("foo")
@@ -53,7 +52,7 @@ func TestCopyFile(t *testing.T) {
 	})
 
 	t.Run("overwrite", func(t *testing.T) {
-		dir := testutil.TmpDir(t)
+		dir := t.TempDir()
 		src := filepath.Join(dir, "file1")
 		dst := filepath.Join(dir, "file2")
 		content := []byte("foo")

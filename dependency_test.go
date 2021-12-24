@@ -22,7 +22,7 @@ func requireEqualDependency(t *testing.T, want, got *Dependency) {
 }
 
 func Test_extract(t *testing.T) {
-	dir := testutil.TmpDir(t)
+	dir := t.TempDir()
 	downloadDir := filepath.Join(dir, "download")
 	extractDir := filepath.Join(dir, "extract")
 	require.NoError(t, os.MkdirAll(downloadDir, 0o750))
@@ -34,7 +34,7 @@ func Test_extract(t *testing.T) {
 }
 
 func Test_copyBin(t *testing.T) {
-	dir := testutil.TmpDir(t)
+	dir := t.TempDir()
 	extractDir := filepath.Join(dir, ".bindown", "extracts", "deadbeef")
 	binName := "bleep"
 	require.NoError(t, os.MkdirAll(extractDir, 0o750))
@@ -43,11 +43,15 @@ func Test_copyBin(t *testing.T) {
 	target := filepath.Join(dir, "bin", "foo")
 	err = copyBin(target, extractDir, "", binName)
 	require.NoError(t, err)
-	testutil.AssertEqualFiles(t, filepath.Join(extractDir, binName), target)
+	wantContent, err := os.ReadFile(filepath.Join(extractDir, binName))
+	require.NoError(t, err)
+	gotContent, err := os.ReadFile(target)
+	require.NoError(t, err)
+	require.Equal(t, string(wantContent), string(gotContent))
 }
 
 func Test_linkBin(t *testing.T) {
-	dir := testutil.TmpDir(t)
+	dir := t.TempDir()
 	extractDir := filepath.Join(dir, ".bindown", "extracts", "deadbeef")
 	binName := "bleep"
 	require.NoError(t, os.MkdirAll(extractDir, 0o750))
@@ -56,20 +60,28 @@ func Test_linkBin(t *testing.T) {
 	target := filepath.Join(dir, "bin", "foo")
 	err = linkBin(target, extractDir, "", binName)
 	require.NoError(t, err)
-	testutil.AssertEqualFiles(t, filepath.Join(extractDir, binName), target)
+	wantContent, err := os.ReadFile(filepath.Join(extractDir, binName))
+	require.NoError(t, err)
+	gotContent, err := os.ReadFile(target)
+	require.NoError(t, err)
+	require.Equal(t, string(wantContent), string(gotContent))
 }
 
 func Test_downloadFile(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
-		dir := testutil.TmpDir(t)
+		dir := t.TempDir()
 		ts := testutil.ServeFile(t, testutil.DownloadablesPath("foo.tar.gz"), "/foo/foo.tar.gz", "")
 		err := downloadFile(filepath.Join(dir, "bar.tar.gz"), ts.URL+"/foo/foo.tar.gz")
 		assert.NoError(t, err)
-		testutil.AssertEqualFiles(t, testutil.DownloadablesPath("foo.tar.gz"), filepath.Join(dir, "bar.tar.gz"))
+		wantContent, err := os.ReadFile(testutil.DownloadablesPath("foo.tar.gz"))
+		require.NoError(t, err)
+		gotContent, err := os.ReadFile(filepath.Join(dir, "bar.tar.gz"))
+		require.NoError(t, err)
+		require.Equal(t, string(wantContent), string(gotContent))
 	})
 
 	t.Run("404", func(t *testing.T) {
-		dir := testutil.TmpDir(t)
+		dir := t.TempDir()
 		ts := testutil.ServeFile(t, testutil.DownloadablesPath("foo.tar.gz"), "/foo/foo.tar.gz", "")
 		err := downloadFile(filepath.Join(dir, "bar.tar.gz"), ts.URL+"/wrongpath")
 		assert.Error(t, err)
