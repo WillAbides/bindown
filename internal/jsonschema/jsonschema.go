@@ -1,6 +1,7 @@
 package jsonschema
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"sort"
@@ -14,12 +15,12 @@ import (
 
 //go:generate go-bindata -nometadata -pkg schemafiles -o schemafiles/schemafiles.go ../../bindown.schema.json
 
-var jsonSchema *jsonschema.RootSchema
+var jsonSchema *jsonschema.Schema
 
 func init() {
 	schemaData, err := schemafiles.Asset("../../bindown.schema.json")
 	util.Must(err)
-	jsonSchema = new(jsonschema.RootSchema)
+	jsonSchema = new(jsonschema.Schema)
 	util.Must(json.Unmarshal(schemaData, jsonSchema))
 }
 
@@ -29,7 +30,7 @@ func ValidateConfig(cfg []byte) error {
 	if err != nil {
 		return fmt.Errorf("config is not valid yaml (or json)")
 	}
-	validationErrs, err := jsonSchema.ValidateBytes(cfgJSON)
+	validationErrs, err := jsonSchema.ValidateBytes(context.TODO(), cfgJSON)
 	if err != nil {
 		return fmt.Errorf("unexpected error running jsonSchema.ValidateBytes: %v", err)
 	}

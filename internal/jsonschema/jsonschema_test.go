@@ -36,7 +36,7 @@ func TestValidateConfig(t *testing.T) {
 		cfg := []byte("")
 		err := ValidateConfig(cfg)
 		assertValidationErr(t, []string{
-			`/: type should be object`,
+			`/: type should be object, got null`,
 		}, err)
 	})
 
@@ -53,8 +53,8 @@ url_checksums:
   bar: []
 `)
 		wantErrs := []string{
-			`/dependencies/golangci-lint: "surprise string" type should be object`,
-			`/url_checksums/bar: [] type should be string`,
+			`/dependencies/golangci-lint: "surprise string" type should be object, got string`,
+			`/url_checksums/bar: [] type should be string, got array`,
 		}
 		err := ValidateConfig(cfg)
 		assertValidationErr(t, wantErrs, err)
@@ -80,8 +80,8 @@ url_checksums:
   }
 }`)
 		wantErrs := []string{
-			`/dependencies/golangci-lint: "surprise string" type should be object`,
-			`/url_checksums/bar: [] type should be string`,
+			`/dependencies/golangci-lint: "surprise string" type should be object, got string`,
+			`/url_checksums/bar: [] type should be string, got array`,
 		}
 		err := ValidateConfig(cfg)
 		assertValidationErr(t, wantErrs, err)
