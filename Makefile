@@ -41,11 +41,6 @@ bin/gofumpt: bin/bindown
 	bin/bindown install $(notdir $@)
 bins += bin/bindown
 
-bin/go-bindata: Makefile
-	GOBIN=${CURDIR}/bin \
-	go install github.com/go-bindata/go-bindata/v3/go-bindata@v3.1.3
-bins += bin/go-bindata
-
 HANDCRAFTED_REV := 082e94edadf89c33db0afb48889c8419a2cb46a9
 bin/handcrafted: Makefile
 	GOBIN=${CURDIR}/bin \
