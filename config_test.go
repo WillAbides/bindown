@@ -8,7 +8,6 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/willabides/bindown/v3/internal/testutil"
-	"github.com/willabides/bindown/v3/internal/util"
 	"gopkg.in/yaml.v2"
 )
 
@@ -204,7 +203,7 @@ func TestConfig_InstallDependency(t *testing.T) {
 		ts := testutil.ServeFile(t, servePath, "/foo/foo", "")
 		depURL := ts.URL + "/foo/foo"
 		binDir := filepath.Join(dir, "bin")
-		util.Must(os.MkdirAll(binDir, 0o755))
+		require.NoError(t, os.MkdirAll(binDir, 0o755))
 		cacheDir := filepath.Join(dir, ".bindown")
 		config := &Config{
 			InstallDir: binDir,
@@ -222,7 +221,7 @@ func TestConfig_InstallDependency(t *testing.T) {
 		gotPath, err := config.InstallDependency("foo", newSystemInfo("darwin", "amd64"), &ConfigInstallDependencyOpts{})
 		require.NoError(t, err)
 		require.Equal(t, wantBin, gotPath)
-		require.True(t, util.FileExists(wantBin))
+		require.True(t, FileExists(wantBin))
 		stat, err := os.Stat(wantBin)
 		require.NoError(t, err)
 		require.False(t, stat.IsDir())
@@ -235,7 +234,7 @@ func TestConfig_InstallDependency(t *testing.T) {
 		ts := testutil.ServeFile(t, servePath, "/foo/fooinroot.tar.gz", "")
 		depURL := ts.URL + "/foo/fooinroot.tar.gz"
 		binDir := filepath.Join(dir, "bin")
-		util.Must(os.MkdirAll(binDir, 0o755))
+		require.NoError(t, os.MkdirAll(binDir, 0o755))
 		cacheDir := filepath.Join(dir, ".bindown")
 		config := &Config{
 			InstallDir: binDir,
@@ -253,7 +252,7 @@ func TestConfig_InstallDependency(t *testing.T) {
 		gotPath, err := config.InstallDependency("foo", newSystemInfo("darwin", "amd64"), &ConfigInstallDependencyOpts{})
 		require.NoError(t, err)
 		require.Equal(t, wantBin, gotPath)
-		require.True(t, util.FileExists(wantBin))
+		require.True(t, FileExists(wantBin))
 		stat, err := os.Stat(wantBin)
 		require.NoError(t, err)
 		require.False(t, stat.IsDir())
@@ -266,7 +265,7 @@ func TestConfig_InstallDependency(t *testing.T) {
 		ts := testutil.ServeFile(t, servePath, "/foo/fooinroot.tar.gz", "")
 		depURL := ts.URL + "/foo/fooinroot.tar.gz"
 		binDir := filepath.Join(dir, "bin")
-		util.Must(os.MkdirAll(binDir, 0o755))
+		require.NoError(t, os.MkdirAll(binDir, 0o755))
 		cacheDir := filepath.Join(dir, ".bindown")
 		config := &Config{
 			InstallDir: binDir,
@@ -283,7 +282,7 @@ func TestConfig_InstallDependency(t *testing.T) {
 		wantBin := filepath.Join(binDir, "foo")
 		_, err := config.InstallDependency("foo", newSystemInfo("darwin", "amd64"), &ConfigInstallDependencyOpts{})
 		require.Error(t, err)
-		require.False(t, util.FileExists(wantBin))
+		require.False(t, FileExists(wantBin))
 	})
 }
 
