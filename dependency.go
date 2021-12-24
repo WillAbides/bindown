@@ -3,7 +3,6 @@ package bindown
 import (
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
@@ -431,7 +430,7 @@ func extract(archivePath, extractDir string) error {
 
 // getURLChecksum returns the checksum of what is returned from this url
 func getURLChecksum(dlURL string) (string, error) {
-	downloadDir, err := ioutil.TempDir("", "bindown")
+	downloadDir, err := os.MkdirTemp("", "bindown")
 	if err != nil {
 		return "", err
 	}

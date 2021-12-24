@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"hash/fnv"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"os"
@@ -260,11 +259,11 @@ func (c *Config) Validate(dependencies []string, systems []SystemInfo) error {
 	if len(dependencies) == 0 {
 		dependencies = c.allDependencyNames()
 	}
-	tmpCacheDir, err := ioutil.TempDir("", "bindown-cache")
+	tmpCacheDir, err := os.MkdirTemp("", "bindown-cache")
 	if err != nil {
 		return err
 	}
-	tmpBinDir, err := ioutil.TempDir("", "bindown-bin")
+	tmpBinDir, err := os.MkdirTemp("", "bindown-bin")
 	if err != nil {
 		return err
 	}
