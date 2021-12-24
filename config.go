@@ -14,7 +14,6 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/willabides/bindown/v3/internal/jsonschema"
 	"github.com/willabides/bindown/v3/internal/util"
 	"gopkg.in/yaml.v2"
 )
@@ -648,7 +647,7 @@ func configFromHTTP(src string) (*Config, error) {
 }
 
 func configFromYAML(data []byte) (*Config, error) {
-	err := jsonschema.ValidateConfig(data)
+	err := validateConfig(data)
 	if err != nil {
 		return nil, err
 	}

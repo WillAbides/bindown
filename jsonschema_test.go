@@ -1,4 +1,4 @@
-package jsonschema
+package bindown
 
 import (
 	"fmt"
@@ -20,7 +20,7 @@ func assertValidationErr(t *testing.T, want []string, got error) {
 func TestValidateConfig(t *testing.T) {
 	t.Run("valid yaml", func(t *testing.T) {
 		cfg := testutil.MustReadFile(t, testutil.ProjectPath("testdata", "configs", "ex1.yaml"))
-		err := ValidateConfig(cfg)
+		err := validateConfig(cfg)
 		require.NoError(t, err)
 	})
 
@@ -28,13 +28,13 @@ func TestValidateConfig(t *testing.T) {
 		cfg := testutil.MustReadFile(t, testutil.ProjectPath("testdata", "configs", "ex1.yaml"))
 		cfg, err := yaml.YAMLToJSON(cfg)
 		require.NoError(t, err)
-		err = ValidateConfig(cfg)
+		err = validateConfig(cfg)
 		require.NoError(t, err)
 	})
 
 	t.Run("empty", func(t *testing.T) {
 		cfg := []byte("")
-		err := ValidateConfig(cfg)
+		err := validateConfig(cfg)
 		assertValidationErr(t, []string{
 			`/: type should be object, got null`,
 		}, err)
@@ -56,7 +56,7 @@ url_checksums:
 			`/dependencies/golangci-lint: "surprise string" type should be object, got string`,
 			`/url_checksums/bar: [] type should be string, got array`,
 		}
-		err := ValidateConfig(cfg)
+		err := validateConfig(cfg)
 		assertValidationErr(t, wantErrs, err)
 	})
 
@@ -83,7 +83,7 @@ url_checksums:
 			`/dependencies/golangci-lint: "surprise string" type should be object, got string`,
 			`/url_checksums/bar: [] type should be string, got array`,
 		}
-		err := ValidateConfig(cfg)
+		err := validateConfig(cfg)
 		assertValidationErr(t, wantErrs, err)
 	})
 }
