@@ -2,6 +2,7 @@ package bindown
 
 import (
 	"fmt"
+	"os"
 	"strings"
 	"testing"
 
@@ -19,14 +20,16 @@ func assertValidationErr(t *testing.T, want []string, got error) {
 
 func TestValidateConfig(t *testing.T) {
 	t.Run("valid yaml", func(t *testing.T) {
-		cfg := testutil.MustReadFile(t, testutil.ProjectPath("testdata", "configs", "ex1.yaml"))
-		err := validateConfig(cfg)
+		cfg, err := os.ReadFile(testutil.ProjectPath("testdata", "configs", "ex1.yaml"))
+		require.NoError(t, err)
+		err = validateConfig(cfg)
 		require.NoError(t, err)
 	})
 
 	t.Run("valid json", func(t *testing.T) {
-		cfg := testutil.MustReadFile(t, testutil.ProjectPath("testdata", "configs", "ex1.yaml"))
-		cfg, err := yaml.YAMLToJSON(cfg)
+		cfgContent, err := os.ReadFile(testutil.ProjectPath("testdata", "configs", "ex1.yaml"))
+		require.NoError(t, err)
+		cfg, err := yaml.YAMLToJSON(cfgContent)
 		require.NoError(t, err)
 		err = validateConfig(cfg)
 		require.NoError(t, err)

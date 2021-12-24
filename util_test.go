@@ -3,6 +3,7 @@ package bindown
 import (
 	"crypto/sha256"
 	"hash/fnv"
+	"os"
 	"path/filepath"
 	"testing"
 
@@ -80,7 +81,8 @@ func Test_hexHash(t *testing.T) {
 	got, err = HexHash(fnv.New64a(), []byte("foo"), []byte("bar"))
 	require.NoError(t, err)
 	require.Equal(t, "85944171f73967e8", got)
-	content := testutil.MustReadFile(t, testutil.DownloadablesPath("foo.tar.gz"))
+	content, err := os.ReadFile(testutil.DownloadablesPath("foo.tar.gz"))
+	require.NoError(t, err)
 	got, err = HexHash(sha256.New(), content)
 	require.NoError(t, err)
 	require.Equal(t, testutil.FooChecksum, got)

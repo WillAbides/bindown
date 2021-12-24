@@ -5,7 +5,6 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/willabides/bindown/v3/internal/testutil"
 )
@@ -34,11 +33,13 @@ func TestCopyFile(t *testing.T) {
 		src := filepath.Join(dir, "file1")
 		dst := filepath.Join(dir, "file2")
 		content := []byte("foo")
-		testutil.MustWriteFile(t, src, content)
+		require.NoError(t, os.WriteFile(src, content, 0o600))
 		err := CopyFile(src, dst, nil)
 		require.NoError(t, err)
-		got := testutil.MustReadFile(t, dst)
-		assert.Equal(t, content, got)
+
+		got, err := os.ReadFile(dst)
+		require.NoError(t, err)
+		require.Equal(t, content, got)
 	})
 
 	t.Run("dst directory doesn't exist", func(t *testing.T) {
@@ -46,7 +47,7 @@ func TestCopyFile(t *testing.T) {
 		src := filepath.Join(dir, "file1")
 		dst := filepath.Join(dir, "dst", "file2")
 		content := []byte("foo")
-		testutil.MustWriteFile(t, src, content)
+		require.NoError(t, os.WriteFile(src, content, 0o600))
 		err := CopyFile(src, dst, nil)
 		require.Error(t, err)
 	})
@@ -56,11 +57,12 @@ func TestCopyFile(t *testing.T) {
 		src := filepath.Join(dir, "file1")
 		dst := filepath.Join(dir, "file2")
 		content := []byte("foo")
-		testutil.MustWriteFile(t, src, content)
-		testutil.MustWriteFile(t, dst, []byte("bar"))
+		require.NoError(t, os.WriteFile(src, content, 0o600))
+		require.NoError(t, os.WriteFile(dst, []byte("bar"), 0o600))
 		err := CopyFile(src, dst, nil)
 		require.NoError(t, err)
-		got := testutil.MustReadFile(t, dst)
+		got, err := os.ReadFile(dst)
+		require.NoError(t, err)
 		require.Equal(t, content, got)
 	})
 }
