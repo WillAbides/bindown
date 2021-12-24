@@ -9,7 +9,6 @@ require (
 	github.com/mholt/archiver/v3 v3.5.1
 	github.com/qri-io/jsonschema v0.2.1
 	github.com/stretchr/testify v1.7.0
-	github.com/udhos/equalfile v0.3.0
 	gopkg.in/yaml.v2 v2.4.0
 )
 

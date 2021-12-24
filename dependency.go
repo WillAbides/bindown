@@ -3,7 +3,6 @@ package bindown
 import (
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
@@ -11,7 +10,6 @@ import (
 	"strings"
 
 	"github.com/mholt/archiver/v3"
-	"github.com/willabides/bindown/v3/internal/util"
 )
 
 // DependencyOverride overrides a dependency's configuration
@@ -82,7 +80,7 @@ func cloneSubstitutions(subs map[string]map[string]string) map[string]map[string
 	}
 	result := make(map[string]map[string]string, len(subs))
 	for k, v := range subs {
-		result[k] = util.CopyStringMap(v)
+		result[k] = copyStringMap(v)
 	}
 	return result
 }
@@ -91,7 +89,7 @@ func varsWithSubstitutions(vars map[string]string, subs map[string]map[string]st
 	if vars == nil || subs == nil {
 		return vars
 	}
-	vars = util.CopyStringMap(vars)
+	vars = copyStringMap(vars)
 	for key, val := range vars {
 		varSubs := subs[key]
 		if varSubs == nil {
@@ -109,7 +107,7 @@ func varsWithSubstitutions(vars map[string]string, subs map[string]map[string]st
 func (d *Dependency) clone() *Dependency {
 	dep := *d
 	if d.Vars != nil {
-		dep.Vars = util.CopyStringMap(d.Vars)
+		dep.Vars = copyStringMap(d.Vars)
 	}
 	if d.URL != nil {
 		val := *d.URL
@@ -144,7 +142,7 @@ func (d *Dependency) clone() *Dependency {
 // interpolateVars executes go templates in values
 func (d *Dependency) interpolateVars(system SystemInfo) error {
 	interpolate := func(tmpl string) (string, error) {
-		return util.ExecuteTemplate(tmpl, system.OS, system.Arch, d.Vars)
+		return executeTemplate(tmpl, system.OS, system.Arch, d.Vars)
 	}
 	if d.URL != nil {
 		val, err := interpolate(*d.URL)
@@ -305,7 +303,7 @@ func linkBin(target, extractDir, archivePath, binName string) error {
 		archivePath = filepath.FromSlash(binName)
 	}
 	var err error
-	if util.FileExists(target) {
+	if fileExists(target) {
 		err = os.RemoveAll(target)
 		if err != nil {
 			return err
@@ -358,7 +356,7 @@ func copyBin(target, extractDir, archivePath, binName string) error {
 		archivePath = filepath.FromSlash(binName)
 	}
 	var err error
-	if util.FileExists(target) {
+	if fileExists(target) {
 		err = os.RemoveAll(target)
 		if err != nil {
 			return err
@@ -373,7 +371,7 @@ func copyBin(target, extractDir, archivePath, binName string) error {
 	if err != nil {
 		return err
 	}
-	err = util.CopyFile(extractedBin, target, nil)
+	err = copyFile(extractedBin, target, nil)
 	if err != nil {
 		return err
 	}
@@ -399,7 +397,7 @@ func extract(archivePath, extractDir string) error {
 
 	if wantSum, sumErr := os.ReadFile(extractSumFile); sumErr == nil {
 		var exs string
-		exs, sumErr = util.DirectoryChecksum(extractDir)
+		exs, sumErr = directoryChecksum(extractDir)
 		if sumErr == nil && exs == strings.TrimSpace(string(wantSum)) {
 			return nil
 		}
@@ -416,13 +414,13 @@ func extract(archivePath, extractDir string) error {
 	tarPath := filepath.Join(downloadDir, dlName)
 	_, err = archiver.ByExtension(dlName)
 	if err != nil {
-		return util.CopyFile(tarPath, filepath.Join(extractDir, dlName), logCloseErr)
+		return copyFile(tarPath, filepath.Join(extractDir, dlName), logCloseErr)
 	}
 	err = archiver.Unarchive(tarPath, extractDir)
 	if err != nil {
 		return err
 	}
-	extractSum, err := util.DirectoryChecksum(extractDir)
+	extractSum, err := directoryChecksum(extractDir)
 	if err != nil {
 		return err
 	}
@@ -432,7 +430,7 @@ func extract(archivePath, extractDir string) error {
 
 // getURLChecksum returns the checksum of what is returned from this url
 func getURLChecksum(dlURL string) (string, error) {
-	downloadDir, err := ioutil.TempDir("", "bindown")
+	downloadDir, err := os.MkdirTemp("", "bindown")
 	if err != nil {
 		return "", err
 	}
@@ -442,7 +440,7 @@ func getURLChecksum(dlURL string) (string, error) {
 		_ = os.RemoveAll(downloadDir) //nolint:errcheck // we already have an error to report
 		return "", err
 	}
-	sum, err := util.FileChecksum(dlPath)
+	sum, err := fileChecksum(dlPath)
 	cleanupErr := os.RemoveAll(downloadDir)
 	if err == nil {
 		err = cleanupErr
@@ -480,7 +478,7 @@ func download(dlURL, outputPath, checksum string, force bool) error {
 			return err
 		}
 	}
-	ok, err := util.FileExistsWithChecksum(outputPath, checksum)
+	ok, err := fileExistsWithChecksum(outputPath, checksum)
 	if err != nil {
 		return err
 	}
@@ -495,7 +493,7 @@ func download(dlURL, outputPath, checksum string, force bool) error {
 }
 
 func validateFileChecksum(filename, checksum string) error {
-	result, err := util.FileChecksum(filename)
+	result, err := fileChecksum(filename)
 	if err != nil {
 		return err
 	}

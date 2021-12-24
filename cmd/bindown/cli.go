@@ -1,4 +1,4 @@
-package cli
+package main
 
 import (
 	"bufio"
@@ -8,7 +8,7 @@ import (
 
 	"github.com/alecthomas/kong"
 	"github.com/willabides/bindown/v3"
-	"github.com/willabides/bindown/v3/internal/cli/ifaces"
+	"github.com/willabides/bindown/v3/cmd/bindown/ifaces"
 )
 
 //go:generate mockgen -source ifaces/ifaces.go -destination mocks/$GOFILE -package mocks
