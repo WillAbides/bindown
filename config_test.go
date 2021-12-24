@@ -221,7 +221,7 @@ func TestConfig_InstallDependency(t *testing.T) {
 		gotPath, err := config.InstallDependency("foo", newSystemInfo("darwin", "amd64"), &ConfigInstallDependencyOpts{})
 		require.NoError(t, err)
 		require.Equal(t, wantBin, gotPath)
-		require.True(t, FileExists(wantBin))
+		require.True(t, fileExists(wantBin))
 		stat, err := os.Stat(wantBin)
 		require.NoError(t, err)
 		require.False(t, stat.IsDir())
@@ -252,7 +252,7 @@ func TestConfig_InstallDependency(t *testing.T) {
 		gotPath, err := config.InstallDependency("foo", newSystemInfo("darwin", "amd64"), &ConfigInstallDependencyOpts{})
 		require.NoError(t, err)
 		require.Equal(t, wantBin, gotPath)
-		require.True(t, FileExists(wantBin))
+		require.True(t, fileExists(wantBin))
 		stat, err := os.Stat(wantBin)
 		require.NoError(t, err)
 		require.False(t, stat.IsDir())
@@ -282,7 +282,7 @@ func TestConfig_InstallDependency(t *testing.T) {
 		wantBin := filepath.Join(binDir, "foo")
 		_, err := config.InstallDependency("foo", newSystemInfo("darwin", "amd64"), &ConfigInstallDependencyOpts{})
 		require.Error(t, err)
-		require.False(t, FileExists(wantBin))
+		require.False(t, fileExists(wantBin))
 	})
 }
 

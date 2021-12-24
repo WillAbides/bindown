@@ -14,8 +14,8 @@ import (
 	"text/template"
 )
 
-// CopyStringMap returns a copy of mp
-func CopyStringMap(mp map[string]string) map[string]string {
+// copyStringMap returns a copy of mp
+func copyStringMap(mp map[string]string) map[string]string {
 	result := make(map[string]string, len(mp))
 	for k, v := range mp {
 		result[k] = v
@@ -32,9 +32,9 @@ func setStringMapDefault(mp map[string]string, key, val string) {
 	mp[key] = val
 }
 
-// ExecuteTemplate executes a template
-func ExecuteTemplate(tmplString, goos, arch string, vars map[string]string) (string, error) {
-	vars = CopyStringMap(vars)
+// executeTemplate executes a template
+func executeTemplate(tmplString, goos, arch string, vars map[string]string) (string, error) {
+	vars = copyStringMap(vars)
 	setStringMapDefault(vars, "os", goos)
 	setStringMapDefault(vars, "arch", arch)
 	tmpl, err := template.New("").Option("missingkey=error").Parse(tmplString)
@@ -50,8 +50,8 @@ func ExecuteTemplate(tmplString, goos, arch string, vars map[string]string) (str
 	return buf.String(), nil
 }
 
-// DirectoryChecksum returns a hash of directory contents.
-func DirectoryChecksum(inputDir string) (string, error) {
+// directoryChecksum returns a hash of directory contents.
+func directoryChecksum(inputDir string) (string, error) {
 	hasher := fnv.New64a()
 	err := filepath.Walk(inputDir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
@@ -101,9 +101,9 @@ func DirectoryChecksum(inputDir string) (string, error) {
 	return hex.EncodeToString(hasher.Sum(nil)), nil
 }
 
-// HexHash returns a hex representation of data's hash
+// hexHash returns a hex representation of data's hash
 // This will only return non-nil error if given a hasher that can return a non-nil error from Write()
-func HexHash(hasher hash.Hash, data ...[]byte) (string, error) {
+func hexHash(hasher hash.Hash, data ...[]byte) (string, error) {
 	hasher.Reset()
 	for _, datum := range data {
 		_, err := hasher.Write(datum)
@@ -114,29 +114,29 @@ func HexHash(hasher hash.Hash, data ...[]byte) (string, error) {
 	return hex.EncodeToString(hasher.Sum(nil)), nil
 }
 
-// FileChecksum returns the hex checksum of a file
-func FileChecksum(filename string) (string, error) {
+// fileChecksum returns the hex checksum of a file
+func fileChecksum(filename string) (string, error) {
 	fileBytes, err := os.ReadFile(filename)
 	if err != nil {
 		return "", err
 	}
-	return HexHash(sha256.New(), fileBytes)
+	return hexHash(sha256.New(), fileBytes)
 }
 
-// FileExists asserts that a file exists
-func FileExists(path string) bool {
+// fileExists asserts that a file exists
+func fileExists(path string) bool {
 	if _, err := os.Stat(filepath.FromSlash(path)); !os.IsNotExist(err) {
 		return true
 	}
 	return false
 }
 
-// FileExistsWithChecksum returns true if the file both exists and has a matching checksum
-func FileExistsWithChecksum(filename, checksum string) (bool, error) {
-	if !FileExists(filename) {
+// fileExistsWithChecksum returns true if the file both exists and has a matching checksum
+func fileExistsWithChecksum(filename, checksum string) (bool, error) {
+	if !fileExists(filename) {
 		return false, nil
 	}
-	got, err := FileChecksum(filename)
+	got, err := fileChecksum(filename)
 	if err != nil {
 		return false, err
 	}

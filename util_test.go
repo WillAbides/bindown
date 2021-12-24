@@ -18,14 +18,14 @@ func TestExecuteTemplate(t *testing.T) {
 			"version": "1.2.3",
 		}
 		tmpl := `whatever-{{.version}}/mybin-{{.os}}-{{.arch}}`
-		got, err := ExecuteTemplate(tmpl, "Linux", "arm", vars)
+		got, err := executeTemplate(tmpl, "Linux", "arm", vars)
 		require.NoError(t, err)
 		require.Equal(t, "whatever-1.2.3/mybin-Linux-arm", got)
 	})
 
 	t.Run("nil vars", func(t *testing.T) {
 		tmpl := `whatever/mybin-{{.os}}-{{.arch}}`
-		got, err := ExecuteTemplate(tmpl, "Linux", "arm", nil)
+		got, err := executeTemplate(tmpl, "Linux", "arm", nil)
 		require.NoError(t, err)
 		require.Equal(t, "whatever/mybin-Linux-arm", got)
 	})
@@ -35,7 +35,7 @@ func Test_fileExistsWithChecksum(t *testing.T) {
 	t.Run("exists", func(t *testing.T) {
 		file := filepath.Join(t.TempDir(), "myfile")
 		require.NoError(t, util.CopyFile(testutil.DownloadablesPath("foo.tar.gz"), file, nil))
-		got, err := FileExistsWithChecksum(file, testutil.FooChecksum)
+		got, err := fileExistsWithChecksum(file, testutil.FooChecksum)
 		require.NoError(t, err)
 		require.True(t, got)
 	})
@@ -44,14 +44,14 @@ func Test_fileExistsWithChecksum(t *testing.T) {
 		file := filepath.Join(t.TempDir(), "myfile")
 		checksum := "0000000000000000000000000000000000000000000000000000000000000000"
 		require.NoError(t, util.CopyFile(testutil.DownloadablesPath("foo.tar.gz"), file, nil))
-		got, err := FileExistsWithChecksum(file, checksum)
+		got, err := fileExistsWithChecksum(file, checksum)
 		require.NoError(t, err)
 		require.False(t, got)
 	})
 
 	t.Run("doesn't exist", func(t *testing.T) {
 		file := filepath.Join(t.TempDir(), "myfile")
-		got, err := FileExistsWithChecksum(file, testutil.FooChecksum)
+		got, err := fileExistsWithChecksum(file, testutil.FooChecksum)
 		require.NoError(t, err)
 		require.False(t, got)
 	})
@@ -61,29 +61,29 @@ func Test_fileChecksum(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
 		file := filepath.Join(t.TempDir(), "myfile")
 		require.NoError(t, util.CopyFile(testutil.DownloadablesPath("foo.tar.gz"), file, nil))
-		got, err := FileChecksum(file)
+		got, err := fileChecksum(file)
 		require.NoError(t, err)
 		require.Equal(t, testutil.FooChecksum, got)
 	})
 
 	t.Run("doesn't exist", func(t *testing.T) {
 		file := filepath.Join(t.TempDir(), "myfile")
-		got, err := FileChecksum(file)
+		got, err := fileChecksum(file)
 		require.Error(t, err)
 		require.Empty(t, got)
 	})
 }
 
 func Test_hexHash(t *testing.T) {
-	got, err := HexHash(fnv.New64a(), []byte("foo"))
+	got, err := hexHash(fnv.New64a(), []byte("foo"))
 	require.NoError(t, err)
 	require.Equal(t, "dcb27518fed9d577", got)
-	got, err = HexHash(fnv.New64a(), []byte("foo"), []byte("bar"))
+	got, err = hexHash(fnv.New64a(), []byte("foo"), []byte("bar"))
 	require.NoError(t, err)
 	require.Equal(t, "85944171f73967e8", got)
 	content, err := os.ReadFile(testutil.DownloadablesPath("foo.tar.gz"))
 	require.NoError(t, err)
-	got, err = HexHash(sha256.New(), content)
+	got, err = hexHash(sha256.New(), content)
 	require.NoError(t, err)
 	require.Equal(t, testutil.FooChecksum, got)
 }

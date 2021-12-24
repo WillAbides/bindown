@@ -313,7 +313,7 @@ type ConfigDownloadDependencyOpts struct {
 
 // extractsCacheDir returns the cache directory for an extraction based on the download's checksum and dependency name
 func (c *Config) extractsCacheDir(dependencyName, checksum string) (string, error) {
-	hsh, err := HexHash(fnv.New64a(), []byte(checksum))
+	hsh, err := hexHash(fnv.New64a(), []byte(checksum))
 	if err != nil {
 		return "", err
 	}
@@ -322,7 +322,7 @@ func (c *Config) extractsCacheDir(dependencyName, checksum string) (string, erro
 
 // downloadCacheDir returns the cache directory for a file based on its checksum
 func (c *Config) downloadCacheDir(checksum string) (string, error) {
-	hsh, err := HexHash(fnv.New64a(), []byte(checksum))
+	hsh, err := hexHash(fnv.New64a(), []byte(checksum))
 	if err != nil {
 		return "", err
 	}
