@@ -8,8 +8,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"github.com/willabides/bindown/v3/internal/testutil"
-	"github.com/willabides/bindown/v3/internal/util"
 )
 
 func TestExecuteTemplate(t *testing.T) {
@@ -34,8 +32,8 @@ func TestExecuteTemplate(t *testing.T) {
 func Test_fileExistsWithChecksum(t *testing.T) {
 	t.Run("exists", func(t *testing.T) {
 		file := filepath.Join(t.TempDir(), "myfile")
-		require.NoError(t, util.CopyFile(testutil.DownloadablesPath("foo.tar.gz"), file, nil))
-		got, err := fileExistsWithChecksum(file, testutil.FooChecksum)
+		require.NoError(t, copyFile(filepath.Join("testdata", "downloadables", "foo.tar.gz"), file, nil))
+		got, err := fileExistsWithChecksum(file, fooChecksum)
 		require.NoError(t, err)
 		require.True(t, got)
 	})
@@ -43,7 +41,7 @@ func Test_fileExistsWithChecksum(t *testing.T) {
 	t.Run("wrong checksum", func(t *testing.T) {
 		file := filepath.Join(t.TempDir(), "myfile")
 		checksum := "0000000000000000000000000000000000000000000000000000000000000000"
-		require.NoError(t, util.CopyFile(testutil.DownloadablesPath("foo.tar.gz"), file, nil))
+		require.NoError(t, copyFile(filepath.Join("testdata", "downloadables", "foo.tar.gz"), file, nil))
 		got, err := fileExistsWithChecksum(file, checksum)
 		require.NoError(t, err)
 		require.False(t, got)
@@ -51,7 +49,7 @@ func Test_fileExistsWithChecksum(t *testing.T) {
 
 	t.Run("doesn't exist", func(t *testing.T) {
 		file := filepath.Join(t.TempDir(), "myfile")
-		got, err := fileExistsWithChecksum(file, testutil.FooChecksum)
+		got, err := fileExistsWithChecksum(file, fooChecksum)
 		require.NoError(t, err)
 		require.False(t, got)
 	})
@@ -60,10 +58,10 @@ func Test_fileExistsWithChecksum(t *testing.T) {
 func Test_fileChecksum(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
 		file := filepath.Join(t.TempDir(), "myfile")
-		require.NoError(t, util.CopyFile(testutil.DownloadablesPath("foo.tar.gz"), file, nil))
+		require.NoError(t, copyFile(filepath.Join("testdata", "downloadables", "foo.tar.gz"), file, nil))
 		got, err := fileChecksum(file)
 		require.NoError(t, err)
-		require.Equal(t, testutil.FooChecksum, got)
+		require.Equal(t, fooChecksum, got)
 	})
 
 	t.Run("doesn't exist", func(t *testing.T) {
@@ -81,9 +79,67 @@ func Test_hexHash(t *testing.T) {
 	got, err = hexHash(fnv.New64a(), []byte("foo"), []byte("bar"))
 	require.NoError(t, err)
 	require.Equal(t, "85944171f73967e8", got)
-	content, err := os.ReadFile(testutil.DownloadablesPath("foo.tar.gz"))
+	content, err := os.ReadFile(filepath.Join("testdata", "downloadables", "foo.tar.gz"))
 	require.NoError(t, err)
 	got, err = hexHash(sha256.New(), content)
 	require.NoError(t, err)
-	require.Equal(t, testutil.FooChecksum, got)
+	require.Equal(t, fooChecksum, got)
+}
+
+func Test_copyFile(t *testing.T) {
+	t.Run("doesn't exist", func(t *testing.T) {
+		dir := t.TempDir()
+		src := filepath.Join(dir, "file1")
+		dst := filepath.Join(dir, "file2")
+		err := copyFile(src, dst, nil)
+		require.Error(t, err)
+	})
+
+	t.Run("directory", func(t *testing.T) {
+		dir := t.TempDir()
+		src := filepath.Join(dir, "file1")
+		dst := filepath.Join(dir, "file2")
+		err := os.Mkdir(src, 0o750)
+		require.NoError(t, err)
+		err = copyFile(src, dst, nil)
+		require.Error(t, err)
+	})
+
+	t.Run("copies", func(t *testing.T) {
+		dir := t.TempDir()
+		src := filepath.Join(dir, "file1")
+		dst := filepath.Join(dir, "file2")
+		content := []byte("foo")
+		require.NoError(t, os.WriteFile(src, content, 0o600))
+		err := copyFile(src, dst, nil)
+		require.NoError(t, err)
+
+		got, err := os.ReadFile(dst)
+		require.NoError(t, err)
+		require.Equal(t, content, got)
+	})
+
+	t.Run("dst directory doesn't exist", func(t *testing.T) {
+		dir := t.TempDir()
+		src := filepath.Join(dir, "file1")
+		dst := filepath.Join(dir, "dst", "file2")
+		content := []byte("foo")
+		require.NoError(t, os.WriteFile(src, content, 0o600))
+		err := copyFile(src, dst, nil)
+		require.Error(t, err)
+	})
+
+	t.Run("overwrite", func(t *testing.T) {
+		dir := t.TempDir()
+		src := filepath.Join(dir, "file1")
+		dst := filepath.Join(dir, "file2")
+		content := []byte("foo")
+		require.NoError(t, os.WriteFile(src, content, 0o600))
+		require.NoError(t, os.WriteFile(dst, []byte("bar"), 0o600))
+		err := copyFile(src, dst, nil)
+		require.NoError(t, err)
+		got, err := os.ReadFile(dst)
+		require.NoError(t, err)
+		require.Equal(t, content, got)
+	})
 }

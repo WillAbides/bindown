@@ -5,10 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/willabides/bindown/v3/internal/testutil"
-	"github.com/willabides/bindown/v3/internal/util"
 )
 
 func requireEqualDependency(t *testing.T, want, got *Dependency) {
@@ -27,7 +24,7 @@ func Test_extract(t *testing.T) {
 	extractDir := filepath.Join(dir, "extract")
 	require.NoError(t, os.MkdirAll(downloadDir, 0o750))
 	archivePath := filepath.Join(downloadDir, "foo.tar.gz")
-	err := util.CopyFile(testutil.DownloadablesPath("foo.tar.gz"), archivePath, nil)
+	err := copyFile(filepath.Join("testdata", "downloadables", "foo.tar.gz"), archivePath, nil)
 	require.NoError(t, err)
 	err = extract(archivePath, extractDir)
 	require.NoError(t, err)
@@ -38,7 +35,7 @@ func Test_copyBin(t *testing.T) {
 	extractDir := filepath.Join(dir, ".bindown", "extracts", "deadbeef")
 	binName := "bleep"
 	require.NoError(t, os.MkdirAll(extractDir, 0o750))
-	err := util.CopyFile(testutil.DownloadablesPath("rawfile/foo"), filepath.Join(extractDir, binName), nil)
+	err := copyFile(filepath.Join("testdata", "downloadables", filepath.FromSlash("rawfile/foo")), filepath.Join(extractDir, binName), nil)
 	require.NoError(t, err)
 	target := filepath.Join(dir, "bin", "foo")
 	err = copyBin(target, extractDir, "", binName)
@@ -55,7 +52,7 @@ func Test_linkBin(t *testing.T) {
 	extractDir := filepath.Join(dir, ".bindown", "extracts", "deadbeef")
 	binName := "bleep"
 	require.NoError(t, os.MkdirAll(extractDir, 0o750))
-	err := util.CopyFile(testutil.DownloadablesPath("rawfile/foo"), filepath.Join(extractDir, binName), nil)
+	err := copyFile(filepath.Join("testdata", "downloadables", filepath.FromSlash("rawfile/foo")), filepath.Join(extractDir, binName), nil)
 	require.NoError(t, err)
 	target := filepath.Join(dir, "bin", "foo")
 	err = linkBin(target, extractDir, "", binName)
@@ -70,10 +67,10 @@ func Test_linkBin(t *testing.T) {
 func Test_downloadFile(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
 		dir := t.TempDir()
-		ts := testutil.ServeFile(t, testutil.DownloadablesPath("foo.tar.gz"), "/foo/foo.tar.gz", "")
+		ts := serveFile(t, filepath.Join("testdata", "downloadables", "foo.tar.gz"), "/foo/foo.tar.gz", "")
 		err := downloadFile(filepath.Join(dir, "bar.tar.gz"), ts.URL+"/foo/foo.tar.gz")
-		assert.NoError(t, err)
-		wantContent, err := os.ReadFile(testutil.DownloadablesPath("foo.tar.gz"))
+		require.NoError(t, err)
+		wantContent, err := os.ReadFile(filepath.Join("testdata", "downloadables", "foo.tar.gz"))
 		require.NoError(t, err)
 		gotContent, err := os.ReadFile(filepath.Join(dir, "bar.tar.gz"))
 		require.NoError(t, err)
@@ -82,17 +79,17 @@ func Test_downloadFile(t *testing.T) {
 
 	t.Run("404", func(t *testing.T) {
 		dir := t.TempDir()
-		ts := testutil.ServeFile(t, testutil.DownloadablesPath("foo.tar.gz"), "/foo/foo.tar.gz", "")
+		ts := serveFile(t, filepath.Join("testdata", "downloadables", "foo.tar.gz"), "/foo/foo.tar.gz", "")
 		err := downloadFile(filepath.Join(dir, "bar.tar.gz"), ts.URL+"/wrongpath")
-		assert.Error(t, err)
+		require.Error(t, err)
 	})
 }
 
 func TestGetURLChecksum(t *testing.T) {
-	ts := testutil.ServeFile(t, testutil.DownloadablesPath("foo.tar.gz"), "/foo/foo.tar.gz", "")
+	ts := serveFile(t, filepath.Join("testdata", "downloadables", "foo.tar.gz"), "/foo/foo.tar.gz", "")
 	got, err := getURLChecksum(ts.URL + "/foo/foo.tar.gz")
 	require.NoError(t, err)
-	require.Equal(t, testutil.FooChecksum, got)
+	require.Equal(t, fooChecksum, got)
 }
 
 func TestDependency_applyTemplate(t *testing.T) {

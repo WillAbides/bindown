@@ -1,8 +1,9 @@
-package cli
+package main
 
 import (
 	"bytes"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -14,9 +15,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/willabides/bindown/v3"
-	"github.com/willabides/bindown/v3/internal/cli/mocks"
-	"github.com/willabides/bindown/v3/internal/testutil"
-	"github.com/willabides/bindown/v3/internal/util"
+	"github.com/willabides/bindown/v3/cmd/bindown/mocks"
 )
 
 type runCmdResult struct {
@@ -28,20 +27,20 @@ type runCmdResult struct {
 
 func (r *runCmdResult) assertStdOut(t *testing.T, want string) {
 	t.Helper()
-	assert.Equal(t, want, strings.TrimSpace(r.stdOut.String()))
+	require.Equal(t, want, strings.TrimSpace(r.stdOut.String()))
 }
 
 func (r *runCmdResult) assertStdErr(t *testing.T, want string) {
 	t.Helper()
-	assert.Equal(t, want, strings.TrimSpace(r.stdErr.String()))
+	require.Equal(t, want, strings.TrimSpace(r.stdErr.String()))
 }
 
 func (r *runCmdResult) assertState(t *testing.T, wantStdout, wantStderr string, wantExited bool, wantExitVal int) {
 	t.Helper()
 	r.assertStdOut(t, wantStdout)
 	r.assertStdErr(t, wantStderr)
-	assert.Equal(t, wantExited, r.exited)
-	assert.Equal(t, wantExitVal, r.exitVal)
+	require.Equal(t, wantExited, r.exited)
+	require.Equal(t, wantExitVal, r.exitVal)
 }
 
 func runCmd(commandLine ...string) runCmdResult {
@@ -240,11 +239,10 @@ func TestInstall(t *testing.T) {
 
 func createConfigFile(t *testing.T, sourceFile string) string {
 	t.Helper()
-	sourceFile = testutil.ProjectPath("testdata", "configs", sourceFile)
+	sourceFile = filepath.Join("..", "..", "testdata", "configs", sourceFile)
 	dir := t.TempDir()
 	dest := filepath.Join(dir, "bindown.config")
-	err := util.CopyFile(sourceFile, dest, nil)
-	require.NoError(t, err)
+	copyFile(t, sourceFile, dest)
 	return dest
 }
 
@@ -261,4 +259,16 @@ func TestVersion(t *testing.T) {
 	result := runCmd("version")
 	result.assertStdOut(t, "cmdname: version unknown")
 	result.assertStdErr(t, "")
+}
+
+func copyFile(t *testing.T, sourceFile, destFile string) {
+	t.Helper()
+	source, err := os.Open(sourceFile)
+	require.NoError(t, err)
+	dest, err := os.Create(destFile)
+	require.NoError(t, err)
+	_, err = io.Copy(dest, source)
+	require.NoError(t, err)
+	require.NoError(t, source.Close())
+	require.NoError(t, dest.Close())
 }

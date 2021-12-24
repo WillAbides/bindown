@@ -9,7 +9,7 @@ import (
 
 	gomock "github.com/golang/mock/gomock"
 	bindown "github.com/willabides/bindown/v3"
-	ifaces "github.com/willabides/bindown/v3/internal/cli/ifaces"
+	ifaces "github.com/willabides/bindown/v3/cmd/bindown/ifaces"
 )
 
 // MockConfigFile is a mock of ConfigFile interface.

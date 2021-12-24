@@ -7,7 +7,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"github.com/willabides/bindown/v3/internal/testutil"
 	"gopkg.in/yaml.v2"
 )
 
@@ -159,7 +158,7 @@ func TestConfig_addTemplateFromSource(t *testing.T) {
 	t.Run("file", func(t *testing.T) {
 		t.Run("success", func(t *testing.T) {
 			cfg := new(Config)
-			src := testutil.ProjectPath("testdata", "configs", "ex1.yaml")
+			src := filepath.Join("testdata", "configs", "ex1.yaml")
 			srcCfg, err := LoadConfigFile(src, true)
 			require.NoError(t, err)
 			err = cfg.addTemplateFromSource(src, "goreleaser", "mygoreleaser")
@@ -169,14 +168,14 @@ func TestConfig_addTemplateFromSource(t *testing.T) {
 
 		t.Run("missing template", func(t *testing.T) {
 			cfg := new(Config)
-			src := testutil.ProjectPath("testdata", "configs", "ex1.yaml")
+			src := filepath.Join("testdata", "configs", "ex1.yaml")
 			err := cfg.addTemplateFromSource(src, "fake", "myfake")
 			require.EqualError(t, err, `src has no template named "fake"`)
 		})
 
 		t.Run("missing file", func(t *testing.T) {
 			cfg := new(Config)
-			src := testutil.ProjectPath("testdata", "configs", "thisdoesnotexist.yaml")
+			src := filepath.Join("testdata", "configs", "thisdoesnotexist.yaml")
 			err := cfg.addTemplateFromSource(src, "fake", "myfake")
 			require.Error(t, err)
 			require.True(t, os.IsNotExist(err))
@@ -184,8 +183,8 @@ func TestConfig_addTemplateFromSource(t *testing.T) {
 	})
 
 	t.Run("http", func(t *testing.T) {
-		srcFile := testutil.ProjectPath("testdata", "configs", "ex1.yaml")
-		ts := testutil.ServeFile(t, srcFile, "/ex1.yaml", "")
+		srcFile := filepath.Join("testdata", "configs", "ex1.yaml")
+		ts := serveFile(t, srcFile, "/ex1.yaml", "")
 		cfg := new(Config)
 		src := ts.URL + "/ex1.yaml"
 		srcCfg, err := LoadConfigFile(srcFile, true)
@@ -199,8 +198,8 @@ func TestConfig_addTemplateFromSource(t *testing.T) {
 func TestConfig_InstallDependency(t *testing.T) {
 	t.Run("raw file", func(t *testing.T) {
 		dir := t.TempDir()
-		servePath := testutil.DownloadablesPath("rawfile/foo")
-		ts := testutil.ServeFile(t, servePath, "/foo/foo", "")
+		servePath := filepath.Join("testdata", "downloadables", filepath.FromSlash("rawfile/foo"))
+		ts := serveFile(t, servePath, "/foo/foo", "")
 		depURL := ts.URL + "/foo/foo"
 		binDir := filepath.Join(dir, "bin")
 		require.NoError(t, os.MkdirAll(binDir, 0o755))
@@ -230,8 +229,8 @@ func TestConfig_InstallDependency(t *testing.T) {
 
 	t.Run("bin in root", func(t *testing.T) {
 		dir := t.TempDir()
-		servePath := testutil.DownloadablesPath("fooinroot.tar.gz")
-		ts := testutil.ServeFile(t, servePath, "/foo/fooinroot.tar.gz", "")
+		servePath := filepath.Join("testdata", "downloadables", "fooinroot.tar.gz")
+		ts := serveFile(t, servePath, "/foo/fooinroot.tar.gz", "")
 		depURL := ts.URL + "/foo/fooinroot.tar.gz"
 		binDir := filepath.Join(dir, "bin")
 		require.NoError(t, os.MkdirAll(binDir, 0o755))
@@ -261,8 +260,8 @@ func TestConfig_InstallDependency(t *testing.T) {
 
 	t.Run("wrong checksum", func(t *testing.T) {
 		dir := t.TempDir()
-		servePath := testutil.DownloadablesPath("fooinroot.tar.gz")
-		ts := testutil.ServeFile(t, servePath, "/foo/fooinroot.tar.gz", "")
+		servePath := filepath.Join("testdata", "downloadables", "fooinroot.tar.gz")
+		ts := serveFile(t, servePath, "/foo/fooinroot.tar.gz", "")
 		depURL := ts.URL + "/foo/fooinroot.tar.gz"
 		binDir := filepath.Join(dir, "bin")
 		require.NoError(t, os.MkdirAll(binDir, 0o755))
@@ -287,11 +286,11 @@ func TestConfig_InstallDependency(t *testing.T) {
 }
 
 func TestConfig_addChecksums(t *testing.T) {
-	ts1 := testutil.ServeFile(t, testutil.DownloadablesPath("foo.tar.gz"), "/foo/foo.tar.gz", "")
-	ts2 := testutil.ServeFile(t, testutil.DownloadablesPath("foo.tar.gz"), "/foo/foo.tar.gz", "")
-	ts3 := testutil.ServeFile(t, testutil.DownloadablesPath("foo.tar.gz"), "/foo/foo.tar.gz", "")
-	ts4 := testutil.ServeFile(t, testutil.DownloadablesPath("foo.tar.gz"), "/foo/foo.tar.gz", "")
-	ts5 := testutil.ServeFile(t, testutil.DownloadablesPath("foo.tar.gz"), "/foo/foo.tar.gz", "")
+	ts1 := serveFile(t, filepath.Join("testdata", "downloadables", "foo.tar.gz"), "/foo/foo.tar.gz", "")
+	ts2 := serveFile(t, filepath.Join("testdata", "downloadables", "foo.tar.gz"), "/foo/foo.tar.gz", "")
+	ts3 := serveFile(t, filepath.Join("testdata", "downloadables", "foo.tar.gz"), "/foo/foo.tar.gz", "")
+	ts4 := serveFile(t, filepath.Join("testdata", "downloadables", "foo.tar.gz"), "/foo/foo.tar.gz", "")
+	ts5 := serveFile(t, filepath.Join("testdata", "downloadables", "foo.tar.gz"), "/foo/foo.tar.gz", "")
 	dl1 := ts1.URL + "/foo/foo.tar.gz"
 	dl2 := ts2.URL + "/foo/foo.tar.gz"
 	dl3 := ts3.URL + "/foo/foo.tar.gz"
@@ -330,10 +329,10 @@ func TestConfig_addChecksums(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, cfg.URLChecksums, 4)
 	require.Equal(t, map[string]string{
-		dl1: testutil.FooChecksum,
-		dl2: testutil.FooChecksum,
-		dl3: testutil.FooChecksum,
-		dl4: testutil.FooChecksum,
+		dl1: fooChecksum,
+		dl2: fooChecksum,
+		dl3: fooChecksum,
+		dl4: fooChecksum,
 	}, cfg.URLChecksums)
 }
 
@@ -371,8 +370,8 @@ func TestConfig_BuildDependency(t *testing.T) {
 }
 
 func TestConfig_addChecksum(t *testing.T) {
-	ts1 := testutil.ServeFile(t, testutil.DownloadablesPath("foo.tar.gz"), "/testOS2-v1-v2", "")
-	ts2 := testutil.ServeFile(t, testutil.DownloadablesPath("foo.tar.gz"), "/testOS-overrideV1-overrideV2", "")
+	ts1 := serveFile(t, filepath.Join("testdata", "downloadables", "foo.tar.gz"), "/testOS2-v1-v2", "")
+	ts2 := serveFile(t, filepath.Join("testdata", "downloadables", "foo.tar.gz"), "/testOS-overrideV1-overrideV2", "")
 	dlURL := ts1.URL + "/{{.os}}-{{.var1}}-{{.var2}}"
 	dlURL2 := ts2.URL + "/{{.os}}-{{.var1}}-{{.var2}}"
 	overrideCheckedURL := ts2.URL + "/testOS-overrideV1-overrideV2"
@@ -429,8 +428,8 @@ func TestConfig_addChecksum(t *testing.T) {
 			},
 		},
 		URLChecksums: map[string]string{
-			checkedURL:         testutil.FooChecksum,
-			overrideCheckedURL: testutil.FooChecksum,
+			checkedURL:         fooChecksum,
+			overrideCheckedURL: fooChecksum,
 		},
 	}
 	err := cfg.addChecksum("dut", newSystemInfo("testOS", "testArch"))

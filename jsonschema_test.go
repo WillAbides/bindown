@@ -3,31 +3,30 @@ package bindown
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
 	"github.com/ghodss/yaml"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/willabides/bindown/v3/internal/testutil"
 )
 
 func assertValidationErr(t *testing.T, want []string, got error) {
 	t.Helper()
 	wantErr := fmt.Sprintf("invalid config:\n%s", strings.Join(want, "\n"))
-	assert.EqualError(t, got, wantErr)
+	require.EqualError(t, got, wantErr)
 }
 
 func TestValidateConfig(t *testing.T) {
 	t.Run("valid yaml", func(t *testing.T) {
-		cfg, err := os.ReadFile(testutil.ProjectPath("testdata", "configs", "ex1.yaml"))
+		cfg, err := os.ReadFile(filepath.Join("testdata", "configs", "ex1.yaml"))
 		require.NoError(t, err)
 		err = validateConfig(cfg)
 		require.NoError(t, err)
 	})
 
 	t.Run("valid json", func(t *testing.T) {
-		cfgContent, err := os.ReadFile(testutil.ProjectPath("testdata", "configs", "ex1.yaml"))
+		cfgContent, err := os.ReadFile(filepath.Join("testdata", "configs", "ex1.yaml"))
 		require.NoError(t, err)
 		cfg, err := yaml.YAMLToJSON(cfgContent)
 		require.NoError(t, err)

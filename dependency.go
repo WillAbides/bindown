@@ -11,7 +11,6 @@ import (
 	"strings"
 
 	"github.com/mholt/archiver/v3"
-	"github.com/willabides/bindown/v3/internal/util"
 )
 
 // DependencyOverride overrides a dependency's configuration
@@ -373,7 +372,7 @@ func copyBin(target, extractDir, archivePath, binName string) error {
 	if err != nil {
 		return err
 	}
-	err = util.CopyFile(extractedBin, target, nil)
+	err = copyFile(extractedBin, target, nil)
 	if err != nil {
 		return err
 	}
@@ -416,7 +415,7 @@ func extract(archivePath, extractDir string) error {
 	tarPath := filepath.Join(downloadDir, dlName)
 	_, err = archiver.ByExtension(dlName)
 	if err != nil {
-		return util.CopyFile(tarPath, filepath.Join(extractDir, dlName), logCloseErr)
+		return copyFile(tarPath, filepath.Join(extractDir, dlName), logCloseErr)
 	}
 	err = archiver.Unarchive(tarPath, extractDir)
 	if err != nil {
