@@ -1,4 +1,4 @@
-package cli
+package main
 
 import (
 	"os"
@@ -24,7 +24,12 @@ func findConfigFileForCompletion(args []string) string {
 	if ok {
 		return prepCompletionConfigFile(cf)
 	}
-	return prepCompletionConfigFile(kongVars["configfile_default"])
+	for _, cf := range defaultConfigFilenames {
+		if _, err := os.Stat(cf); err == nil {
+			return prepCompletionConfigFile(cf)
+		}
+	}
+	return prepCompletionConfigFile("")
 }
 
 // prepCompletionConfigFile expands the path and returns "" if it isn't an existing file

@@ -8,9 +8,8 @@ require (
 	github.com/ghodss/yaml v1.0.0
 	github.com/golang/mock v1.6.0
 	github.com/mholt/archiver/v3 v3.5.1
-	github.com/qri-io/jsonschema v0.1.2-0.20191106232816-1fbc1e03ab84
+	github.com/qri-io/jsonschema v0.2.1
 	github.com/stretchr/testify v1.7.0
-	github.com/udhos/equalfile v0.3.0
 	gopkg.in/yaml.v2 v2.4.0
 )
 
@@ -25,7 +24,7 @@ require (
 	github.com/pierrec/lz4/v4 v4.1.12 // indirect
 	github.com/pkg/errors v0.8.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
-	github.com/qri-io/jsonpointer v0.1.0 // indirect
+	github.com/qri-io/jsonpointer v0.1.1 // indirect
 	github.com/riywo/loginshell v0.0.0-20190610082906-2ed199a032f6 // indirect
 	github.com/ulikunitz/xz v0.5.10 // indirect
 	github.com/xi2/xz v0.0.0-20171230120015-48954b6210f8 // indirect

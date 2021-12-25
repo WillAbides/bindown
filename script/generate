@@ -22,8 +22,9 @@ fi
 
 . script/goenv
 
-make -s bin/yq bin/go-bindata bin/mockgen
+make -s bin/yq bin/mockgen
 
 yq read --prettyPrint -j bindown.schema.yml > bindown.schema.json
 go generate ./...
-script/bindown --help > ./docs/clihelp.txt
+COLUMNS=100 script/bindown --help > ./docs/clihelp.txt
+script/generate-readme

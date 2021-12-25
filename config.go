@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"hash/fnv"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"os"
@@ -14,8 +13,6 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/willabides/bindown/v3/internal/jsonschema"
-	"github.com/willabides/bindown/v3/internal/util"
 	"gopkg.in/yaml.v2"
 )
 
@@ -262,11 +259,11 @@ func (c *Config) Validate(dependencies []string, systems []SystemInfo) error {
 	if len(dependencies) == 0 {
 		dependencies = c.allDependencyNames()
 	}
-	tmpCacheDir, err := ioutil.TempDir("", "bindown-cache")
+	tmpCacheDir, err := os.MkdirTemp("", "bindown-cache")
 	if err != nil {
 		return err
 	}
-	tmpBinDir, err := ioutil.TempDir("", "bindown-bin")
+	tmpBinDir, err := os.MkdirTemp("", "bindown-bin")
 	if err != nil {
 		return err
 	}
@@ -314,13 +311,21 @@ type ConfigDownloadDependencyOpts struct {
 }
 
 // extractsCacheDir returns the cache directory for an extraction based on the download's checksum and dependency name
-func (c *Config) extractsCacheDir(dependencyName, checksum string) string {
-	return filepath.Join(c.Cache, "extracts", util.MustHexHash(fnv.New64a(), []byte(checksum), []byte(dependencyName)))
+func (c *Config) extractsCacheDir(dependencyName, checksum string) (string, error) {
+	hsh, err := hexHash(fnv.New64a(), []byte(checksum))
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(c.Cache, "extracts", hsh), nil
 }
 
 // downloadCacheDir returns the cache directory for a file based on its checksum
-func (c *Config) downloadCacheDir(checksum string) string {
-	return filepath.Join(c.Cache, "downloads", util.MustHexHash(fnv.New64a(), []byte(checksum)))
+func (c *Config) downloadCacheDir(checksum string) (string, error) {
+	hsh, err := hexHash(fnv.New64a(), []byte(checksum))
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(c.Cache, "downloads", hsh), nil
 }
 
 // DownloadDependency downloads a dependency
@@ -347,7 +352,10 @@ func (c *Config) DownloadDependency(dependencyName string, sysInfo SystemInfo, o
 		if err != nil {
 			return "", err
 		}
-		cacheDir := c.downloadCacheDir(checksum)
+		cacheDir, err := c.downloadCacheDir(checksum)
+		if err != nil {
+			return "", err
+		}
 		targetFile = filepath.Join(cacheDir, dlFile)
 	}
 	return targetFile, download(strFromPtr(dep.URL), targetFile, checksum, opts.Force)
@@ -409,7 +417,10 @@ func (c *Config) ExtractDependency(dependencyName string, sysInfo SystemInfo, op
 		if err != nil {
 			return "", err
 		}
-		targetDir = c.extractsCacheDir(dependencyName, checksum)
+		targetDir, err = c.extractsCacheDir(dependencyName, checksum)
+		if err != nil {
+			return "", err
+		}
 	}
 	dlFile, err := urlFilename(*dep.URL)
 	if err != nil {
@@ -648,7 +659,7 @@ func configFromHTTP(src string) (*Config, error) {
 }
 
 func configFromYAML(data []byte) (*Config, error) {
-	err := jsonschema.ValidateConfig(data)
+	err := validateConfig(data)
 	if err != nil {
 		return nil, err
 	}

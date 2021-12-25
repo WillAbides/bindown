@@ -1,7 +1,5 @@
 {
-  "$id": "https://willabides.github.io/bindown/bindown.schema.json",
-  "$schema": "http://json-schema.org/draft-07/schema#",
-  "definitions": {
+  "$defs": {
     "dependency": {
       "properties": {
         "archive_path": {
@@ -20,7 +18,7 @@
           "additionalItems": false,
           "description": "Overrides allows you to override values depending on the os and architecture of the target system.",
           "items": {
-            "$ref": "#/definitions/override"
+            "$ref": "#/$defs/override"
           },
           "type": "array"
         },
@@ -90,7 +88,7 @@
       "additionalProperties": false,
       "properties": {
         "dependency": {
-          "$ref": "#/definitions/dependency",
+          "$ref": "#/$defs/dependency",
           "description": "Values to override the parent dependency"
         },
         "matcher": {
@@ -156,6 +154,8 @@
       "type": "object"
     }
   },
+  "$id": "https://willabides.github.io/bindown/bindown.schema.json",
+  "$schema": "http://json-schema.org/draft-07/schema#",
   "properties": {
     "cache": {
       "default": "./.bindown",
@@ -164,7 +164,7 @@
     },
     "dependencies": {
       "additionalProperties": {
-        "$ref": "#/definitions/dependency"
+        "$ref": "#/$defs/dependency"
       },
       "description": "Dependencies available for bindown to install.",
       "type": "object"
@@ -190,7 +190,7 @@
     },
     "templates": {
       "additionalProperties": {
-        "$ref": "#/definitions/dependency"
+        "$ref": "#/$defs/dependency"
       },
       "description": "Templates that can be used by dependencies in this file.",
       "type": "object"

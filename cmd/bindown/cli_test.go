@@ -1,8 +1,9 @@
-package cli
+package main
 
 import (
 	"bytes"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -14,9 +15,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/willabides/bindown/v3"
-	"github.com/willabides/bindown/v3/internal/cli/mocks"
-	"github.com/willabides/bindown/v3/internal/testutil"
-	"github.com/willabides/bindown/v3/internal/util"
+	"github.com/willabides/bindown/v3/cmd/bindown/mocks"
 )
 
 type runCmdResult struct {
@@ -28,20 +27,20 @@ type runCmdResult struct {
 
 func (r *runCmdResult) assertStdOut(t *testing.T, want string) {
 	t.Helper()
-	assert.Equal(t, want, strings.TrimSpace(r.stdOut.String()))
+	require.Equal(t, want, strings.TrimSpace(r.stdOut.String()))
 }
 
 func (r *runCmdResult) assertStdErr(t *testing.T, want string) {
 	t.Helper()
-	assert.Equal(t, want, strings.TrimSpace(r.stdErr.String()))
+	require.Equal(t, want, strings.TrimSpace(r.stdErr.String()))
 }
 
 func (r *runCmdResult) assertState(t *testing.T, wantStdout, wantStderr string, wantExited bool, wantExitVal int) {
 	t.Helper()
 	r.assertStdOut(t, wantStdout)
 	r.assertStdErr(t, wantStderr)
-	assert.Equal(t, wantExited, r.exited)
-	assert.Equal(t, wantExitVal, r.exitVal)
+	require.Equal(t, wantExited, r.exited)
+	require.Equal(t, wantExitVal, r.exitVal)
 }
 
 func runCmd(commandLine ...string) runCmdResult {
@@ -140,14 +139,14 @@ func TestFormat(t *testing.T) {
 
 	t.Run("error loading config", func(t *testing.T) {
 		runner, mockConfigLoader, _ := setupMocks(t)
-		mockConfigLoader.EXPECT().Load(wdPath(t, "bindown.yml"), true).Return(nil, assert.AnError)
+		mockConfigLoader.EXPECT().Load("", true).Return(nil, assert.AnError)
 		result := runner("format")
 		result.assertState(t, "", wantStderr(assert.AnError.Error()), true, 1)
 	})
 
 	t.Run("json output", func(t *testing.T) {
 		runner, mockConfigLoader, mockConfigFile := setupMocks(t)
-		mockConfigLoader.EXPECT().Load(wdPath(t, "bindown.yml"), true).Return(mockConfigFile, nil)
+		mockConfigLoader.EXPECT().Load("", true).Return(mockConfigFile, nil)
 		mockConfigFile.EXPECT().Write(true)
 		result := runner("format", "--json")
 		result.assertState(t, "", "", false, 0)
@@ -155,7 +154,7 @@ func TestFormat(t *testing.T) {
 
 	t.Run("write error", func(t *testing.T) {
 		runner, mockConfigLoader, mockConfigFile := setupMocks(t)
-		mockConfigLoader.EXPECT().Load(wdPath(t, "bindown.yml"), true).Return(mockConfigFile, nil)
+		mockConfigLoader.EXPECT().Load("", true).Return(mockConfigFile, nil)
 		mockConfigFile.EXPECT().Write(false).Return(assert.AnError)
 		result := runner("format")
 		result.assertState(t, "", wantStderr(assert.AnError.Error()), true, 1)
@@ -164,7 +163,7 @@ func TestFormat(t *testing.T) {
 
 func TestAddChecksums(t *testing.T) {
 	runner, mockConfigLoader, mockConfigFile := setupMocks(t)
-	mockConfigLoader.EXPECT().Load(wdPath(t, "bindown.yml"), true).Return(mockConfigFile, nil)
+	mockConfigLoader.EXPECT().Load("", true).Return(mockConfigFile, nil)
 	mockConfigFile.EXPECT().AddChecksums([]string{"foo"}, nil)
 	mockConfigFile.EXPECT().Write(true)
 	result := runner("add-checksums", "--dependency", "foo", "--json")
@@ -174,7 +173,7 @@ func TestAddChecksums(t *testing.T) {
 func TestValidate(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
 		runner, mockConfigLoader, mockConfigFile := setupMocks(t)
-		mockConfigLoader.EXPECT().Load(wdPath(t, "bindown.yml"), false).Return(mockConfigFile, nil)
+		mockConfigLoader.EXPECT().Load("", false).Return(mockConfigFile, nil)
 		mockConfigFile.EXPECT().Validate([]string{"foo"}, nil)
 		result := runner("validate", "foo")
 		result.assertState(t, "", "", false, 0)
@@ -182,14 +181,14 @@ func TestValidate(t *testing.T) {
 
 	t.Run("error loading config", func(t *testing.T) {
 		runner, mockConfigLoader, _ := setupMocks(t)
-		mockConfigLoader.EXPECT().Load(wdPath(t, "bindown.yml"), false).Return(nil, assert.AnError)
+		mockConfigLoader.EXPECT().Load("", false).Return(nil, assert.AnError)
 		result := runner("validate", "foo")
 		result.assertState(t, "", wantStderr(assert.AnError.Error()), true, 1)
 	})
 
 	t.Run("multiple systems", func(t *testing.T) {
 		runner, mockConfigLoader, mockConfigFile := setupMocks(t)
-		mockConfigLoader.EXPECT().Load(wdPath(t, "bindown.yml"), false).Return(mockConfigFile, nil)
+		mockConfigLoader.EXPECT().Load("", false).Return(mockConfigFile, nil)
 		mockConfigFile.EXPECT().Validate([]string{"foo"}, []bindown.SystemInfo{
 			{OS: "foo", Arch: "bar"},
 			{OS: "baz", Arch: "qux"},
@@ -202,7 +201,7 @@ func TestValidate(t *testing.T) {
 func TestExtract(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
 		runner, mockConfigLoader, mockConfigFile := setupMocks(t)
-		mockConfigLoader.EXPECT().Load(wdPath(t, "bindown.yml"), false).Return(mockConfigFile, nil)
+		mockConfigLoader.EXPECT().Load("", false).Return(mockConfigFile, nil)
 		mockConfigFile.EXPECT().ExtractDependency("foo", bindown.SystemInfo{
 			Arch: runtime.GOARCH,
 			OS:   runtime.GOOS,
@@ -215,7 +214,7 @@ func TestExtract(t *testing.T) {
 func TestDownload(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
 		runner, mockConfigLoader, mockConfigFile := setupMocks(t)
-		mockConfigLoader.EXPECT().Load(wdPath(t, "bindown.yml"), false).Return(mockConfigFile, nil)
+		mockConfigLoader.EXPECT().Load("", false).Return(mockConfigFile, nil)
 		mockConfigFile.EXPECT().DownloadDependency("foo", bindown.SystemInfo{
 			Arch: runtime.GOARCH,
 			OS:   runtime.GOOS,
@@ -228,7 +227,7 @@ func TestDownload(t *testing.T) {
 func TestInstall(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
 		runner, mockConfigLoader, mockConfigFile := setupMocks(t)
-		mockConfigLoader.EXPECT().Load(wdPath(t, "bindown.yml"), false).Return(mockConfigFile, nil)
+		mockConfigLoader.EXPECT().Load("", false).Return(mockConfigFile, nil)
 		mockConfigFile.EXPECT().InstallDependency("foo", bindown.SystemInfo{
 			Arch: runtime.GOARCH,
 			OS:   runtime.GOOS,
@@ -240,11 +239,10 @@ func TestInstall(t *testing.T) {
 
 func createConfigFile(t *testing.T, sourceFile string) string {
 	t.Helper()
-	sourceFile = testutil.ProjectPath("testdata", "configs", sourceFile)
-	dir := testutil.TmpDir(t)
+	sourceFile = filepath.Join("..", "..", "testdata", "configs", sourceFile)
+	dir := t.TempDir()
 	dest := filepath.Join(dir, "bindown.config")
-	err := util.CopyFile(sourceFile, dest, nil)
-	require.NoError(t, err)
+	copyFile(t, sourceFile, dest)
 	return dest
 }
 
@@ -261,4 +259,16 @@ func TestVersion(t *testing.T) {
 	result := runCmd("version")
 	result.assertStdOut(t, "cmdname: version unknown")
 	result.assertStdErr(t, "")
+}
+
+func copyFile(t *testing.T, sourceFile, destFile string) {
+	t.Helper()
+	source, err := os.Open(sourceFile)
+	require.NoError(t, err)
+	dest, err := os.Create(destFile)
+	require.NoError(t, err)
+	_, err = io.Copy(dest, source)
+	require.NoError(t, err)
+	require.NoError(t, source.Close())
+	require.NoError(t, dest.Close())
 }
