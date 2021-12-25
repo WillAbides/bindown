@@ -14,8 +14,7 @@ import (
 //go:generate mockgen -source ifaces/ifaces.go -destination mocks/$GOFILE -package mocks
 
 var kongVars = kong.Vars{
-	"configfile_help":                 `file with bindown config`,
-	"configfile_default":              `bindown.yml`,
+	"configfile_help":                 `file with bindown config. default is the first one of bindown.yml, bindown.yaml, bindown.json, .bindown.yml, .bindown.yaml or .bindown.json`,
 	"cache_help":                      `directory downloads will be cached`,
 	"install_help":                    `download, extract and install a dependency`,
 	"system_default":                  fmt.Sprintf("%s/%s", runtime.GOOS, runtime.GOARCH),
@@ -42,7 +41,7 @@ var kongVars = kong.Vars{
 
 var cli struct {
 	JSONConfig         bool                       `kong:"name=json,help='write json instead of yaml'"`
-	Configfile         string                     `kong:"type=path,help=${configfile_help},default=${configfile_default},env='BINDOWN_CONFIG_FILE'"`
+	Configfile         string                     `kong:"type=path,help=${configfile_help},env='BINDOWN_CONFIG_FILE'"`
 	Cache              string                     `kong:"type=path,help=${cache_help},env='BINDOWN_CACHE'"`
 	InstallCompletions kong.InstallCompletionFlag `kong:"help=${config_install_completions_help}"`
 
@@ -62,7 +61,26 @@ var cli struct {
 
 type defaultConfigLoader struct{}
 
+var defaultConfigFilenames = []string{
+	"bindown.yml",
+	"bindown.yaml",
+	"bindown.json",
+	".bindown.yml",
+	".bindown.yaml",
+	".bindown.json",
+}
+
 func (d defaultConfigLoader) Load(filename string, noDefaultDirs bool) (ifaces.ConfigFile, error) {
+	if filename != "" {
+		return bindown.LoadConfigFile(filename, noDefaultDirs)
+	}
+	for _, configFilename := range defaultConfigFilenames {
+		info, err := os.Stat(configFilename)
+		if err == nil && !info.IsDir() {
+			filename = configFilename
+			break
+		}
+	}
 	return bindown.LoadConfigFile(filename, noDefaultDirs)
 }
 
@@ -100,11 +118,13 @@ func Run(args []string, kongOptions ...kong.Option) {
 type initCmd struct{}
 
 func (c *initCmd) Run() error {
-	_, err := os.Stat(cli.Configfile)
-	if !os.IsNotExist(err) {
-		return fmt.Errorf("%s already exists", cli.Configfile)
+	for _, filename := range defaultConfigFilenames {
+		info, err := os.Stat(filename)
+		if err == nil && !info.IsDir() {
+			return fmt.Errorf("%s already exists", filename)
+		}
 	}
-	file, err := os.Create(cli.Configfile)
+	file, err := os.Create(".bindown.yaml")
 	if err != nil {
 		return err
 	}
