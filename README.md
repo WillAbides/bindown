@@ -130,8 +130,8 @@ Template configuration is identical to dependencies.
 Overrides allow you to override values for certain operating systems or system architectures. 
 
 It is a list of overrides that each contain a matcher and a dependency. Dependency properties are the same as
- described in [dependencies](#dependencies). Matchers have two properties: `os` and `arch` that each contain a list
-  of values to match. A system matches when it's os or arch value matches one of the values listed. 
+ described in [dependencies](#dependencies). Matchers match "os", "arch" or vars. A matcher matches if any of its values
+  match the config value. Matchers can be semver constraints or strings.
 
 ```yaml
 overrides:
@@ -145,6 +145,8 @@ overrides:
       arch:
         - arm
         - arm64
+      version:
+        - ">=1.0.0"
     dependency:
       archive_path: special/path/for/arm
 ```
