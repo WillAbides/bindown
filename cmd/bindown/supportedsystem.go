@@ -28,7 +28,7 @@ func (c *supportedSystemListCmd) Run(ctx *kong.Context) error {
 }
 
 type supportedSystemsRemoveCmd struct {
-	System bindown.SystemInfo `kong:"arg,completer=system,help='system to remove'"`
+	System bindown.SystemInfo `kong:"arg,predictor=system,help='system to remove'"`
 }
 
 func (c *supportedSystemsRemoveCmd) Run() error {
@@ -49,7 +49,7 @@ func (c *supportedSystemsRemoveCmd) Run() error {
 }
 
 type supportedSystemAddCmd struct {
-	System bindown.SystemInfo `kong:"arg,completer=allSystems,help='system to add'"`
+	System bindown.SystemInfo `kong:"arg,predictor=allSystems,help='system to add'"`
 }
 
 func (c *supportedSystemAddCmd) Run() error {

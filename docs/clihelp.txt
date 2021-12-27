@@ -1,15 +1,15 @@
 Usage: bindown <command>
 
 Flags:
-  --help                   Show context-sensitive help.
-  --json                   write json instead of yaml
-  --configfile=STRING      file with bindown config. default is the first one of bindown.yml,
-                           bindown.yaml, bindown.json, .bindown.yml, .bindown.yaml or .bindown.json
-                           ($BINDOWN_CONFIG_FILE)
-  --cache=STRING           directory downloads will be cached ($BINDOWN_CACHE)
-  --install-completions    install shell completions
+  -h, --help                 Show context-sensitive help.
+      --json                 write json instead of yaml
+      --configfile=STRING    file with bindown config. default is the first one of bindown.yml,
+                             bindown.yaml, bindown.json, .bindown.yml, .bindown.yaml or
+                             .bindown.json ($BINDOWN_CONFIG_FILE)
+      --cache=STRING         directory downloads will be cached ($BINDOWN_CACHE)
 
 Commands:
+  install-completions            install shell completions
   version                        show bindown version
   download                       download a dependency but don't extract or install it
   extract                        download and extract a dependency but don't install it

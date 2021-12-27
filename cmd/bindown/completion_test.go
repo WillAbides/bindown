@@ -6,7 +6,7 @@ import (
 	"sort"
 	"testing"
 
-	"github.com/alecthomas/kong"
+	"github.com/posener/complete"
 	"github.com/stretchr/testify/require"
 )
 
@@ -74,13 +74,13 @@ func Test_completionConfig(t *testing.T) {
 }
 
 func Test_binCompleter(t *testing.T) {
-	got := binCompleter.Options(kong.CompleterArgs{})
+	got := binCompleter.Predict(complete.Args{})
 	require.Empty(t, got)
 	require.NotNil(t, got)
 
 	configFile := createConfigFile(t, "ex1.yaml")
 	setConfigFileEnvVar(t, configFile)
-	got = binCompleter.Options(kong.CompleterArgs{})
+	got = binCompleter.Predict(complete.Args{})
 	sort.Strings(got)
 	require.Equal(t, []string{"golangci-lint", "goreleaser"}, got)
 }
