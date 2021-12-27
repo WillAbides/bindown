@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"runtime"
-	"runtime/debug"
 
 	"github.com/alecthomas/kong"
 	"github.com/willabides/bindown/v3"
@@ -39,7 +38,6 @@ var kongVars = kong.Vars{
 	"extract_help":                    `download and extract a dependency but don't install it`,
 	"extract_target_dir_help":         `path to extract to. Default extracts to cache.`,
 	"checksums_dep_help":              `name of the dependency to update`,
-	"version":                         version,
 }
 
 var cli struct {
@@ -48,7 +46,7 @@ var cli struct {
 	Cache              string                       `kong:"type=path,help=${cache_help},env='BINDOWN_CACHE'"`
 	InstallCompletions kongplete.InstallCompletions `kong:"cmd,help=${config_install_completions_help}"`
 
-	Version         kong.VersionFlag   `kong:"help='show version and exit'"`
+	Version         versionCmd         `kong:"cmd,help='show bindown version'"`
 	Download        downloadCmd        `kong:"cmd,help=${download_help}"`
 	Extract         extractCmd         `kong:"cmd,help=${extract_help}"`
 	Install         installCmd         `kong:"cmd,help=${install_help}"`
@@ -90,11 +88,6 @@ func (d defaultConfigLoader) Load(filename string, noDefaultDirs bool) (ifaces.C
 var configLoader ifaces.ConfigLoader = defaultConfigLoader{}
 
 func newParser(kongOptions ...kong.Option) *kong.Kong {
-	if info, ok := debug.ReadBuildInfo(); ok {
-		if kongVars["version"] == "" {
-			kongVars["version"] = info.Main.Version
-		}
-	}
 	kongOptions = append(kongOptions,
 		kongVars,
 		kong.UsageOnError(),
