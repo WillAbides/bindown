@@ -7,7 +7,7 @@ import (
 
 	"github.com/alecthomas/kong"
 	"github.com/willabides/bindown/v3"
-	"gopkg.in/yaml.v3"
+	"gopkg.in/yaml.v2"
 )
 
 type dependencyCmd struct {
