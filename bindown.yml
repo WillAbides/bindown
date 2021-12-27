@@ -265,7 +265,7 @@ templates:
       - windows/amd64
 template_sources:
   local-origin: ./bindown_templates.yml
-  origin: https://raw.githubusercontent.com/WillAbides/bindown/master/bindown_templates.yml
+  origin: https://raw.githubusercontent.com/WillAbides/bindown/main/bindown_templates.yml
 url_checksums:
   https://dl.google.com/go/go1.14.1.darwin-amd64.tar.gz: 6632f9d53fd95632e431e8c34295349cca3f0a124e3a28b760ae5c42b32816e3
   https://dl.google.com/go/go1.14.1.linux-amd64.tar.gz: 2f49eb17ce8b48c680cdb166ffd7389702c0dec6effa090c324804a5cac8a7f8

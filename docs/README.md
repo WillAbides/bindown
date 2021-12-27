@@ -43,7 +43,7 @@ The fastest way to get up and running with bindown is using existing templates. 
 For this example we will add the bindown_templates.yml file from the bindown repo and call it "origin"
 
 ```shell
-bin/bindown template-source add origin https://raw.githubusercontent.com/WillAbides/bindown/master/bindown_templates.yml
+bin/bindown template-source add origin https://raw.githubusercontent.com/WillAbides/bindown/main/bindown_templates.yml
 ```
 
 Now let's see what is available in origin:
@@ -129,7 +129,7 @@ templates:
     - windows/386
     - windows/amd64
 template_sources:
-  origin: https://raw.githubusercontent.com/WillAbides/bindown/master/bindown_templates.yml
+  origin: https://raw.githubusercontent.com/WillAbides/bindown/main/bindown_templates.yml
 url_checksums:
   https://github.com/stedolan/jq/releases/download/jq-1.6/jq-linux32: 319af6123aaccb174f768a1a89fb586d471e891ba217fe518f81ef05af51edd9
   https://github.com/stedolan/jq/releases/download/jq-1.6/jq-linux64: af986793a515d500ab2d35f8d2aecd656e764504b789b66d7e1a0b727a124c44
