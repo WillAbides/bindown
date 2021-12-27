@@ -43,19 +43,6 @@ func (r *runCmdResult) assertState(t *testing.T, wantStdout, wantStderr string, 
 	require.Equal(t, wantExitVal, r.exitVal)
 }
 
-func runCmd(commandLine ...string) runCmdResult {
-	result := runCmdResult{}
-	Run(commandLine,
-		kong.Name("cmdname"),
-		kong.Writers(&result.stdOut, &result.stdErr),
-		kong.Exit(func(i int) {
-			result.exited = true
-			result.exitVal = i
-		}),
-	)
-	return result
-}
-
 type cmdRunner func(commandLine ...string) runCmdResult
 
 func setupMocks(t *testing.T) (cmdRunner, *mocks.MockConfigLoader, *mocks.MockConfigFile) {
@@ -253,12 +240,6 @@ func setConfigFileEnvVar(t *testing.T, file string) {
 	t.Cleanup(func() {
 		require.NoError(t, os.Unsetenv("BINDOWN_CONFIG_FILE"))
 	})
-}
-
-func TestVersion(t *testing.T) {
-	result := runCmd("version")
-	result.assertStdOut(t, "cmdname: version unknown")
-	result.assertStdErr(t, "")
 }
 
 func copyFile(t *testing.T, sourceFile, destFile string) {
