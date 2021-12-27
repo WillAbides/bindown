@@ -23,7 +23,7 @@ Usage: ./bootstrap-bindown.sh [-b bindir] [-d]
   -d turns on debug logging
 ```
 
-### Go get
+### go install
 
 If you happen to already have go installed on your system, you can install bindown with:
 
