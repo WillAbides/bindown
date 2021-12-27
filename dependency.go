@@ -1,7 +1,6 @@
 package bindown
 
 import (
-	"encoding/json"
 	"fmt"
 	"io"
 	"log"
@@ -29,75 +28,7 @@ func (o *DependencyOverride) clone() *DependencyOverride {
 }
 
 // OverrideMatcher contains a list or oses and arches to match an override. If either os or arch is empty, all oses and arches match.
-type OverrideMatcher struct {
-	OS   []string
-	Arch []string
-	Vars map[string][]string
-}
-
-// MarshalJSON implements the json.Marshaler interface
-func (o OverrideMatcher) MarshalJSON() ([]byte, error) {
-	mp := make(map[string][]string, len(o.Vars)+2)
-	for k, v := range o.Vars {
-		mp[k] = v
-	}
-	if len(o.OS) > 0 {
-		mp["os"] = o.OS
-	}
-	if len(o.Arch) > 0 {
-		mp["arch"] = o.Arch
-	}
-	return json.Marshal(mp)
-}
-
-// UnmarshalJSON implements the json.Unmarshaler interface
-func (o *OverrideMatcher) UnmarshalJSON(data []byte) error {
-	var mp map[string][]string
-	if err := json.Unmarshal(data, &mp); err != nil {
-		return err
-	}
-	o.OS = mp["os"]
-	delete(mp, "os")
-	o.Arch = mp["arch"]
-	delete(mp, "arch")
-	o.Vars = make(map[string][]string, len(mp))
-	for k, v := range mp {
-		o.Vars[k] = v
-	}
-	return nil
-}
-
-// MarshalYAML implements the yaml.Marshaler interface
-func (o OverrideMatcher) MarshalYAML() (interface{}, error) {
-	mp := make(map[string][]string, len(o.Vars)+2)
-	for k, v := range o.Vars {
-		mp[k] = v
-	}
-	if len(o.OS) > 0 {
-		mp["os"] = o.OS
-	}
-	if len(o.Arch) > 0 {
-		mp["arch"] = o.Arch
-	}
-	return mp, nil
-}
-
-// UnmarshalYAML implements the yaml.Unmarshaler interface
-func (o *OverrideMatcher) UnmarshalYAML(unmarshal func(interface{}) error) error {
-	var mp map[string][]string
-	if err := unmarshal(&mp); err != nil {
-		return err
-	}
-	o.OS = mp["os"]
-	delete(mp, "os")
-	o.Arch = mp["arch"]
-	delete(mp, "arch")
-	o.Vars = make(map[string][]string, len(mp))
-	for k, v := range mp {
-		o.Vars[k] = v
-	}
-	return nil
-}
+type OverrideMatcher map[string][]string
 
 func (o OverrideMatcher) matches(info SystemInfo, vars map[string]string) bool {
 	excluded := func(patterns []string, val string) bool {
@@ -116,13 +47,19 @@ func (o OverrideMatcher) matches(info SystemInfo, vars map[string]string) bool {
 		}
 		return true
 	}
-	if len(o.OS) > 0 && excluded(o.OS, info.OS) {
-		return false
-	}
-	if len(o.Arch) > 0 && excluded(o.Arch, info.Arch) {
-		return false
-	}
-	for varName, patterns := range o.Vars {
+	for varName, patterns := range o {
+		if varName == "os" {
+			if excluded(patterns, info.OS) {
+				return false
+			}
+			continue
+		}
+		if varName == "arch" {
+			if excluded(patterns, info.Arch) {
+				return false
+			}
+			continue
+		}
 		if excluded(patterns, vars[varName]) {
 			return false
 		}
@@ -131,18 +68,12 @@ func (o OverrideMatcher) matches(info SystemInfo, vars map[string]string) bool {
 }
 
 func (o OverrideMatcher) clone() OverrideMatcher {
-	matcher := OverrideMatcher{
-		OS:   make([]string, len(o.OS)),
-		Arch: make([]string, len(o.Arch)),
-		Vars: make(map[string][]string, len(o.Vars)),
+	m := make(OverrideMatcher, len(o))
+	for k, v := range o {
+		m[k] = make([]string, len(v))
+		copy(m[k], v)
 	}
-	copy(matcher.OS, o.OS)
-	copy(matcher.Arch, o.Arch)
-	for k, v := range o.Vars {
-		matcher.Vars[k] = make([]string, len(v))
-		copy(matcher.Vars[k], v)
-	}
-	return matcher
+	return m
 }
 
 // Dependency is something to download, extract and install
