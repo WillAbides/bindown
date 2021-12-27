@@ -18,7 +18,7 @@ the current os. Place `bootstrap-bindown.sh` from the
 [latest release](https://github.com/WillAbides/bindown/releases/latest) in your
 project's repository. Don't forget to make it executable first (`chmod +x
 bootstrap-bindown.sh` on most systems). Then you can call `bootstrap-bindown.sh`
-before `bindown` in the projects bootstrap script or Makefile.
+before `bindown` in the project's bootstrap script or Makefile.
 
 #### Usage
 ```
