@@ -8,14 +8,14 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"gopkg.in/yaml.v3"
+	"gopkg.in/yaml.v2"
 )
 
 func configFromYaml(t *testing.T, yml string) *Config {
 	t.Helper()
 	got := new(Config)
 	decoder := yaml.NewDecoder(strings.NewReader(yml))
-	decoder.KnownFields(true)
+	decoder.SetStrict(true)
 	require.NoError(t, decoder.Decode(got))
 	return got
 }

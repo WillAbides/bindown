@@ -50,7 +50,7 @@ func (c *templateSourceAddCmd) Run() error {
 }
 
 type templateSourceRemoveCmd struct {
-	Name string `kong:"arg,completer=templateSource"`
+	Name string `kong:"arg,predictor=templateSource"`
 }
 
 func (c *templateSourceRemoveCmd) Run() error {

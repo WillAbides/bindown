@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/alecthomas/kong"
+	"github.com/posener/complete"
 	"github.com/willabides/bindown/v3"
 )
 
@@ -77,8 +78,8 @@ func allDependencies(cfg *bindown.ConfigFile) []string {
 	return dependencies
 }
 
-var templateSourceCompleter = kong.CompleterFunc(func(a kong.CompleterArgs) []string {
-	cfg := completionConfig(a.Completed())
+var templateSourceCompleter = complete.PredictFunc(func(a complete.Args) []string {
+	cfg := completionConfig(a.Completed)
 	if cfg == nil {
 		return []string{}
 	}
@@ -87,24 +88,26 @@ var templateSourceCompleter = kong.CompleterFunc(func(a kong.CompleterArgs) []st
 	for src := range cfg.TemplateSources {
 		opts = append(opts, src)
 	}
-	return kong.CompleteSet(opts...).Options(a)
+	return complete.PredictSet(opts...).Predict(a)
 })
 
-var binCompleter = kong.CompleterFunc(func(a kong.CompleterArgs) []string {
-	cfg := completionConfig(a.Completed())
-	return kong.CompleteSet(allDependencies(cfg)...).Options(a)
+var binCompleter = complete.PredictFunc(func(a complete.Args) []string {
+	cfg := completionConfig(a.Completed)
+	return complete.PredictSet(allDependencies(cfg)...).Predict(a)
 })
 
-var systemCompleter = kong.CompleterFunc(func(a kong.CompleterArgs) []string {
-	cfg := completionConfig(a.Completed())
+var systemCompleter = complete.PredictFunc(func(a complete.Args) []string {
+	cfg := completionConfig(a.Completed)
 	opts := make([]string, 0, len(cfg.Systems))
 	for _, system := range cfg.Systems {
 		opts = append(opts, system.String())
 	}
-	return kong.CompleteSet(opts...).Options(a)
+	return complete.PredictSet(opts...).Predict(a)
 })
 
-var allSystemsCompleter = kong.CompleteSet(strings.Split(goDists, "\n")...)
+var allSystemsCompleter = complete.PredictFunc(func(a complete.Args) []string {
+	return strings.Split(goDists, "\n")
+})
 
 // from `go tool dist list`
 const goDists = `aix/ppc64
