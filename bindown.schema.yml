@@ -80,29 +80,21 @@ $defs:
       - dependency
     properties:
       matcher:
-        description: Describes which systems this override applies to
+        description: Limits the override to configurations matching all of the matchers. Keys may be "os", "arch" or any variable name.
         type: object
-        additionalProperties: false
-        properties:
-          os:
-            description: List of operating systems to match. When left empty, all operating systems match.
-            examples:
-              - - windows
-                - darwin
-                - linux
-            type: array
-            items:
-              type: string
-          arch:
-            description: List of architectures to match. When left empty, all architectures match.
-            examples:
-              - - "386"
-                - amd64
-                - arm
-                - arm64
-            type: array
-            items:
-              type: string
+        additionalProperties:
+          type: array
+          description: List of values to match. Any matching value will match. If a value can be interpreted as a SemVer, it will be treated as such.
+          items:
+            type: string
+        examples:
+          - version:
+              - '>=1.0.0 <2.0.0'
+            os:
+              - darwin
+              - linux
+            archivepathsuffix:
+              - '.zip'
       dependency:
         description: Values to override the parent dependency
         $ref: "#/$defs/dependency"

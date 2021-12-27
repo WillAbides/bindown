@@ -303,11 +303,11 @@ func TestConfig_addChecksums(t *testing.T) {
 				Overrides: []DependencyOverride{
 					{
 						Dependency:      Dependency{URL: stringPtr(dl2)},
-						OverrideMatcher: OverrideMatcher{OS: []string{"darwin"}},
+						OverrideMatcher: OverrideMatcher{"os": []string{"darwin"}},
 					},
 					{
 						Dependency:      Dependency{URL: stringPtr(dl5)},
-						OverrideMatcher: OverrideMatcher{OS: []string{"windows"}},
+						OverrideMatcher: OverrideMatcher{"os": []string{"windows"}},
 					},
 				},
 			},
@@ -316,7 +316,7 @@ func TestConfig_addChecksums(t *testing.T) {
 				Overrides: []DependencyOverride{
 					{
 						Dependency:      Dependency{URL: stringPtr(dl4)},
-						OverrideMatcher: OverrideMatcher{OS: []string{"darwin"}},
+						OverrideMatcher: OverrideMatcher{"os": []string{"darwin"}},
 					},
 				},
 			},
@@ -344,8 +344,8 @@ func TestConfig_BuildDependency(t *testing.T) {
 				Overrides: []DependencyOverride{
 					{
 						OverrideMatcher: OverrideMatcher{
-							Arch: []string{"testArch"},
-							OS:   []string{"testOS"},
+							"arch": []string{"testArch"},
+							"os":   []string{"testOS"},
 						},
 						Dependency: Dependency{
 							URL: stringPtr("https://{{.os}}-{{.var1}}-{{.var2}}"),
@@ -383,8 +383,8 @@ func TestConfig_addChecksum(t *testing.T) {
 				Overrides: []DependencyOverride{
 					{
 						OverrideMatcher: OverrideMatcher{
-							Arch: []string{"testArch"},
-							OS:   []string{"testOS"},
+							"arch": []string{"testArch"},
+							"os":   []string{"testOS"},
 						},
 						Dependency: Dependency{
 							URL: stringPtr(dlURL2),
@@ -409,8 +409,8 @@ func TestConfig_addChecksum(t *testing.T) {
 				Overrides: []DependencyOverride{
 					{
 						OverrideMatcher: OverrideMatcher{
-							Arch: []string{"testArch"},
-							OS:   []string{"testOS"},
+							"arch": []string{"testArch"},
+							"os":   []string{"testOS"},
 						},
 						Dependency: Dependency{
 							URL: stringPtr(dlURL2),

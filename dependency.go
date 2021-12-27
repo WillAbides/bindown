@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/Masterminds/semver/v3"
 	"github.com/mholt/archiver/v3"
 )
 
@@ -27,37 +28,52 @@ func (o *DependencyOverride) clone() *DependencyOverride {
 }
 
 // OverrideMatcher contains a list or oses and arches to match an override. If either os or arch is empty, all oses and arches match.
-type OverrideMatcher struct {
-	OS   []string `json:"os,omitempty" yaml:",omitempty"`
-	Arch []string `json:"arch,omitempty" yaml:",omitempty"`
-}
+type OverrideMatcher map[string][]string
 
-func (m OverrideMatcher) matches(info SystemInfo) bool {
-	return m.archMatch(info.Arch) && m.osMatch(info.OS)
-}
-
-func (m OverrideMatcher) osMatch(goos string) bool {
-	if len(m.OS) == 0 {
+func (o OverrideMatcher) matches(info SystemInfo, vars map[string]string) bool {
+	excluded := func(patterns []string, val string) bool {
+		for _, pattern := range patterns {
+			if pattern == val {
+				return false
+			}
+			// if pattern can be parsed as a semver constraint return true if val meets the constraint
+			if constraint, err := semver.NewConstraint(pattern); err == nil {
+				if version, err := semver.NewVersion(val); err == nil {
+					if constraint.Check(version) {
+						return false
+					}
+				}
+			}
+		}
 		return true
 	}
-	return stringSliceContains(m.OS, goos)
+	for varName, patterns := range o {
+		if varName == "os" {
+			if excluded(patterns, info.OS) {
+				return false
+			}
+			continue
+		}
+		if varName == "arch" {
+			if excluded(patterns, info.Arch) {
+				return false
+			}
+			continue
+		}
+		if excluded(patterns, vars[varName]) {
+			return false
+		}
+	}
+	return true
 }
 
-func (m OverrideMatcher) archMatch(arch string) bool {
-	if len(m.Arch) == 0 {
-		return true
+func (o OverrideMatcher) clone() OverrideMatcher {
+	m := make(OverrideMatcher, len(o))
+	for k, v := range o {
+		m[k] = make([]string, len(v))
+		copy(m[k], v)
 	}
-	return stringSliceContains(m.Arch, arch)
-}
-
-func (m OverrideMatcher) clone() OverrideMatcher {
-	matcher := OverrideMatcher{
-		OS:   make([]string, len(m.OS)),
-		Arch: make([]string, len(m.Arch)),
-	}
-	copy(matcher.OS, m.OS)
-	copy(matcher.Arch, m.Arch)
-	return matcher
+	return m
 }
 
 // Dependency is something to download, extract and install
@@ -237,7 +253,7 @@ const maxOverrideDepth = 2
 
 func (d *Dependency) applyOverrides(info SystemInfo, depth int) {
 	for i := range d.Overrides {
-		if !d.Overrides[i].OverrideMatcher.matches(info) {
+		if !d.Overrides[i].OverrideMatcher.matches(info, d.Vars) {
 			continue
 		}
 		dependency := &d.Overrides[i].Dependency
@@ -264,15 +280,6 @@ func (d *Dependency) applyOverrides(info SystemInfo, depth int) {
 		}
 	}
 	d.Overrides = nil
-}
-
-func stringSliceContains(sl []string, item string) bool {
-	for _, s := range sl {
-		if s == item {
-			return true
-		}
-	}
-	return false
 }
 
 func boolPtr(val bool) *bool {

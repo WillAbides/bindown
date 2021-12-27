@@ -189,10 +189,10 @@ templates:
         vars:
           archivepathsuffix: .exe
     - matcher:
-        os:
-        - darwin
         arch:
         - arm64
+        os:
+        - darwin
       dependency:
         vars:
           arch: amd64
@@ -220,10 +220,10 @@ templates:
         vars:
           archivepathsuffix: .exe
     - matcher:
-        os:
-        - darwin
         arch:
         - arm64
+        os:
+        - darwin
       dependency:
         vars:
           arch: amd64

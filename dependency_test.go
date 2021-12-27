@@ -5,6 +5,8 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/stretchr/testify/require"
 )
 
@@ -159,6 +161,7 @@ dependencies:
         dependency:
           url: dependencyOverrideURL
   want:
+    template: template1
     link: false
     archive_path: dependencyArchivePath
     url: parentTemplateURL
@@ -181,7 +184,7 @@ dependencies:
 		dep := cfg.Dependencies["myDependency"]
 		err := dep.applyTemplate(cfg.Templates, 0)
 		require.NoError(t, err)
-		requireEqualDependency(t, cfg.Dependencies["want"], dep)
+		require.Empty(t, cmp.Diff(cfg.Dependencies["want"], dep, cmpopts.EquateEmpty()))
 	})
 }
 
@@ -203,13 +206,16 @@ func Test_Dependency_applyOverrides(t *testing.T) {
 		dep := &Dependency{
 			ArchivePath: stringPtr("archivePath"),
 			Vars: map[string]string{
-				"foo": "bar",
-				"baz": "qux",
+				"foo":     "bar",
+				"baz":     "qux",
+				"version": "1.2.3",
 			},
 			Overrides: []DependencyOverride{
 				{
 					OverrideMatcher: OverrideMatcher{
-						OS: []string{"linux"},
+						"os":      {"linux"},
+						"foo":     {"bar"},
+						"version": {"asdf", "1.2.4", "1.x"},
 					},
 					Dependency: Dependency{
 						Link: boolPtr(true),
@@ -220,7 +226,7 @@ func Test_Dependency_applyOverrides(t *testing.T) {
 						Overrides: []DependencyOverride{
 							{
 								OverrideMatcher: OverrideMatcher{
-									Arch: []string{"amd64"},
+									"arch": []string{"amd64"},
 								},
 								Dependency: Dependency{
 									ArchivePath: stringPtr("it's amd64"),
@@ -228,7 +234,7 @@ func Test_Dependency_applyOverrides(t *testing.T) {
 							},
 							{
 								OverrideMatcher: OverrideMatcher{
-									Arch: []string{"x86"},
+									"arch": []string{"x86"},
 								},
 								Dependency: Dependency{
 									ArchivePath: stringPtr("it's x86"),
@@ -243,12 +249,13 @@ func Test_Dependency_applyOverrides(t *testing.T) {
 			ArchivePath: stringPtr("it's amd64"),
 			Link:        boolPtr(true),
 			Vars: map[string]string{
-				"foo": "not bar",
-				"baz": "qux",
-				"bar": "moo",
+				"foo":     "not bar",
+				"baz":     "qux",
+				"bar":     "moo",
+				"version": "1.2.3",
 			},
 		}
 		dep.applyOverrides(newSystemInfo("linux", "amd64"), 0)
-		requireEqualDependency(t, &want, dep)
+		require.Empty(t, cmp.Diff(&want, dep))
 	})
 }
