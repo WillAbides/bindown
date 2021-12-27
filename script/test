@@ -4,7 +4,4 @@ set -e
 
 CDPATH="" cd -- "$(dirname -- "$(dirname -- "$0")")"
 
-. script/goenv
-
-mkdir -p tmp
-go test -race -covermode=atomic -coverprofile=tmp/coverage.out ./...
+go test -race -covermode=atomic ./...
