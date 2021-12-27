@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"sort"
 
-	"gopkg.in/yaml.v3"
+	"gopkg.in/yaml.v2"
 )
 
 // ConfigFile is a file containing config
@@ -55,8 +55,11 @@ func (c *ConfigFile) writeContent(w io.Writer, outputJSON bool) error {
 		return encoder.Encode(c)
 	}
 	encoder := yaml.NewEncoder(w)
-	encoder.SetIndent(2)
-	return encoder.Encode(&c.Config)
+	err := encoder.Encode(&c.Config)
+	if err != nil {
+		return err
+	}
+	return encoder.Close()
 }
 
 // Write writes a file to disk
