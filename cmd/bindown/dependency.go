@@ -20,7 +20,7 @@ type dependencyCmd struct {
 }
 
 type dependencyUpdateVarCmd struct {
-	Dependency string            `kong:"arg,completer=bin"`
+	Dependency string            `kong:"arg,predictor=bin"`
 	Set        map[string]string `kong:"help='add or update a var'"`
 	Unset      []string          `kong:"help='remove a var'"`
 }
@@ -46,7 +46,7 @@ func (c *dependencyUpdateVarCmd) Run() error {
 }
 
 type dependencyShowConfigCmd struct {
-	Dependency string `kong:"arg,completer=bin"`
+	Dependency string `kong:"arg,predictor=bin"`
 }
 
 func (c *dependencyShowConfigCmd) Run(ctx *kong.Context) error {
@@ -67,8 +67,8 @@ func (c *dependencyShowConfigCmd) Run(ctx *kong.Context) error {
 }
 
 type dependencyInfoCmd struct {
-	Dependency string               `kong:"arg,completer=bin"`
-	Systems    []bindown.SystemInfo `kong:"name=system,help=${systems_help},completer=allSystems"`
+	Dependency string               `kong:"arg,predictor=bin"`
+	Systems    []bindown.SystemInfo `kong:"name=system,help=${systems_help},predictor=allSystems"`
 	Vars       bool                 `kong:"help='include vars'"`
 }
 
@@ -122,7 +122,7 @@ func (c *dependencyListCmd) Run(ctx *kong.Context) error {
 }
 
 type dependencyRemoveCmd struct {
-	Dependency string `kong:"arg,completer=bin"`
+	Dependency string `kong:"arg,predictor=bin"`
 }
 
 func (c *dependencyRemoveCmd) Run() error {

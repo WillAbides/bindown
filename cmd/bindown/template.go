@@ -16,7 +16,7 @@ type templateCmd struct {
 }
 
 type templateUpdateVarCmd struct {
-	Dependency string            `kong:"arg,completer=bin"`
+	Dependency string            `kong:"arg,predictor=bin"`
 	Set        map[string]string `kong:"help='add or update a var'"`
 	Unset      []string          `kong:"help='remove a var'"`
 }
