@@ -5,13 +5,12 @@ go 1.17
 require (
 	github.com/Masterminds/semver/v3 v3.1.1
 	github.com/alecthomas/kong v0.2.5-0.20200316010313-509fd46c42d7
-	github.com/ghodss/yaml v1.0.0
 	github.com/golang/mock v1.6.0
 	github.com/google/go-cmp v0.5.5
 	github.com/mholt/archiver/v3 v3.5.1
 	github.com/qri-io/jsonschema v0.2.1
 	github.com/stretchr/testify v1.7.0
-	gopkg.in/yaml.v2 v2.4.0
+	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b
 )
 
 require (
@@ -29,5 +28,5 @@ require (
 	github.com/riywo/loginshell v0.0.0-20190610082906-2ed199a032f6 // indirect
 	github.com/ulikunitz/xz v0.5.10 // indirect
 	github.com/xi2/xz v0.0.0-20171230120015-48954b6210f8 // indirect
-	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect
+	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect
 )

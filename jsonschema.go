@@ -8,7 +8,6 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/ghodss/yaml"
 	"github.com/qri-io/jsonschema"
 )
 
@@ -17,7 +16,7 @@ var jsonSchemaText string
 
 // validateConfig checks whether cfg meets the json schema.
 func validateConfig(cfg []byte) error {
-	cfgJSON, err := yaml.YAMLToJSON(cfg)
+	cfgJSON, err := yamlToJSON(cfg)
 	if err != nil {
 		return fmt.Errorf("config is not valid yaml (or json)")
 	}
