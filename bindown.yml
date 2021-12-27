@@ -1,10 +1,10 @@
 cache: ./bin/.bindown
 install_dir: ./bin
 systems:
-- darwin/amd64
-- darwin/arm64
-- linux/amd64
-- windows/amd64
+  - darwin/amd64
+  - darwin/arm64
+  - linux/amd64
+  - windows/amd64
 dependencies:
   go:
     template: local-origin#go
@@ -44,28 +44,28 @@ templates:
       archivepathsuffix: ""
       urlsuffix: .tar.gz
     required_vars:
-    - version
+      - version
     overrides:
-    - matcher:
-        os:
-        - windows
-      dependency:
-        vars:
-          archivepathsuffix: .exe
-          urlsuffix: .zip
+      - matcher:
+          os:
+            - windows
+        dependency:
+          vars:
+            archivepathsuffix: .exe
+            urlsuffix: .zip
     systems:
-    - darwin/amd64
-    - darwin/arm64
-    - linux/386
-    - linux/amd64
-    - linux/arm64
-    - linux/arm
-    - windows/386
-    - windows/amd64
-    - freebsd/386
-    - freebsd/amd64
-    - linux/ppc64le
-    - linux/s390x
+      - darwin/amd64
+      - darwin/arm64
+      - linux/386
+      - linux/amd64
+      - linux/arm64
+      - linux/arm
+      - windows/386
+      - windows/amd64
+      - freebsd/386
+      - freebsd/amd64
+      - linux/ppc64le
+      - linux/s390x
   local-origin#gofumpt:
     url: https://github.com/mvdan/gofumpt/releases/download/v{{.version}}/gofumpt_v{{.version}}_{{.os}}_{{.arch}}{{.suffix}}
     archive_path: gofumpt_v{{.version}}_{{.os}}_{{.arch}}{{.suffix}}
@@ -73,14 +73,14 @@ templates:
     vars:
       suffix: ""
     required_vars:
-    - version
+      - version
     overrides:
-    - matcher:
-        os:
-        - windows
-      dependency:
-        vars:
-          suffix: .exe
+      - matcher:
+          os:
+            - windows
+        dependency:
+          vars:
+            suffix: .exe
   local-origin#golangci-lint:
     url: https://github.com/golangci/golangci-lint/releases/download/v{{.version}}/golangci-lint-{{.version}}-{{.os}}-{{.arch}}{{.urlsuffix}}
     archive_path: golangci-lint-{{.version}}-{{.os}}-{{.arch}}/golangci-lint{{.archivepathsuffix}}
@@ -90,29 +90,29 @@ templates:
       archivepathsuffix: ""
       urlsuffix: .tar.gz
     required_vars:
-    - version
+      - version
     overrides:
-    - matcher:
-        os:
-        - windows
-      dependency:
-        vars:
-          archivepathsuffix: .exe
-          urlsuffix: .zip
+      - matcher:
+          os:
+            - windows
+        dependency:
+          vars:
+            archivepathsuffix: .exe
+            urlsuffix: .zip
     systems:
-    - darwin/amd64
-    - darwin/arm64
-    - linux/386
-    - linux/amd64
-    - linux/arm64
-    - windows/386
-    - windows/amd64
-    - freebsd/386
-    - freebsd/amd64
-    - linux/mips64
-    - linux/mips64le
-    - linux/s390x
-    - linux/ppc64le
+      - darwin/amd64
+      - darwin/arm64
+      - linux/386
+      - linux/amd64
+      - linux/arm64
+      - windows/386
+      - windows/amd64
+      - freebsd/386
+      - freebsd/amd64
+      - linux/mips64
+      - linux/mips64le
+      - linux/s390x
+      - linux/ppc64le
   local-origin#goreleaser:
     url: https://github.com/goreleaser/goreleaser/releases/download/v{{.version}}/goreleaser_{{.os}}_{{.arch}}{{.urlsuffix}}
     archive_path: goreleaser{{.archivepathsuffix}}
@@ -121,21 +121,21 @@ templates:
       archivepathsuffix: ""
       urlsuffix: .tar.gz
     required_vars:
-    - version
+      - version
     overrides:
-    - matcher:
-        os:
-        - windows
-      dependency:
-        vars:
-          archivepathsuffix: .exe
-          urlsuffix: .zip
-    - matcher:
-        os:
-        - darwin
-      dependency:
-        vars:
-          arch: all
+      - matcher:
+          os:
+            - windows
+        dependency:
+          vars:
+            archivepathsuffix: .exe
+            urlsuffix: .zip
+      - matcher:
+          os:
+            - darwin
+        dependency:
+          vars:
+            arch: all
     substitutions:
       arch:
         "386": i386
@@ -145,12 +145,12 @@ templates:
         linux: Linux
         windows: Windows
     systems:
-    - darwin/amd64
-    - darwin/arm64
-    - linux/386
-    - linux/amd64
-    - windows/386
-    - windows/amd64
+      - darwin/amd64
+      - darwin/arm64
+      - linux/386
+      - linux/amd64
+      - windows/386
+      - windows/amd64
   local-origin#mockgen:
     url: https://github.com/golang/mock/releases/download/v{{.version}}/mock_{{.version}}_{{.os}}_{{.arch}}.tar.gz
     archive_path: mock_{{.version}}_{{.os}}_{{.arch}}/mockgen{{.archivepathsuffix}}
@@ -158,21 +158,21 @@ templates:
     vars:
       archivepathsuffix: ""
     required_vars:
-    - version
+      - version
     overrides:
-    - matcher:
-        os:
-        - windows
-      dependency:
-        vars:
-          archivepathsuffix: .exe
+      - matcher:
+          os:
+            - windows
+        dependency:
+          vars:
+            archivepathsuffix: .exe
     systems:
-    - darwin/amd64
-    - darwin/arm64
-    - linux/386
-    - linux/amd64
-    - windows/386
-    - windows/amd64
+      - darwin/amd64
+      - darwin/arm64
+      - linux/386
+      - linux/amd64
+      - windows/386
+      - windows/amd64
   local-origin#semver-next:
     url: https://github.com/WillAbides/semver-next/releases/download/v{{.version}}/semver-next_{{.version}}_{{.os}}_{{.arch}}.tar.gz
     archive_path: semver-next{{.archivepathsuffix}}
@@ -180,30 +180,30 @@ templates:
     vars:
       archivepathsuffix: ""
     required_vars:
-    - version
+      - version
     overrides:
-    - matcher:
-        os:
-        - windows
-      dependency:
-        vars:
-          archivepathsuffix: .exe
-    - matcher:
-        arch:
-        - arm64
-        os:
-        - darwin
-      dependency:
-        vars:
-          arch: amd64
+      - matcher:
+          os:
+            - windows
+        dependency:
+          vars:
+            archivepathsuffix: .exe
+      - matcher:
+          arch:
+            - arm64
+          os:
+            - darwin
+        dependency:
+          vars:
+            arch: amd64
     systems:
-    - darwin/386
-    - darwin/amd64
-    - darwin/arm64
-    - linux/386
-    - linux/amd64
-    - windows/386
-    - windows/amd64
+      - darwin/386
+      - darwin/amd64
+      - darwin/arm64
+      - linux/386
+      - linux/amd64
+      - windows/386
+      - windows/amd64
   local-origin#yq:
     url: https://github.com/mikefarah/yq/releases/download/{{.version}}/yq_{{.os}}_{{.arch}}{{.archivepathsuffix}}
     archive_path: yq_{{.os}}_{{.arch}}{{.archivepathsuffix}}
@@ -211,46 +211,46 @@ templates:
     vars:
       archivepathsuffix: ""
     required_vars:
-    - version
+      - version
     overrides:
-    - matcher:
-        os:
-        - windows
-      dependency:
-        vars:
-          archivepathsuffix: .exe
-    - matcher:
-        arch:
-        - arm64
-        os:
-        - darwin
-      dependency:
-        vars:
-          arch: amd64
+      - matcher:
+          os:
+            - windows
+        dependency:
+          vars:
+            archivepathsuffix: .exe
+      - matcher:
+          arch:
+            - arm64
+          os:
+            - darwin
+        dependency:
+          vars:
+            arch: amd64
     systems:
-    - darwin/386
-    - darwin/amd64
-    - darwin/arm64
-    - freebsd/386
-    - freebsd/amd64
-    - freebsd/arm
-    - linux/386
-    - linux/amd64
-    - linux/arm
-    - linux/arm64
-    - linux/mips
-    - linux/mips64
-    - linux/mips64le
-    - linux/mipsle
-    - linux/ppc64
-    - linux/s390x
-    - netbsd/386
-    - netbsd/arm
-    - netbsd/arm64
-    - openbsd/386
-    - openbsd/amd64
-    - windows/386
-    - windows/amd64
+      - darwin/386
+      - darwin/amd64
+      - darwin/arm64
+      - freebsd/386
+      - freebsd/amd64
+      - freebsd/arm
+      - linux/386
+      - linux/amd64
+      - linux/arm
+      - linux/arm64
+      - linux/mips
+      - linux/mips64
+      - linux/mips64le
+      - linux/mipsle
+      - linux/ppc64
+      - linux/s390x
+      - netbsd/386
+      - netbsd/arm
+      - netbsd/arm64
+      - openbsd/386
+      - openbsd/amd64
+      - windows/386
+      - windows/amd64
 template_sources:
   local-origin: ./bindown_templates.yml
   origin: https://raw.githubusercontent.com/WillAbides/bindown/master/bindown_templates.yml

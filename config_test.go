@@ -4,17 +4,19 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v3"
 )
 
 func configFromYaml(t *testing.T, yml string) *Config {
 	t.Helper()
 	got := new(Config)
-	err := yaml.UnmarshalStrict([]byte(yml), got)
-	require.NoError(t, err)
+	decoder := yaml.NewDecoder(strings.NewReader(yml))
+	decoder.KnownFields(true)
+	require.NoError(t, decoder.Decode(got))
 	return got
 }
 

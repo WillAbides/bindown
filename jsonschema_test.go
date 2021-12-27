@@ -7,7 +7,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/ghodss/yaml"
 	"github.com/stretchr/testify/require"
 )
 
@@ -28,7 +27,7 @@ func TestValidateConfig(t *testing.T) {
 	t.Run("valid json", func(t *testing.T) {
 		cfgContent, err := os.ReadFile(filepath.Join("testdata", "configs", "ex1.yaml"))
 		require.NoError(t, err)
-		cfg, err := yaml.YAMLToJSON(cfgContent)
+		cfg, err := yamlToJSON(cfgContent)
 		require.NoError(t, err)
 		err = validateConfig(cfg)
 		require.NoError(t, err)

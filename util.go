@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"hash"
 	"hash/fnv"
@@ -12,6 +13,8 @@ import (
 	"path/filepath"
 	"strings"
 	"text/template"
+
+	"gopkg.in/yaml.v3"
 )
 
 // copyStringMap returns a copy of mp
@@ -170,4 +173,12 @@ func copyFile(src, dst string, closeCloser func(io.Closer)) error {
 
 	_, err = io.Copy(writer, rdr)
 	return err
+}
+
+func yamlToJSON(data []byte) ([]byte, error) {
+	var yamlData interface{}
+	if err := yaml.Unmarshal(data, &yamlData); err != nil {
+		return nil, err
+	}
+	return json.Marshal(yamlData)
 }
