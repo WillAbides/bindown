@@ -133,9 +133,21 @@ templates:
       - matcher:
           os:
             - darwin
+          version:
+            - 0.182 - 1.1
         dependency:
           vars:
             arch: all
+      - matcher:
+          arch:
+            - arm64
+          os:
+            - darwin
+          version:
+            - < 0.155
+        dependency:
+          vars:
+            arch: amd64
     substitutions:
       arch:
         "386": i386
