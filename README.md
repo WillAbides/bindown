@@ -28,7 +28,7 @@ Usage: ./bootstrap-bindown.sh [-b bindir] [-d]
 If you happen to already have go installed on your system, you can install bindown with:
 
 ```
-GO111MODULE=on go get -u github.com/willabides/bindown/v3/cmd/bindown 
+go install github.com/willabides/bindown/v3/cmd/bindown@latest 
 ```
 
 Note the lowercase `willabides`. Pro tip: Your life will be easier with a lowercase GitHub username.
@@ -65,6 +65,7 @@ Property        | Description
 `vars`          | A map of variables that will be interpolated in the `url`, `archive_path` and `bin` values. See [vars](#vars)
 `overrides`     | A list of value overrides for certain systems. See [overrides](#overrides)
 `substitutions` | Values that will be substituted for one variable. See [substitutions](#substitutions)
+`systems`       | A list of systems that this dependency is compatible with in format `os/arch`. For example `linux/amd64` or `darwin/arm64`.
 
 ### vars
 
