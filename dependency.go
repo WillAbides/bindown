@@ -1,6 +1,7 @@
 package bindown
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"log"
@@ -29,67 +30,118 @@ func (o *DependencyOverride) clone() *DependencyOverride {
 
 // OverrideMatcher contains a list or oses and arches to match an override. If either os or arch is empty, all oses and arches match.
 type OverrideMatcher struct {
-	OS   []string            `json:"os,omitempty" yaml:",omitempty"`
-	Arch []string            `json:"arch,omitempty" yaml:",omitempty"`
-	Vars map[string][]string `json:"vars,omitempty" yaml:",omitempty"`
+	OS   []string
+	Arch []string
+	Vars map[string][]string
 }
 
-func (m OverrideMatcher) matches(info SystemInfo, vars map[string]string) bool {
-	return m.archMatch(info.Arch) && m.osMatch(info.OS) && m.varMatch(vars)
-}
-
-func (m OverrideMatcher) osMatch(goos string) bool {
-	if len(m.OS) == 0 {
-		return true
+// MarshalJSON implements the json.Marshaler interface
+func (o OverrideMatcher) MarshalJSON() ([]byte, error) {
+	mp := make(map[string][]string, len(o.Vars)+2)
+	for k, v := range o.Vars {
+		mp[k] = v
 	}
-	return stringSliceContains(m.OS, goos)
+	if len(o.OS) > 0 {
+		mp["os"] = o.OS
+	}
+	if len(o.Arch) > 0 {
+		mp["arch"] = o.Arch
+	}
+	return json.Marshal(mp)
 }
 
-func (m OverrideMatcher) archMatch(arch string) bool {
-	if len(m.Arch) == 0 {
-		return true
+// UnmarshalJSON implements the json.Unmarshaler interface
+func (o *OverrideMatcher) UnmarshalJSON(data []byte) error {
+	var mp map[string][]string
+	if err := json.Unmarshal(data, &mp); err != nil {
+		return err
 	}
-	return stringSliceContains(m.Arch, arch)
+	o.OS = mp["os"]
+	delete(mp, "os")
+	o.Arch = mp["arch"]
+	delete(mp, "arch")
+	o.Vars = make(map[string][]string, len(mp))
+	for k, v := range mp {
+		o.Vars[k] = v
+	}
+	return nil
 }
 
-func (m OverrideMatcher) varMatch(vars map[string]string) bool {
-	if len(m.Vars) == 0 {
-		return true
+// MarshalYAML implements the yaml.Marshaler interface
+func (o OverrideMatcher) MarshalYAML() (interface{}, error) {
+	mp := make(map[string][]string, len(o.Vars)+2)
+	for k, v := range o.Vars {
+		mp[k] = v
 	}
-	for k, patterns := range m.Vars {
-		matched := false
+	if len(o.OS) > 0 {
+		mp["os"] = o.OS
+	}
+	if len(o.Arch) > 0 {
+		mp["arch"] = o.Arch
+	}
+	return mp, nil
+}
+
+// UnmarshalYAML implements the yaml.Unmarshaler interface
+func (o *OverrideMatcher) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	var mp map[string][]string
+	if err := unmarshal(&mp); err != nil {
+		return err
+	}
+	o.OS = mp["os"]
+	delete(mp, "os")
+	o.Arch = mp["arch"]
+	delete(mp, "arch")
+	o.Vars = make(map[string][]string, len(mp))
+	for k, v := range mp {
+		o.Vars[k] = v
+	}
+	return nil
+}
+
+func (o OverrideMatcher) matches(info SystemInfo, vars map[string]string) bool {
+	excluded := func(patterns []string, val string) bool {
 		for _, pattern := range patterns {
-			if matchSemverConstraintOrString(pattern, vars[k]) {
-				matched = true
-				break
+			if pattern == val {
+				return false
+			}
+			// if pattern can be parsed as a semver constraint return true if val meets the constraint
+			if constraint, err := semver.NewConstraint(pattern); err == nil {
+				if version, err := semver.NewVersion(val); err == nil {
+					if constraint.Check(version) {
+						return false
+					}
+				}
 			}
 		}
-		if !matched {
+		return true
+	}
+	if len(o.OS) > 0 && excluded(o.OS, info.OS) {
+		return false
+	}
+	if len(o.Arch) > 0 && excluded(o.Arch, info.Arch) {
+		return false
+	}
+	for varName, patterns := range o.Vars {
+		if excluded(patterns, vars[varName]) {
 			return false
 		}
 	}
 	return true
 }
 
-func matchSemverConstraintOrString(pattern, val string) bool {
-	constraint, err := semver.NewConstraint(pattern)
-	if err != nil {
-		return pattern == val
-	}
-	version, err := semver.NewVersion(val)
-	if err != nil {
-		return pattern == val
-	}
-	return constraint.Check(version)
-}
-
-func (m OverrideMatcher) clone() OverrideMatcher {
+func (o OverrideMatcher) clone() OverrideMatcher {
 	matcher := OverrideMatcher{
-		OS:   make([]string, len(m.OS)),
-		Arch: make([]string, len(m.Arch)),
+		OS:   make([]string, len(o.OS)),
+		Arch: make([]string, len(o.Arch)),
+		Vars: make(map[string][]string, len(o.Vars)),
 	}
-	copy(matcher.OS, m.OS)
-	copy(matcher.Arch, m.Arch)
+	copy(matcher.OS, o.OS)
+	copy(matcher.Arch, o.Arch)
+	for k, v := range o.Vars {
+		matcher.Vars[k] = make([]string, len(v))
+		copy(matcher.Vars[k], v)
+	}
 	return matcher
 }
 
@@ -297,15 +349,6 @@ func (d *Dependency) applyOverrides(info SystemInfo, depth int) {
 		}
 	}
 	d.Overrides = nil
-}
-
-func stringSliceContains(sl []string, item string) bool {
-	for _, s := range sl {
-		if s == item {
-			return true
-		}
-	}
-	return false
 }
 
 func boolPtr(val bool) *bool {

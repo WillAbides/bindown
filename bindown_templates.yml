@@ -58,7 +58,7 @@ templates:
     overrides:
     - matcher:
         os:
-          - windows
+        - windows
       dependency:
         vars:
           archivepathsuffix: .exe
@@ -96,10 +96,22 @@ templates:
           urlsuffix: .zip
     - matcher:
         os:
-          - darwin
+        - darwin
+        vars:
+          version:
+          - '>=0.182.0 <1.2.0'
       dependency:
         vars:
           arch: all
+    - matcher:
+        os:
+        - darwin
+        vars:
+          version:
+          - <0.156.0
+      dependency:
+        vars:
+          arch: amd64
     substitutions:
       arch:
         "386": i386

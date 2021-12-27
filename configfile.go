@@ -2,6 +2,7 @@ package bindown
 
 import (
 	"encoding/json"
+	"io"
 	"os"
 	"path/filepath"
 	"sort"
@@ -42,27 +43,32 @@ func LoadConfigFile(filename string, noDefaultDirs bool) (*ConfigFile, error) {
 	return &result, nil
 }
 
-// Write writes a file to disk
-func (c *ConfigFile) Write(outputJSON bool) error {
-	var data []byte
-	var err error
-	if filepath.Ext(c.Filename) == ".json" {
-		outputJSON = true
-	}
+func (c *ConfigFile) writeContent(w io.Writer, outputJSON bool) error {
 	if len(c.Systems) > 0 {
 		sort.Slice(c.Systems, func(i, j int) bool {
 			return c.Systems[i].String() < c.Systems[j].String()
 		})
 	}
-	switch outputJSON {
-	case true:
-		data, err = json.MarshalIndent(&c.Config, "", "  ")
-	case false:
-		data, err = yaml.Marshal(&c.Config)
+	if outputJSON {
+		encoder := json.NewEncoder(w)
+		encoder.SetIndent("", "  ")
+		return encoder.Encode(c)
 	}
+	return yaml.NewEncoder(w).Encode(&c.Config)
+}
+
+// Write writes a file to disk
+func (c *ConfigFile) Write(outputJSON bool) error {
+	if filepath.Ext(c.Filename) == ".json" {
+		outputJSON = true
+	}
+	file, err := os.Create(c.Filename)
 	if err != nil {
 		return err
 	}
-
-	return os.WriteFile(c.Filename, data, 0o600)
+	err = c.writeContent(file, outputJSON)
+	if err != nil {
+		return err
+	}
+	return file.Close()
 }

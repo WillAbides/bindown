@@ -92,58 +92,28 @@
           "description": "Values to override the parent dependency"
         },
         "matcher": {
-          "additionalProperties": false,
-          "description": "Describes which systems this override applies to",
-          "properties": {
-            "arch": {
-              "description": "List of architectures to match. When left empty, all architectures match.",
-              "examples": [
-                [
-                  "386",
-                  "amd64",
-                  "arm",
-                  "arm64"
-                ]
-              ],
-              "items": {
-                "type": "string"
-              },
-              "type": "array"
+          "additionalProperties": {
+            "description": "List of values to match. Any matching value will match. If a value can be interpreted as a SemVer, it will be treated as such.",
+            "items": {
+              "type": "string"
             },
-            "os": {
-              "description": "List of operating systems to match. When left empty, all operating systems match.",
-              "examples": [
-                [
-                  "windows",
-                  "darwin",
-                  "linux"
-                ]
-              ],
-              "items": {
-                "type": "string"
-              },
-              "type": "array"
-            },
-            "vars": {
-              "additionalProperties": {
-                "description": "List of values to match. Any matching value will match. If a value can be interpreted as a SemVer, it will be treated as such.",
-                "items": {
-                  "type": "string"
-                },
-                "type": "array"
-              },
-              "description": "Variables to match. All variables defines in the matcher must match the dependency.",
-              "examples": [
-                {
-                  "version": [
-                    "1.0.0",
-                    "1.x"
-                  ]
-                }
-              ],
-              "type": "object"
-            }
+            "type": "array"
           },
+          "description": "Limits the override to configurations matching all of the matchers. Keys may be \"os\", \"arch\" or any variable name.",
+          "examples": [
+            {
+              "archivepathsuffix": [
+                ".zip"
+              ],
+              "os": [
+                "darwin",
+                "linux"
+              ],
+              "version": [
+                "\u003e=1.0.0 \u003c2.0.0"
+              ]
+            }
+          ],
           "type": "object"
         }
       },

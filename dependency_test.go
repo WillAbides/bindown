@@ -5,6 +5,8 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/stretchr/testify/require"
 )
 
@@ -159,6 +161,7 @@ dependencies:
         dependency:
           url: dependencyOverrideURL
   want:
+    template: template1
     link: false
     archive_path: dependencyArchivePath
     url: parentTemplateURL
@@ -181,7 +184,7 @@ dependencies:
 		dep := cfg.Dependencies["myDependency"]
 		err := dep.applyTemplate(cfg.Templates, 0)
 		require.NoError(t, err)
-		requireEqualDependency(t, cfg.Dependencies["want"], dep)
+		require.Empty(t, cmp.Diff(cfg.Dependencies["want"], dep, cmpopts.EquateEmpty()))
 	})
 }
 
@@ -255,6 +258,6 @@ func Test_Dependency_applyOverrides(t *testing.T) {
 			},
 		}
 		dep.applyOverrides(newSystemInfo("linux", "amd64"), 0)
-		requireEqualDependency(t, &want, dep)
+		require.Empty(t, cmp.Diff(&want, dep))
 	})
 }

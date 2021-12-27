@@ -7,6 +7,7 @@ require (
 	github.com/alecthomas/kong v0.2.5-0.20200316010313-509fd46c42d7
 	github.com/ghodss/yaml v1.0.0
 	github.com/golang/mock v1.6.0
+	github.com/google/go-cmp v0.5.5
 	github.com/mholt/archiver/v3 v3.5.1
 	github.com/qri-io/jsonschema v0.2.1
 	github.com/stretchr/testify v1.7.0

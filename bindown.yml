@@ -133,9 +133,19 @@ templates:
     - matcher:
         os:
         - darwin
+        version:
+        - 0.182.0 - 1.2
       dependency:
         vars:
           arch: all
+    - matcher:
+        os:
+        - darwin
+        version:
+        - <0.156.0
+      dependency:
+        vars:
+          arch: amd64
     substitutions:
       arch:
         "386": i386
@@ -189,10 +199,10 @@ templates:
         vars:
           archivepathsuffix: .exe
     - matcher:
-        os:
-        - darwin
         arch:
         - arm64
+        os:
+        - darwin
       dependency:
         vars:
           arch: amd64
@@ -220,10 +230,10 @@ templates:
         vars:
           archivepathsuffix: .exe
     - matcher:
-        os:
-        - darwin
         arch:
         - arm64
+        os:
+        - darwin
       dependency:
         vars:
           arch: amd64
