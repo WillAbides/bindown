@@ -7,6 +7,7 @@ import (
 
 	"github.com/alecthomas/kong"
 	"github.com/willabides/bindown/v3"
+	"github.com/willabides/bindown/v3/cmd/bindown/ifaces"
 	"gopkg.in/yaml.v2"
 )
 
@@ -20,9 +21,10 @@ type dependencyCmd struct {
 }
 
 type dependencyUpdateVarCmd struct {
-	Dependency string            `kong:"arg,predictor=bin"`
-	Set        map[string]string `kong:"help='add or update a var'"`
-	Unset      []string          `kong:"help='remove a var'"`
+	Dependency    string            `kong:"arg,predictor=bin"`
+	Set           map[string]string `kong:"help='add or update a var'"`
+	Unset         []string          `kong:"help='remove a var'"`
+	SkipChecksums bool              `kong:"name=skipchecksums,help='do not update checksums for this dependency'"`
 }
 
 func (c *dependencyUpdateVarCmd) Run() error {
@@ -38,6 +40,16 @@ func (c *dependencyUpdateVarCmd) Run() error {
 	}
 	if len(c.Unset) > 0 {
 		err = config.UnsetDependencyVars(c.Dependency, c.Unset)
+		if err != nil {
+			return err
+		}
+	}
+	missingVars, err := config.MissingDependencyVars(c.Dependency)
+	if err != nil {
+		return err
+	}
+	if len(missingVars) == 0 && !c.SkipChecksums {
+		err = config.AddChecksums([]string{c.Dependency}, nil)
 		if err != nil {
 			return err
 		}
@@ -147,6 +159,7 @@ type dependencyAddCmd struct {
 	TemplateSource   string            `kong:"name=source,help='template source'"`
 	Vars             map[string]string `kong:"name=var"`
 	SkipRequiredVars bool              `kong:"name=skipvars,help='do not prompt for required vars'"`
+	SkipChecksums    bool              `kong:"name=skipchecksums,help='do not add checksums for this dependency'"`
 }
 
 func (c *dependencyAddCmd) Run(ctx *kong.Context) error {
@@ -175,9 +188,26 @@ func (c *dependencyAddCmd) Run(ctx *kong.Context) error {
 	if err != nil {
 		return err
 	}
-	if c.SkipRequiredVars {
-		return config.Write(cli.JSONConfig)
+	if !c.SkipRequiredVars {
+		err = c.promptRequiredVars(ctx, config)
+		if err != nil {
+			return err
+		}
 	}
+	missingVars, err := config.MissingDependencyVars(c.Name)
+	if err != nil {
+		return err
+	}
+	if len(missingVars) == 0 && !c.SkipChecksums {
+		err = config.AddChecksums([]string{c.Name}, nil)
+		if err != nil {
+			return err
+		}
+	}
+	return config.Write(cli.JSONConfig)
+}
+
+func (c *dependencyAddCmd) promptRequiredVars(ctx *kong.Context, config ifaces.ConfigFile) error {
 	missingVars, err := config.MissingDependencyVars(c.Name)
 	if err != nil {
 		return err
@@ -189,5 +219,5 @@ func (c *dependencyAddCmd) Run(ctx *kong.Context) error {
 			return err
 		}
 	}
-	return config.Write(cli.JSONConfig)
+	return nil
 }
