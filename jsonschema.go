@@ -16,7 +16,7 @@ import (
 var jsonSchemaText string
 
 // validateConfig checks whether cfg meets the json schema.
-func validateConfig(cfg []byte) error {
+func validateConfig(ctx context.Context, cfg []byte) error {
 	cfgJSON, err := yaml.YAMLToJSON(cfg)
 	if err != nil {
 		return fmt.Errorf("config is not valid yaml (or json)")
@@ -26,7 +26,7 @@ func validateConfig(cfg []byte) error {
 	if err != nil {
 		return err
 	}
-	validationErrs, err := schema.ValidateBytes(context.TODO(), cfgJSON)
+	validationErrs, err := schema.ValidateBytes(ctx, cfgJSON)
 	if err != nil {
 		return fmt.Errorf("unexpected error running jsonSchema.ValidateBytes: %v", err)
 	}

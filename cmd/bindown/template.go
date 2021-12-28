@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
@@ -21,8 +22,8 @@ type templateUpdateVarCmd struct {
 	Unset    []string          `kong:"help='remove a var'"`
 }
 
-func (c *templateUpdateVarCmd) Run() error {
-	config, err := configLoader.Load(cli.Configfile, true)
+func (c *templateUpdateVarCmd) Run(ctx context.Context) error {
+	config, err := configLoader.Load(ctx, cli.Configfile, true)
 	if err != nil {
 		return err
 	}
@@ -46,7 +47,7 @@ type templateUpdateFromSourceCmd struct {
 	Template string `kong:"arg,help='template to update',predictor=localTemplateFromSource"`
 }
 
-func (c *templateUpdateFromSourceCmd) Run() error {
+func (c *templateUpdateFromSourceCmd) Run(ctx context.Context) error {
 	if c.Source == "" {
 		c.Source = c.Template
 	}
@@ -58,7 +59,7 @@ func (c *templateUpdateFromSourceCmd) Run() error {
 	src := srcParts[0]
 	srcTmpl := srcParts[1]
 
-	cfgIface, err := configLoader.Load(cli.Configfile, true)
+	cfgIface, err := configLoader.Load(ctx, cli.Configfile, true)
 	if err != nil {
 		return err
 	}
@@ -66,7 +67,7 @@ func (c *templateUpdateFromSourceCmd) Run() error {
 	if cfg.Templates == nil {
 		cfg.Templates = map[string]*bindown.Dependency{}
 	}
-	err = cfg.CopyTemplateFromSource(src, srcTmpl, c.Template)
+	err = cfg.CopyTemplateFromSource(ctx, src, srcTmpl, c.Template)
 	if err != nil {
 		return err
 	}
@@ -77,17 +78,17 @@ type templateListCmd struct {
 	Source string `kong:"help='source of templates to list',predictor=templateSource"`
 }
 
-func (c *templateListCmd) Run(ctx *kong.Context) error {
-	cfgIface, err := configLoader.Load(cli.Configfile, true)
+func (c *templateListCmd) Run(ctx context.Context, kctx *kong.Context) error {
+	cfgIface, err := configLoader.Load(ctx, cli.Configfile, true)
 	if err != nil {
 		return err
 	}
 	cfg := cfgIface.(*bindown.ConfigFile)
-	templates, err := cfg.ListTemplates(c.Source)
+	templates, err := cfg.ListTemplates(ctx, c.Source)
 	if err != nil {
 		return err
 	}
-	fmt.Fprintln(ctx.Stdout, strings.Join(templates, "\n"))
+	fmt.Fprintln(kctx.Stdout, strings.Join(templates, "\n"))
 	return nil
 }
 
@@ -95,8 +96,8 @@ type templateRemoveCmd struct {
 	Template string `kong:"arg,predictor=localTemplate"`
 }
 
-func (c *templateRemoveCmd) Run() error {
-	cfgIface, err := configLoader.Load(cli.Configfile, true)
+func (c *templateRemoveCmd) Run(ctx context.Context) error {
+	cfgIface, err := configLoader.Load(ctx, cli.Configfile, true)
 	if err != nil {
 		return err
 	}

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/alecthomas/kong"
@@ -15,14 +16,14 @@ type supportedSystemCmd struct {
 
 type supportedSystemListCmd struct{}
 
-func (c *supportedSystemListCmd) Run(ctx *kong.Context) error {
-	cfgIface, err := configLoader.Load(cli.Configfile, true)
+func (c *supportedSystemListCmd) Run(ctx context.Context, kctx *kong.Context) error {
+	cfgIface, err := configLoader.Load(ctx, cli.Configfile, true)
 	if err != nil {
 		return err
 	}
 	cfg := cfgIface.(*bindown.ConfigFile)
 	for _, system := range cfg.Systems {
-		fmt.Fprintln(ctx.Stdout, system.String())
+		fmt.Fprintln(kctx.Stdout, system.String())
 	}
 	return nil
 }
@@ -31,8 +32,8 @@ type supportedSystemsRemoveCmd struct {
 	System bindown.SystemInfo `kong:"arg,predictor=system,help='system to remove'"`
 }
 
-func (c *supportedSystemsRemoveCmd) Run() error {
-	cfgIface, err := configLoader.Load(cli.Configfile, true)
+func (c *supportedSystemsRemoveCmd) Run(ctx context.Context) error {
+	cfgIface, err := configLoader.Load(ctx, cli.Configfile, true)
 	if err != nil {
 		return err
 	}
@@ -53,8 +54,8 @@ type supportedSystemAddCmd struct {
 	SkipChecksums bool               `kong:"name=skipchecksums,help='do not add checksums for this system'"`
 }
 
-func (c *supportedSystemAddCmd) Run() error {
-	cfgIface, err := configLoader.Load(cli.Configfile, true)
+func (c *supportedSystemAddCmd) Run(ctx context.Context) error {
+	cfgIface, err := configLoader.Load(ctx, cli.Configfile, true)
 	if err != nil {
 		return err
 	}

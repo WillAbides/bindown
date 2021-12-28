@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"text/tabwriter"
 
@@ -16,12 +17,12 @@ type templateSourceCmd struct {
 
 type templateSourceListCmd struct{}
 
-func (c *templateSourceListCmd) Run(ctx *kong.Context) error {
-	cfg, err := configLoader.Load(cli.Configfile, true)
+func (c *templateSourceListCmd) Run(ctx context.Context, kctx *kong.Context) error {
+	cfg, err := configLoader.Load(ctx, cli.Configfile, true)
 	if err != nil {
 		return err
 	}
-	w := tabwriter.NewWriter(ctx.Stdout, 0, 0, 1, ' ', 0)
+	w := tabwriter.NewWriter(kctx.Stdout, 0, 0, 1, ' ', 0)
 	for name, val := range cfg.(*bindown.ConfigFile).TemplateSources {
 		fmt.Fprintln(w, name+"\t"+val)
 	}
@@ -33,8 +34,8 @@ type templateSourceAddCmd struct {
 	Source string `kong:"arg"`
 }
 
-func (c *templateSourceAddCmd) Run() error {
-	cfgIface, err := configLoader.Load(cli.Configfile, true)
+func (c *templateSourceAddCmd) Run(ctx context.Context) error {
+	cfgIface, err := configLoader.Load(ctx, cli.Configfile, true)
 	if err != nil {
 		return err
 	}
@@ -53,8 +54,8 @@ type templateSourceRemoveCmd struct {
 	Name string `kong:"arg,predictor=templateSource"`
 }
 
-func (c *templateSourceRemoveCmd) Run() error {
-	cfgIface, err := configLoader.Load(cli.Configfile, true)
+func (c *templateSourceRemoveCmd) Run(ctx context.Context) error {
+	cfgIface, err := configLoader.Load(ctx, cli.Configfile, true)
 	if err != nil {
 		return err
 	}

@@ -1,7 +1,8 @@
 package main
 
 import (
-	"github.com/alecthomas/kong"
+	"context"
+
 	"github.com/willabides/bindown/v3"
 )
 
@@ -15,8 +16,8 @@ type addChecksumsCmd struct {
 	Systems    []bindown.SystemInfo `kong:"name=system,help=${systems_help},predictor=allSystems"`
 }
 
-func (d *addChecksumsCmd) Run(_ *kong.Context) error {
-	config, err := configLoader.Load(cli.Configfile, true)
+func (d *addChecksumsCmd) Run(ctx context.Context) error {
+	config, err := configLoader.Load(ctx, cli.Configfile, true)
 	if err != nil {
 		return err
 	}
@@ -29,8 +30,8 @@ func (d *addChecksumsCmd) Run(_ *kong.Context) error {
 
 type pruneChecksumsCmd struct{}
 
-func (d *pruneChecksumsCmd) Run(_ *kong.Context) error {
-	config, err := configLoader.Load(cli.Configfile, true)
+func (d *pruneChecksumsCmd) Run(ctx context.Context) error {
+	config, err := configLoader.Load(ctx, cli.Configfile, true)
 	if err != nil {
 		return err
 	}

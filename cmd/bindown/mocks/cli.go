@@ -5,6 +5,7 @@
 package mocks
 
 import (
+	context "context"
 	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"
@@ -50,17 +51,17 @@ func (mr *MockConfigFileMockRecorder) AddChecksums(dependencies, systems interfa
 }
 
 // AddDependencyFromTemplate mocks base method.
-func (m *MockConfigFile) AddDependencyFromTemplate(templateName string, opts *bindown.AddDependencyFromTemplateOpts) error {
+func (m *MockConfigFile) AddDependencyFromTemplate(ctx context.Context, templateName string, opts *bindown.AddDependencyFromTemplateOpts) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "AddDependencyFromTemplate", templateName, opts)
+	ret := m.ctrl.Call(m, "AddDependencyFromTemplate", ctx, templateName, opts)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // AddDependencyFromTemplate indicates an expected call of AddDependencyFromTemplate.
-func (mr *MockConfigFileMockRecorder) AddDependencyFromTemplate(templateName, opts interface{}) *gomock.Call {
+func (mr *MockConfigFileMockRecorder) AddDependencyFromTemplate(ctx, templateName, opts interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddDependencyFromTemplate", reflect.TypeOf((*MockConfigFile)(nil).AddDependencyFromTemplate), templateName, opts)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddDependencyFromTemplate", reflect.TypeOf((*MockConfigFile)(nil).AddDependencyFromTemplate), ctx, templateName, opts)
 }
 
 // DownloadDependency mocks base method.
@@ -245,16 +246,16 @@ func (m *MockConfigLoader) EXPECT() *MockConfigLoaderMockRecorder {
 }
 
 // Load mocks base method.
-func (m *MockConfigLoader) Load(filename string, noDefaultDirs bool) (ifaces.ConfigFile, error) {
+func (m *MockConfigLoader) Load(ctx context.Context, filename string, noDefaultDirs bool) (ifaces.ConfigFile, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Load", filename, noDefaultDirs)
+	ret := m.ctrl.Call(m, "Load", ctx, filename, noDefaultDirs)
 	ret0, _ := ret[0].(ifaces.ConfigFile)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // Load indicates an expected call of Load.
-func (mr *MockConfigLoaderMockRecorder) Load(filename, noDefaultDirs interface{}) *gomock.Call {
+func (mr *MockConfigLoaderMockRecorder) Load(ctx, filename, noDefaultDirs interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Load", reflect.TypeOf((*MockConfigLoader)(nil).Load), filename, noDefaultDirs)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Load", reflect.TypeOf((*MockConfigLoader)(nil).Load), ctx, filename, noDefaultDirs)
 }

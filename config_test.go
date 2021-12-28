@@ -1,6 +1,7 @@
 package bindown
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -157,13 +158,14 @@ templates:
 }
 
 func TestConfig_addTemplateFromSource(t *testing.T) {
+	ctx := context.Background()
 	t.Run("file", func(t *testing.T) {
 		t.Run("success", func(t *testing.T) {
 			cfg := new(Config)
 			src := filepath.Join("testdata", "configs", "ex1.yaml")
-			srcCfg, err := LoadConfigFile(src, true)
+			srcCfg, err := LoadConfigFile(ctx, src, true)
 			require.NoError(t, err)
-			err = cfg.addTemplateFromSource(src, "goreleaser", "mygoreleaser")
+			err = cfg.addTemplateFromSource(ctx, src, "goreleaser", "mygoreleaser")
 			require.NoError(t, err)
 			require.Equal(t, srcCfg.Templates["goreleaser"], cfg.Templates["mygoreleaser"])
 		})
@@ -171,14 +173,14 @@ func TestConfig_addTemplateFromSource(t *testing.T) {
 		t.Run("missing template", func(t *testing.T) {
 			cfg := new(Config)
 			src := filepath.Join("testdata", "configs", "ex1.yaml")
-			err := cfg.addTemplateFromSource(src, "fake", "myfake")
+			err := cfg.addTemplateFromSource(ctx, src, "fake", "myfake")
 			require.EqualError(t, err, `src has no template named "fake"`)
 		})
 
 		t.Run("missing file", func(t *testing.T) {
 			cfg := new(Config)
 			src := filepath.Join("testdata", "configs", "thisdoesnotexist.yaml")
-			err := cfg.addTemplateFromSource(src, "fake", "myfake")
+			err := cfg.addTemplateFromSource(ctx, src, "fake", "myfake")
 			require.Error(t, err)
 			require.True(t, os.IsNotExist(err))
 		})
@@ -189,9 +191,9 @@ func TestConfig_addTemplateFromSource(t *testing.T) {
 		ts := serveFile(t, srcFile, "/ex1.yaml", "")
 		cfg := new(Config)
 		src := ts.URL + "/ex1.yaml"
-		srcCfg, err := LoadConfigFile(srcFile, true)
+		srcCfg, err := LoadConfigFile(ctx, srcFile, true)
 		require.NoError(t, err)
-		err = cfg.addTemplateFromSource(src, "goreleaser", "mygoreleaser")
+		err = cfg.addTemplateFromSource(ctx, src, "goreleaser", "mygoreleaser")
 		require.NoError(t, err)
 		require.Equal(t, srcCfg.Templates["goreleaser"], cfg.Templates["mygoreleaser"])
 	})
