@@ -21,7 +21,8 @@ var kongVars = kong.Vars{
 	"system_default":                  fmt.Sprintf("%s/%s", runtime.GOOS, runtime.GOARCH),
 	"system_help":                     `target system in the format of <os>/<architecture>`,
 	"systems_help":                    `target systems in the format of <os>/<architecture>`,
-	"checksums_help":                  `add checksums to the config file`,
+	"add_checksums_help":              `add checksums to the config file`,
+	"prune_checksums_help":            `remove unnecessary checksums from the config file`,
 	"config_format_help":              `formats the config file`,
 	"config_validate_bin_help":        `name of the binary to validate`,
 	"config_validate_help":            `validate that installs work`,
@@ -53,7 +54,8 @@ var cli struct {
 	Template        templateCmd        `kong:"cmd,help='manage templates'"`
 	TemplateSource  templateSourceCmd  `kong:"cmd,help='manage template sources'"`
 	SupportedSystem supportedSystemCmd `kong:"cmd,help='manage supported systems'"`
-	AddChecksums    addChecksumsCmd    `kong:"cmd,help=${checksums_help}"`
+	Checksums       checksumsCmd       `kong:"cmd,help='manage checksums'"`
+	AddChecksums    addChecksumsCmd    `kong:"cmd,hidden"`
 	Validate        validateCmd        `kong:"cmd,help=${config_validate_help}"`
 	Init            initCmd            `kong:"cmd,help='create an empty config file'"`
 
@@ -138,23 +140,6 @@ func (c *initCmd) Run() error {
 		Filename: file.Name(),
 	}
 	return cfg.Write(cli.JSONConfig)
-}
-
-type addChecksumsCmd struct {
-	Dependency []string             `kong:"help=${checksums_dep_help},predictor=bin"`
-	Systems    []bindown.SystemInfo `kong:"name=system,help=${systems_help},predictor=allSystems"`
-}
-
-func (d *addChecksumsCmd) Run(_ *kong.Context) error {
-	config, err := configLoader.Load(cli.Configfile, true)
-	if err != nil {
-		return err
-	}
-	err = config.AddChecksums(d.Dependency, d.Systems)
-	if err != nil {
-		return err
-	}
-	return config.Write(cli.JSONConfig)
 }
 
 type fmtCmd struct{}

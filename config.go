@@ -219,6 +219,33 @@ func (c *Config) AddChecksums(dependencies []string, systems []SystemInfo) error
 	return nil
 }
 
+// PruneChecksums removes checksums for dependencies that are not used by any configured system.
+func (c *Config) PruneChecksums() error {
+	allURLS := make(map[string]bool, len(c.Dependencies)*8)
+	for depName := range c.Dependencies {
+		systems, err := c.DependencySystems(depName)
+		if err != nil {
+			return err
+		}
+		for _, system := range systems {
+			var dep *Dependency
+			dep, err = c.BuildDependency(depName, system)
+			if err != nil {
+				return err
+			}
+			if dep.URL != nil {
+				allURLS[*dep.URL] = true
+			}
+		}
+	}
+	for u := range c.URLChecksums {
+		if !allURLS[u] {
+			delete(c.URLChecksums, u)
+		}
+	}
+	return nil
+}
+
 func (c *Config) addChecksum(dependencyName string, sysInfo SystemInfo) error {
 	dep, err := c.BuildDependency(dependencyName, sysInfo)
 	if err != nil {

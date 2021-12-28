@@ -186,6 +186,8 @@ Commands:
   supported-system list          list supported systems
   supported-system add           add a supported system
   supported-system remove        remove a supported system
+  checksums add                  add checksums to the config file
+  checksums prune                remove unnecessary checksums from the config file
   add-checksums                  add checksums to the config file
   validate                       validate that installs work
   init                           create an empty config file

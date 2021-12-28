@@ -123,6 +123,20 @@ func (mr *MockConfigFileMockRecorder) MissingDependencyVars(depName interface{})
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "MissingDependencyVars", reflect.TypeOf((*MockConfigFile)(nil).MissingDependencyVars), depName)
 }
 
+// PruneChecksums mocks base method.
+func (m *MockConfigFile) PruneChecksums() error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "PruneChecksums")
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// PruneChecksums indicates an expected call of PruneChecksums.
+func (mr *MockConfigFileMockRecorder) PruneChecksums() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PruneChecksums", reflect.TypeOf((*MockConfigFile)(nil).PruneChecksums))
+}
+
 // SetDependencyVars mocks base method.
 func (m *MockConfigFile) SetDependencyVars(depName string, vars map[string]string) error {
 	m.ctrl.T.Helper()

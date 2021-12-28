@@ -10,6 +10,7 @@ var _ ConfigFile = new(bindown.ConfigFile)
 type ConfigFile interface {
 	Write(outputJSON bool) error
 	AddChecksums(dependencies []string, systems []bindown.SystemInfo) error
+	PruneChecksums() error
 	Validate(dependencies []string, systems []bindown.SystemInfo) error
 	InstallDependency(dependencyName string, sysInfo bindown.SystemInfo, opts *bindown.ConfigInstallDependencyOpts) (string, error)
 	DownloadDependency(dependencyName string, sysInfo bindown.SystemInfo, opts *bindown.ConfigDownloadDependencyOpts) (string, error)
