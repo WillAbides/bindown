@@ -1,6 +1,7 @@
 package bindown
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -18,10 +19,11 @@ func assertValidationErr(t *testing.T, want []string, got error) {
 }
 
 func TestValidateConfig(t *testing.T) {
+	ctx := context.Background()
 	t.Run("valid yaml", func(t *testing.T) {
 		cfg, err := os.ReadFile(filepath.Join("testdata", "configs", "ex1.yaml"))
 		require.NoError(t, err)
-		err = validateConfig(cfg)
+		err = validateConfig(ctx, cfg)
 		require.NoError(t, err)
 	})
 
@@ -30,13 +32,13 @@ func TestValidateConfig(t *testing.T) {
 		require.NoError(t, err)
 		cfg, err := yaml.YAMLToJSON(cfgContent)
 		require.NoError(t, err)
-		err = validateConfig(cfg)
+		err = validateConfig(ctx, cfg)
 		require.NoError(t, err)
 	})
 
 	t.Run("empty", func(t *testing.T) {
 		cfg := []byte("")
-		err := validateConfig(cfg)
+		err := validateConfig(ctx, cfg)
 		assertValidationErr(t, []string{
 			`/: type should be object, got null`,
 		}, err)
@@ -58,7 +60,7 @@ url_checksums:
 			`/dependencies/golangci-lint: "surprise string" type should be object, got string`,
 			`/url_checksums/bar: [] type should be string, got array`,
 		}
-		err := validateConfig(cfg)
+		err := validateConfig(ctx, cfg)
 		assertValidationErr(t, wantErrs, err)
 	})
 
@@ -85,7 +87,7 @@ url_checksums:
 			`/dependencies/golangci-lint: "surprise string" type should be object, got string`,
 			`/url_checksums/bar: [] type should be string, got array`,
 		}
-		err := validateConfig(cfg)
+		err := validateConfig(ctx, cfg)
 		assertValidationErr(t, wantErrs, err)
 	})
 }

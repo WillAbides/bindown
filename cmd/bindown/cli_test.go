@@ -122,7 +122,7 @@ func testEnvVar(t *testing.T, name, value string) {
 func TestFormat(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
 		runner, mockConfigLoader, mockConfigFile := setupMocks(t)
-		mockConfigLoader.EXPECT().Load(filepath.FromSlash("/omg"), true).Return(mockConfigFile, nil)
+		mockConfigLoader.EXPECT().Load(gomock.Any(), filepath.FromSlash("/omg"), true).Return(mockConfigFile, nil)
 		mockConfigFile.EXPECT().Write(false)
 		result := runner("format", "--configfile", "/omg")
 		result.assertState(t, "", "", false, 0)
@@ -130,7 +130,7 @@ func TestFormat(t *testing.T) {
 
 	t.Run("with config from environment", func(t *testing.T) {
 		runner, mockConfigLoader, mockConfigFile := setupMocks(t)
-		mockConfigLoader.EXPECT().Load(wdPath(t, "omg"), true).Return(mockConfigFile, nil)
+		mockConfigLoader.EXPECT().Load(gomock.Any(), wdPath(t, "omg"), true).Return(mockConfigFile, nil)
 		mockConfigFile.EXPECT().Write(false)
 		testEnvVar(t, "BINDOWN_CONFIG_FILE", "omg")
 		result := runner("format")
@@ -139,14 +139,14 @@ func TestFormat(t *testing.T) {
 
 	t.Run("error loading config", func(t *testing.T) {
 		runner, mockConfigLoader, _ := setupMocks(t)
-		mockConfigLoader.EXPECT().Load("", true).Return(nil, assert.AnError)
+		mockConfigLoader.EXPECT().Load(gomock.Any(), "", true).Return(nil, assert.AnError)
 		result := runner("format")
 		result.assertState(t, "", wantStderr(assert.AnError.Error()), true, 1)
 	})
 
 	t.Run("json output", func(t *testing.T) {
 		runner, mockConfigLoader, mockConfigFile := setupMocks(t)
-		mockConfigLoader.EXPECT().Load("", true).Return(mockConfigFile, nil)
+		mockConfigLoader.EXPECT().Load(gomock.Any(), "", true).Return(mockConfigFile, nil)
 		mockConfigFile.EXPECT().Write(true)
 		result := runner("format", "--json")
 		result.assertState(t, "", "", false, 0)
@@ -154,7 +154,7 @@ func TestFormat(t *testing.T) {
 
 	t.Run("write error", func(t *testing.T) {
 		runner, mockConfigLoader, mockConfigFile := setupMocks(t)
-		mockConfigLoader.EXPECT().Load("", true).Return(mockConfigFile, nil)
+		mockConfigLoader.EXPECT().Load(gomock.Any(), "", true).Return(mockConfigFile, nil)
 		mockConfigFile.EXPECT().Write(false).Return(assert.AnError)
 		result := runner("format")
 		result.assertState(t, "", wantStderr(assert.AnError.Error()), true, 1)
@@ -163,7 +163,7 @@ func TestFormat(t *testing.T) {
 
 func TestAddChecksums(t *testing.T) {
 	runner, mockConfigLoader, mockConfigFile := setupMocks(t)
-	mockConfigLoader.EXPECT().Load("", true).Return(mockConfigFile, nil)
+	mockConfigLoader.EXPECT().Load(gomock.Any(), "", true).Return(mockConfigFile, nil)
 	mockConfigFile.EXPECT().AddChecksums([]string{"foo"}, nil)
 	mockConfigFile.EXPECT().Write(true)
 	result := runner("add-checksums", "--dependency", "foo", "--json")
@@ -173,7 +173,7 @@ func TestAddChecksums(t *testing.T) {
 func TestValidate(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
 		runner, mockConfigLoader, mockConfigFile := setupMocks(t)
-		mockConfigLoader.EXPECT().Load("", false).Return(mockConfigFile, nil)
+		mockConfigLoader.EXPECT().Load(gomock.Any(), "", false).Return(mockConfigFile, nil)
 		mockConfigFile.EXPECT().Validate([]string{"foo"}, nil)
 		result := runner("validate", "foo")
 		result.assertState(t, "", "", false, 0)
@@ -181,14 +181,14 @@ func TestValidate(t *testing.T) {
 
 	t.Run("error loading config", func(t *testing.T) {
 		runner, mockConfigLoader, _ := setupMocks(t)
-		mockConfigLoader.EXPECT().Load("", false).Return(nil, assert.AnError)
+		mockConfigLoader.EXPECT().Load(gomock.Any(), "", false).Return(nil, assert.AnError)
 		result := runner("validate", "foo")
 		result.assertState(t, "", wantStderr(assert.AnError.Error()), true, 1)
 	})
 
 	t.Run("multiple systems", func(t *testing.T) {
 		runner, mockConfigLoader, mockConfigFile := setupMocks(t)
-		mockConfigLoader.EXPECT().Load("", false).Return(mockConfigFile, nil)
+		mockConfigLoader.EXPECT().Load(gomock.Any(), "", false).Return(mockConfigFile, nil)
 		mockConfigFile.EXPECT().Validate([]string{"foo"}, []bindown.SystemInfo{
 			{OS: "foo", Arch: "bar"},
 			{OS: "baz", Arch: "qux"},
@@ -201,7 +201,7 @@ func TestValidate(t *testing.T) {
 func TestExtract(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
 		runner, mockConfigLoader, mockConfigFile := setupMocks(t)
-		mockConfigLoader.EXPECT().Load("", false).Return(mockConfigFile, nil)
+		mockConfigLoader.EXPECT().Load(gomock.Any(), "", false).Return(mockConfigFile, nil)
 		mockConfigFile.EXPECT().ExtractDependency("foo", bindown.SystemInfo{
 			Arch: runtime.GOARCH,
 			OS:   runtime.GOOS,
@@ -214,7 +214,7 @@ func TestExtract(t *testing.T) {
 func TestDownload(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
 		runner, mockConfigLoader, mockConfigFile := setupMocks(t)
-		mockConfigLoader.EXPECT().Load("", false).Return(mockConfigFile, nil)
+		mockConfigLoader.EXPECT().Load(gomock.Any(), "", false).Return(mockConfigFile, nil)
 		mockConfigFile.EXPECT().DownloadDependency("foo", bindown.SystemInfo{
 			Arch: runtime.GOARCH,
 			OS:   runtime.GOOS,
@@ -227,7 +227,7 @@ func TestDownload(t *testing.T) {
 func TestInstall(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
 		runner, mockConfigLoader, mockConfigFile := setupMocks(t)
-		mockConfigLoader.EXPECT().Load("", false).Return(mockConfigFile, nil)
+		mockConfigLoader.EXPECT().Load(gomock.Any(), "", false).Return(mockConfigFile, nil)
 		mockConfigFile.EXPECT().InstallDependency("foo", bindown.SystemInfo{
 			Arch: runtime.GOARCH,
 			OS:   runtime.GOOS,

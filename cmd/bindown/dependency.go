@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"strings"
@@ -28,8 +29,8 @@ type dependencyUpdateVarCmd struct {
 	SkipChecksums bool              `kong:"name=skipchecksums,help='do not update checksums for this dependency'"`
 }
 
-func (c *dependencyUpdateVarCmd) Run() error {
-	config, err := configLoader.Load(cli.Configfile, true)
+func (c *dependencyUpdateVarCmd) Run(ctx context.Context) error {
+	config, err := configLoader.Load(ctx, cli.Configfile, true)
 	if err != nil {
 		return err
 	}
@@ -62,8 +63,8 @@ type dependencyShowConfigCmd struct {
 	Dependency string `kong:"arg,predictor=bin"`
 }
 
-func (c *dependencyShowConfigCmd) Run(ctx *kong.Context) error {
-	cfgIface, err := configLoader.Load(cli.Configfile, true)
+func (c *dependencyShowConfigCmd) Run(ctx context.Context, kctx *kong.Context) error {
+	cfgIface, err := configLoader.Load(ctx, cli.Configfile, true)
 	if err != nil {
 		return err
 	}
@@ -72,11 +73,11 @@ func (c *dependencyShowConfigCmd) Run(ctx *kong.Context) error {
 		return fmt.Errorf("no dependency named %q", c.Dependency)
 	}
 	if cli.JSONConfig {
-		encoder := json.NewEncoder(ctx.Stdout)
+		encoder := json.NewEncoder(kctx.Stdout)
 		encoder.SetIndent("", "  ")
 		return encoder.Encode(cfg.Dependencies[c.Dependency])
 	}
-	return yaml.NewEncoder(ctx.Stdout).Encode(cfg.Dependencies[c.Dependency])
+	return yaml.NewEncoder(kctx.Stdout).Encode(cfg.Dependencies[c.Dependency])
 }
 
 type dependencyInfoCmd struct {
@@ -85,8 +86,8 @@ type dependencyInfoCmd struct {
 	Vars       bool                 `kong:"help='include vars'"`
 }
 
-func (c *dependencyInfoCmd) Run(ctx *kong.Context) error {
-	cfgIface, err := configLoader.Load(cli.Configfile, true)
+func (c *dependencyInfoCmd) Run(ctx context.Context, kctx *kong.Context) error {
+	cfgIface, err := configLoader.Load(ctx, cli.Configfile, true)
 	if err != nil {
 		return err
 	}
@@ -116,21 +117,21 @@ func (c *dependencyInfoCmd) Run(ctx *kong.Context) error {
 	}
 
 	if cli.JSONConfig {
-		encoder := json.NewEncoder(ctx.Stdout)
+		encoder := json.NewEncoder(kctx.Stdout)
 		encoder.SetIndent("", "  ")
 		return encoder.Encode(result)
 	}
-	return yaml.NewEncoder(ctx.Stdout).Encode(result)
+	return yaml.NewEncoder(kctx.Stdout).Encode(result)
 }
 
 type dependencyListCmd struct{}
 
-func (c *dependencyListCmd) Run(ctx *kong.Context) error {
-	cfg, err := configLoader.Load(cli.Configfile, true)
+func (c *dependencyListCmd) Run(ctx context.Context, kctx *kong.Context) error {
+	cfg, err := configLoader.Load(ctx, cli.Configfile, true)
 	if err != nil {
 		return err
 	}
-	fmt.Fprintln(ctx.Stdout, strings.Join(allDependencies(cfg.(*bindown.ConfigFile)), "\n"))
+	fmt.Fprintln(kctx.Stdout, strings.Join(allDependencies(cfg.(*bindown.ConfigFile)), "\n"))
 	return nil
 }
 
@@ -138,8 +139,8 @@ type dependencyRemoveCmd struct {
 	Dependency string `kong:"arg,predictor=bin"`
 }
 
-func (c *dependencyRemoveCmd) Run() error {
-	cfgIface, err := configLoader.Load(cli.Configfile, true)
+func (c *dependencyRemoveCmd) Run(ctx context.Context) error {
+	cfgIface, err := configLoader.Load(ctx, cli.Configfile, true)
 	if err != nil {
 		return err
 	}
@@ -156,15 +157,15 @@ func (c *dependencyRemoveCmd) Run() error {
 
 type dependencyAddCmd struct {
 	Name             string            `kong:"arg"`
-	Template         string            `kong:"arg"`
-	TemplateSource   string            `kong:"name=source,help='template source'"`
+	Template         string            `kong:"arg,predictor=template"`
+	TemplateSource   string            `kong:"name=source,help='template source',predictor=templateSource"`
 	Vars             map[string]string `kong:"name=var"`
 	SkipRequiredVars bool              `kong:"name=skipvars,help='do not prompt for required vars'"`
 	SkipChecksums    bool              `kong:"name=skipchecksums,help='do not add checksums for this dependency'"`
 }
 
-func (c *dependencyAddCmd) Run(ctx *kong.Context) error {
-	config, err := configLoader.Load(cli.Configfile, true)
+func (c *dependencyAddCmd) Run(ctx context.Context, kctx *kong.Context) error {
+	config, err := configLoader.Load(ctx, cli.Configfile, true)
 	if err != nil {
 		return err
 	}
@@ -181,7 +182,7 @@ func (c *dependencyAddCmd) Run(ctx *kong.Context) error {
 	if c.Vars == nil {
 		c.Vars = map[string]string{}
 	}
-	err = config.AddDependencyFromTemplate(tmpl, &bindown.AddDependencyFromTemplateOpts{
+	err = config.AddDependencyFromTemplate(ctx, tmpl, &bindown.AddDependencyFromTemplateOpts{
 		DependencyName: c.Name,
 		TemplateSource: tmplSrc,
 		Vars:           c.Vars,
@@ -190,7 +191,7 @@ func (c *dependencyAddCmd) Run(ctx *kong.Context) error {
 		return err
 	}
 	if !c.SkipRequiredVars {
-		err = c.promptRequiredVars(ctx, config)
+		err = c.promptRequiredVars(kctx, config)
 		if err != nil {
 			return err
 		}
@@ -208,14 +209,14 @@ func (c *dependencyAddCmd) Run(ctx *kong.Context) error {
 	return config.Write(cli.JSONConfig)
 }
 
-func (c *dependencyAddCmd) promptRequiredVars(ctx *kong.Context, config ifaces.ConfigFile) error {
+func (c *dependencyAddCmd) promptRequiredVars(kctx *kong.Context, config ifaces.ConfigFile) error {
 	missingVars, err := config.MissingDependencyVars(c.Name)
 	if err != nil {
 		return err
 	}
 	dep := config.(*bindown.ConfigFile).Dependencies[c.Name]
 	for _, missingVar := range missingVars {
-		dep.Vars, err = requestRequiredVar(ctx, missingVar, dep.Vars)
+		dep.Vars, err = requestRequiredVar(kctx, missingVar, dep.Vars)
 		if err != nil {
 			return err
 		}
@@ -228,8 +229,8 @@ type dependencyValidateCmd struct {
 	Systems    []bindown.SystemInfo `kong:"name=system,predictor=allSystems"`
 }
 
-func (d dependencyValidateCmd) Run(ctx *kong.Context) error {
-	config, err := configLoader.Load(cli.Configfile, false)
+func (d dependencyValidateCmd) Run(ctx context.Context) error {
+	config, err := configLoader.Load(ctx, cli.Configfile, false)
 	if err != nil {
 		return err
 	}
