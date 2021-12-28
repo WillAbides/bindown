@@ -176,6 +176,7 @@ Commands:
   dependency info                info about a dependency
   dependency show-config         show dependency config
   dependency update-vars         update dependency vars
+  dependency validate            validate that installs work
   template list                  list templates
   template remove                remove a template
   template update-from-source    update a template from source
@@ -188,7 +189,6 @@ Commands:
   supported-system remove        remove a supported system
   checksums add                  add checksums to the config file
   checksums prune                remove unnecessary checksums from the config file
-  validate                       validate that installs work
   init                           create an empty config file
   version                        show bindown version
   install-completions            install shell completions
