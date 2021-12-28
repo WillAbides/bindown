@@ -41,12 +41,10 @@ var kongVars = kong.Vars{
 }
 
 var cli struct {
-	JSONConfig         bool                         `kong:"name=json,help='write json instead of yaml'"`
-	Configfile         string                       `kong:"type=path,help=${configfile_help},env='BINDOWN_CONFIG_FILE'"`
-	Cache              string                       `kong:"type=path,help=${cache_help},env='BINDOWN_CACHE'"`
-	InstallCompletions kongplete.InstallCompletions `kong:"cmd,help=${config_install_completions_help}"`
+	JSONConfig bool   `kong:"name=json,help='treat config file as json instead of yaml'"`
+	Configfile string `kong:"type=path,help=${configfile_help},env='BINDOWN_CONFIG_FILE'"`
+	Cache      string `kong:"type=path,help=${cache_help},env='BINDOWN_CACHE'"`
 
-	Version         versionCmd         `kong:"cmd,help='show bindown version'"`
 	Download        downloadCmd        `kong:"cmd,help=${download_help}"`
 	Extract         extractCmd         `kong:"cmd,help=${extract_help}"`
 	Install         installCmd         `kong:"cmd,help=${install_help}"`
@@ -58,6 +56,9 @@ var cli struct {
 	AddChecksums    addChecksumsCmd    `kong:"cmd,help=${checksums_help}"`
 	Validate        validateCmd        `kong:"cmd,help=${config_validate_help}"`
 	Init            initCmd            `kong:"cmd,help='create an empty config file'"`
+
+	Version            versionCmd                   `kong:"cmd,help='show bindown version'"`
+	InstallCompletions kongplete.InstallCompletions `kong:"cmd,help=${config_install_completions_help}"`
 }
 
 type defaultConfigLoader struct{}
