@@ -91,6 +91,34 @@ var templateSourceCompleter = complete.PredictFunc(func(a complete.Args) []strin
 	return complete.PredictSet(opts...).Predict(a)
 })
 
+var localTemplateCompleter = complete.PredictFunc(func(a complete.Args) []string {
+	cfg := completionConfig(a.Completed)
+	if cfg == nil {
+		return []string{}
+	}
+
+	opts := make([]string, 0, len(cfg.Templates))
+	for tmpl := range cfg.Templates {
+		opts = append(opts, tmpl)
+	}
+	return complete.PredictSet(opts...).Predict(a)
+})
+
+var localTemplateFromSourceCompleter = complete.PredictFunc(func(a complete.Args) []string {
+	cfg := completionConfig(a.Completed)
+	if cfg == nil {
+		return []string{}
+	}
+
+	opts := make([]string, 0, len(cfg.Templates))
+	for tmpl := range cfg.Templates {
+		if strings.Contains(tmpl, "#") {
+			opts = append(opts, tmpl)
+		}
+	}
+	return complete.PredictSet(opts...).Predict(a)
+})
+
 var binCompleter = complete.PredictFunc(func(a complete.Args) []string {
 	cfg := completionConfig(a.Completed)
 	return complete.PredictSet(allDependencies(cfg)...).Predict(a)

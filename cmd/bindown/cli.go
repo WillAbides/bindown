@@ -111,6 +111,8 @@ func Run(args []string, kongOptions ...kong.Option) {
 		kongplete.WithPredictor("allSystems", allSystemsCompleter),
 		kongplete.WithPredictor("templateSource", templateSourceCompleter),
 		kongplete.WithPredictor("system", systemCompleter),
+		kongplete.WithPredictor("localTemplate", localTemplateCompleter),
+		kongplete.WithPredictor("localTemplateFromSource", localTemplateFromSourceCompleter),
 	)
 
 	kongCtx, err := parser.Parse(args)

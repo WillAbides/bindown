@@ -16,9 +16,9 @@ type templateCmd struct {
 }
 
 type templateUpdateVarCmd struct {
-	Dependency string            `kong:"arg,predictor=bin"`
-	Set        map[string]string `kong:"help='add or update a var'"`
-	Unset      []string          `kong:"help='remove a var'"`
+	Template string            `kong:"arg,predictor=localTemplate"`
+	Set      map[string]string `kong:"help='add or update a var'"`
+	Unset    []string          `kong:"help='remove a var'"`
 }
 
 func (c *templateUpdateVarCmd) Run() error {
@@ -27,13 +27,13 @@ func (c *templateUpdateVarCmd) Run() error {
 		return err
 	}
 	if len(c.Set) > 0 {
-		err = config.SetTemplateVars(c.Dependency, c.Set)
+		err = config.SetTemplateVars(c.Template, c.Set)
 		if err != nil {
 			return err
 		}
 	}
 	if len(c.Unset) > 0 {
-		err = config.UnsetTemplateVars(c.Dependency, c.Unset)
+		err = config.UnsetTemplateVars(c.Template, c.Unset)
 		if err != nil {
 			return err
 		}
@@ -42,8 +42,8 @@ func (c *templateUpdateVarCmd) Run() error {
 }
 
 type templateUpdateFromSourceCmd struct {
-	Source   string `kong:"help='source of the update'"`
-	Template string `kong:"arg,help='template to update'"`
+	Source   string `kong:"help='source of the update',predictor=templateSource"`
+	Template string `kong:"arg,help='template to update',predictor=localTemplateFromSource"`
 }
 
 func (c *templateUpdateFromSourceCmd) Run() error {
@@ -74,7 +74,7 @@ func (c *templateUpdateFromSourceCmd) Run() error {
 }
 
 type templateListCmd struct {
-	Source string `kong:"help='source of templates to list'"`
+	Source string `kong:"help='source of templates to list',predictor=templateSource"`
 }
 
 func (c *templateListCmd) Run(ctx *kong.Context) error {
@@ -92,7 +92,7 @@ func (c *templateListCmd) Run(ctx *kong.Context) error {
 }
 
 type templateRemoveCmd struct {
-	Name string `kong:"arg"`
+	Template string `kong:"arg,predictor=localTemplate"`
 }
 
 func (c *templateRemoveCmd) Run() error {
@@ -102,11 +102,11 @@ func (c *templateRemoveCmd) Run() error {
 	}
 	cfg := cfgIface.(*bindown.ConfigFile)
 	if cfg.Templates == nil {
-		return fmt.Errorf("no template named %q", c.Name)
+		return fmt.Errorf("no template named %q", c.Template)
 	}
-	if _, ok := cfg.Templates[c.Name]; !ok {
-		return fmt.Errorf("no template named %q", c.Name)
+	if _, ok := cfg.Templates[c.Template]; !ok {
+		return fmt.Errorf("no template named %q", c.Template)
 	}
-	delete(cfg.Templates, c.Name)
+	delete(cfg.Templates, c.Template)
 	return cfg.Write(cli.JSONConfig)
 }
