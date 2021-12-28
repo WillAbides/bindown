@@ -18,6 +18,7 @@ type dependencyCmd struct {
 	Info       dependencyInfoCmd       `kong:"cmd,help='info about a dependency'"`
 	ShowConfig dependencyShowConfigCmd `kong:"cmd,help='show dependency config'"`
 	UpdateVars dependencyUpdateVarCmd  `kong:"cmd,help='update dependency vars'"`
+	Validate   dependencyValidateCmd   `kong:"cmd,help='validate that installs work'"`
 }
 
 type dependencyUpdateVarCmd struct {
@@ -220,4 +221,17 @@ func (c *dependencyAddCmd) promptRequiredVars(ctx *kong.Context, config ifaces.C
 		}
 	}
 	return nil
+}
+
+type dependencyValidateCmd struct {
+	Dependency string               `kong:"arg,predictor=bin"`
+	Systems    []bindown.SystemInfo `kong:"name=system,predictor=allSystems"`
+}
+
+func (d dependencyValidateCmd) Run(ctx *kong.Context) error {
+	config, err := configLoader.Load(cli.Configfile, false)
+	if err != nil {
+		return err
+	}
+	return config.Validate([]string{d.Dependency}, d.Systems)
 }

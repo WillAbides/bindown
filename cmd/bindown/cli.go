@@ -24,7 +24,6 @@ var kongVars = kong.Vars{
 	"add_checksums_help":              `add checksums to the config file`,
 	"prune_checksums_help":            `remove unnecessary checksums from the config file`,
 	"config_format_help":              `formats the config file`,
-	"config_validate_bin_help":        `name of the binary to validate`,
 	"config_validate_help":            `validate that installs work`,
 	"config_install_completions_help": `install shell completions`,
 	"config_extract_path_help":        `output path to directory where the downloaded archive is extracted`,
@@ -55,12 +54,13 @@ var cli struct {
 	TemplateSource  templateSourceCmd  `kong:"cmd,help='manage template sources'"`
 	SupportedSystem supportedSystemCmd `kong:"cmd,help='manage supported systems'"`
 	Checksums       checksumsCmd       `kong:"cmd,help='manage checksums'"`
-	AddChecksums    addChecksumsCmd    `kong:"cmd,hidden"`
-	Validate        validateCmd        `kong:"cmd,help=${config_validate_help}"`
 	Init            initCmd            `kong:"cmd,help='create an empty config file'"`
 
 	Version            versionCmd                   `kong:"cmd,help='show bindown version'"`
 	InstallCompletions kongplete.InstallCompletions `kong:"cmd,help=${config_install_completions_help}"`
+
+	AddChecksums addChecksumsCmd `kong:"cmd,hidden"`
+	Validate     validateCmd     `kong:"cmd,hidden"`
 }
 
 type defaultConfigLoader struct{}
@@ -154,7 +154,7 @@ func (c fmtCmd) Run(_ *kong.Context) error {
 }
 
 type validateCmd struct {
-	Dependency string               `kong:"required=true,arg,help=${config_validate_bin_help},predictor=bin"`
+	Dependency string               `kong:"required=true,arg,predictor=bin"`
 	Systems    []bindown.SystemInfo `kong:"name=system,predictor=allSystems"`
 }
 
