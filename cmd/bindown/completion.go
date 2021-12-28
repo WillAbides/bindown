@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"os"
 	"runtime"
 	"sort"
@@ -33,6 +34,19 @@ func findConfigFileForCompletion(args []string) string {
 	return prepCompletionConfigFile("")
 }
 
+func getCompletionSource(args []string) string {
+	for i, arg := range args {
+		if len(args) == i+1 {
+			continue
+		}
+		if arg != "--source" {
+			continue
+		}
+		return args[i+1]
+	}
+	return ""
+}
+
 // prepCompletionConfigFile expands the path and returns "" if it isn't an existing file
 func prepCompletionConfigFile(path string) string {
 	path = kong.ExpandPath(path)
@@ -46,12 +60,12 @@ func prepCompletionConfigFile(path string) string {
 	return path
 }
 
-func completionConfig(args []string) *bindown.ConfigFile {
+func completionConfig(ctx context.Context, args []string) *bindown.ConfigFile {
 	path := findConfigFileForCompletion(args)
 	if path == "" {
 		return nil
 	}
-	configFile, err := bindown.LoadConfigFile(path, true)
+	configFile, err := bindown.LoadConfigFile(ctx, path, true)
 	if err != nil {
 		return nil
 	}
@@ -78,32 +92,96 @@ func allDependencies(cfg *bindown.ConfigFile) []string {
 	return dependencies
 }
 
-var templateSourceCompleter = complete.PredictFunc(func(a complete.Args) []string {
-	cfg := completionConfig(a.Completed)
-	if cfg == nil {
-		return []string{}
-	}
+func templateSourceCompleter(ctx context.Context) complete.PredictFunc {
+	return func(a complete.Args) []string {
+		cfg := completionConfig(ctx, a.Completed)
+		if cfg == nil {
+			return []string{}
+		}
 
-	opts := make([]string, 0, len(cfg.TemplateSources))
-	for src := range cfg.TemplateSources {
-		opts = append(opts, src)
+		opts := make([]string, 0, len(cfg.TemplateSources))
+		for src := range cfg.TemplateSources {
+			opts = append(opts, src)
+		}
+		return complete.PredictSet(opts...).Predict(a)
 	}
-	return complete.PredictSet(opts...).Predict(a)
-})
+}
 
-var binCompleter = complete.PredictFunc(func(a complete.Args) []string {
-	cfg := completionConfig(a.Completed)
-	return complete.PredictSet(allDependencies(cfg)...).Predict(a)
-})
-
-var systemCompleter = complete.PredictFunc(func(a complete.Args) []string {
-	cfg := completionConfig(a.Completed)
-	opts := make([]string, 0, len(cfg.Systems))
-	for _, system := range cfg.Systems {
-		opts = append(opts, system.String())
+func templateCompleter(ctx context.Context) complete.PredictFunc {
+	return func(a complete.Args) []string {
+		cfg := completionConfig(ctx, a.Completed)
+		if cfg == nil {
+			return []string{}
+		}
+		srcName := getCompletionSource(a.Completed)
+		if srcName == "" {
+			return localTemplateCompleter(ctx)(a)
+		}
+		srcURL, ok := cfg.TemplateSources[srcName]
+		if !ok {
+			return []string{}
+		}
+		srcCfg, err := bindown.ConfigFromURL(ctx, srcURL)
+		if err != nil {
+			return []string{}
+		}
+		opts := make([]string, 0, len(srcCfg.TemplateSources))
+		for src := range srcCfg.Templates {
+			opts = append(opts, src)
+		}
+		return complete.PredictSet(opts...).Predict(a)
 	}
-	return complete.PredictSet(opts...).Predict(a)
-})
+}
+
+func localTemplateCompleter(ctx context.Context) complete.PredictFunc {
+	return func(a complete.Args) []string {
+		cfg := completionConfig(ctx, a.Completed)
+		if cfg == nil {
+			return []string{}
+		}
+
+		opts := make([]string, 0, len(cfg.Templates))
+		for tmpl := range cfg.Templates {
+			opts = append(opts, tmpl)
+		}
+		return complete.PredictSet(opts...).Predict(a)
+	}
+}
+
+func localTemplateFromSourceCompleter(ctx context.Context) complete.PredictFunc {
+	return func(a complete.Args) []string {
+		cfg := completionConfig(ctx, a.Completed)
+		if cfg == nil {
+			return []string{}
+		}
+
+		opts := make([]string, 0, len(cfg.Templates))
+		for tmpl := range cfg.Templates {
+			if strings.Contains(tmpl, "#") {
+				opts = append(opts, tmpl)
+			}
+		}
+		return complete.PredictSet(opts...).Predict(a)
+	}
+}
+
+func binCompleter(ctx context.Context) complete.PredictFunc {
+	return func(a complete.Args) []string {
+		cfg := completionConfig(ctx, a.Completed)
+		return complete.PredictSet(allDependencies(cfg)...).Predict(a)
+	}
+}
+
+func systemCompleter(ctx context.Context) complete.PredictFunc {
+	return func(a complete.Args) []string {
+		cfg := completionConfig(ctx, a.Completed)
+		opts := make([]string, 0, len(cfg.Systems))
+		for _, system := range cfg.Systems {
+			opts = append(opts, system.String())
+		}
+		return complete.PredictSet(opts...).Predict(a)
+	}
+}
 
 var allSystemsCompleter = complete.PredictFunc(func(a complete.Args) []string {
 	return strings.Split(goDists, "\n")

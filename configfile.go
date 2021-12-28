@@ -1,6 +1,7 @@
 package bindown
 
 import (
+	"context"
 	"encoding/json"
 	"io"
 	"os"
@@ -17,12 +18,12 @@ type ConfigFile struct {
 }
 
 // LoadConfigFile loads a config file
-func LoadConfigFile(filename string, noDefaultDirs bool) (*ConfigFile, error) {
+func LoadConfigFile(ctx context.Context, filename string, noDefaultDirs bool) (*ConfigFile, error) {
 	data, err := os.ReadFile(filename)
 	if err != nil {
 		return nil, err
 	}
-	cfg, err := configFromYAML(data)
+	cfg, err := configFromYAML(ctx, data)
 	if err != nil {
 		return nil, err
 	}

@@ -152,15 +152,13 @@ Usage: bindown <command>
 
 Flags:
   -h, --help                 Show context-sensitive help.
-      --json                 write json instead of yaml
+      --json                 treat config file as json instead of yaml
       --configfile=STRING    file with bindown config. default is the first one of bindown.yml,
                              bindown.yaml, bindown.json, .bindown.yml, .bindown.yaml or
                              .bindown.json ($BINDOWN_CONFIG_FILE)
       --cache=STRING         directory downloads will be cached ($BINDOWN_CACHE)
 
 Commands:
-  install-completions            install shell completions
-  version                        show bindown version
   download                       download a dependency but don't extract or install it
   extract                        download and extract a dependency but don't install it
   install                        download, extract and install a dependency
@@ -171,6 +169,7 @@ Commands:
   dependency info                info about a dependency
   dependency show-config         show dependency config
   dependency update-vars         update dependency vars
+  dependency validate            validate that installs work
   template list                  list templates
   template remove                remove a template
   template update-from-source    update a template from source
@@ -181,9 +180,11 @@ Commands:
   supported-system list          list supported systems
   supported-system add           add a supported system
   supported-system remove        remove a supported system
-  add-checksums                  add checksums to the config file
-  validate                       validate that installs work
+  checksums add                  add checksums to the config file
+  checksums prune                remove unnecessary checksums from the config file
   init                           create an empty config file
+  version                        show bindown version
+  install-completions            install shell completions
 
 Run "bindown <command> --help" for more information on a command.
 ```

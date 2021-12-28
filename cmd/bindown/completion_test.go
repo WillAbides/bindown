@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"sort"
@@ -48,15 +49,16 @@ func Test_findConfigFileForCompletion(t *testing.T) {
 }
 
 func Test_completionConfig(t *testing.T) {
+	ctx := context.Background()
 	t.Run("no config file", func(t *testing.T) {
-		got := completionConfig([]string{})
+		got := completionConfig(ctx, []string{})
 		require.Nil(t, got)
 	})
 
 	t.Run("valid config file", func(t *testing.T) {
 		configFile := createConfigFile(t, "ex1.yaml")
 		setConfigFileEnvVar(t, configFile)
-		got := completionConfig(nil)
+		got := completionConfig(ctx, nil)
 		require.NotNil(t, got)
 		require.NotNil(t, got.Dependencies["golangci-lint"])
 	})
@@ -67,20 +69,21 @@ func Test_completionConfig(t *testing.T) {
 		err := os.WriteFile(configFile, []byte("no valid yaml here"), 0o600)
 		require.NoError(t, err)
 		inDir(t, dir, func() {
-			got := completionConfig(nil)
+			got := completionConfig(ctx, nil)
 			require.Nil(t, got)
 		})
 	})
 }
 
 func Test_binCompleter(t *testing.T) {
-	got := binCompleter.Predict(complete.Args{})
+	ctx := context.Background()
+	got := binCompleter(ctx).Predict(complete.Args{})
 	require.Empty(t, got)
 	require.NotNil(t, got)
 
 	configFile := createConfigFile(t, "ex1.yaml")
 	setConfigFileEnvVar(t, configFile)
-	got = binCompleter.Predict(complete.Args{})
+	got = binCompleter(ctx).Predict(complete.Args{})
 	sort.Strings(got)
 	require.Equal(t, []string{"golangci-lint", "goreleaser"}, got)
 }

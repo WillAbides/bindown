@@ -143,7 +143,7 @@ templates:
         os:
         - darwin
       dependency:
-        url: https://github.com/stedolan/jq/releases/download/jq-1.6/jq-osx-amd64
+        url: https://github.com/stedolan/jq/releases/download/jq-{{.version}}/jq-osx-amd64
         archive_path: jq-osx-amd64
     - matcher:
         os:

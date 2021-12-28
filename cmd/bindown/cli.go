@@ -2,9 +2,11 @@ package main
 
 import (
 	"bufio"
+	"context"
 	"fmt"
 	"os"
 	"runtime"
+	"time"
 
 	"github.com/alecthomas/kong"
 	"github.com/willabides/bindown/v3"
@@ -21,9 +23,9 @@ var kongVars = kong.Vars{
 	"system_default":                  fmt.Sprintf("%s/%s", runtime.GOOS, runtime.GOARCH),
 	"system_help":                     `target system in the format of <os>/<architecture>`,
 	"systems_help":                    `target systems in the format of <os>/<architecture>`,
-	"checksums_help":                  `add checksums to the config file`,
+	"add_checksums_help":              `add checksums to the config file`,
+	"prune_checksums_help":            `remove unnecessary checksums from the config file`,
 	"config_format_help":              `formats the config file`,
-	"config_validate_bin_help":        `name of the binary to validate`,
 	"config_validate_help":            `validate that installs work`,
 	"config_install_completions_help": `install shell completions`,
 	"config_extract_path_help":        `output path to directory where the downloaded archive is extracted`,
@@ -41,12 +43,10 @@ var kongVars = kong.Vars{
 }
 
 var cli struct {
-	JSONConfig         bool                         `kong:"name=json,help='write json instead of yaml'"`
-	Configfile         string                       `kong:"type=path,help=${configfile_help},env='BINDOWN_CONFIG_FILE'"`
-	Cache              string                       `kong:"type=path,help=${cache_help},env='BINDOWN_CACHE'"`
-	InstallCompletions kongplete.InstallCompletions `kong:"cmd,help=${config_install_completions_help}"`
+	JSONConfig bool   `kong:"name=json,help='treat config file as json instead of yaml'"`
+	Configfile string `kong:"type=path,help=${configfile_help},env='BINDOWN_CONFIG_FILE'"`
+	Cache      string `kong:"type=path,help=${cache_help},env='BINDOWN_CACHE'"`
 
-	Version         versionCmd         `kong:"cmd,help='show bindown version'"`
 	Download        downloadCmd        `kong:"cmd,help=${download_help}"`
 	Extract         extractCmd         `kong:"cmd,help=${extract_help}"`
 	Install         installCmd         `kong:"cmd,help=${install_help}"`
@@ -55,9 +55,14 @@ var cli struct {
 	Template        templateCmd        `kong:"cmd,help='manage templates'"`
 	TemplateSource  templateSourceCmd  `kong:"cmd,help='manage template sources'"`
 	SupportedSystem supportedSystemCmd `kong:"cmd,help='manage supported systems'"`
-	AddChecksums    addChecksumsCmd    `kong:"cmd,help=${checksums_help}"`
-	Validate        validateCmd        `kong:"cmd,help=${config_validate_help}"`
+	Checksums       checksumsCmd       `kong:"cmd,help='manage checksums'"`
 	Init            initCmd            `kong:"cmd,help='create an empty config file'"`
+
+	Version            versionCmd                   `kong:"cmd,help='show bindown version'"`
+	InstallCompletions kongplete.InstallCompletions `kong:"cmd,help=${config_install_completions_help}"`
+
+	AddChecksums addChecksumsCmd `kong:"cmd,hidden"`
+	Validate     validateCmd     `kong:"cmd,hidden"`
 }
 
 type defaultConfigLoader struct{}
@@ -71,9 +76,9 @@ var defaultConfigFilenames = []string{
 	".bindown.json",
 }
 
-func (d defaultConfigLoader) Load(filename string, noDefaultDirs bool) (ifaces.ConfigFile, error) {
+func (d defaultConfigLoader) Load(ctx context.Context, filename string, noDefaultDirs bool) (ifaces.ConfigFile, error) {
 	if filename != "" {
-		return bindown.LoadConfigFile(filename, noDefaultDirs)
+		return bindown.LoadConfigFile(ctx, filename, noDefaultDirs)
 	}
 	for _, configFilename := range defaultConfigFilenames {
 		info, err := os.Stat(configFilename)
@@ -82,7 +87,7 @@ func (d defaultConfigLoader) Load(filename string, noDefaultDirs bool) (ifaces.C
 			break
 		}
 	}
-	return bindown.LoadConfigFile(filename, noDefaultDirs)
+	return bindown.LoadConfigFile(ctx, filename, noDefaultDirs)
 }
 
 var configLoader ifaces.ConfigLoader = defaultConfigLoader{}
@@ -97,23 +102,34 @@ func newParser(kongOptions ...kong.Option) *kong.Kong {
 
 // Run let's light this candle
 func Run(args []string, kongOptions ...kong.Option) {
+	ctx := context.Background()
 	kongOptions = append(kongOptions,
 		kong.HelpOptions{
 			Compact: true,
 		},
+		kong.BindTo(ctx, &ctx),
 	)
 	parser := newParser(kongOptions...)
-	kongplete.Complete(parser,
-		kongplete.WithPredictor("bin", binCompleter),
-		kongplete.WithPredictor("allSystems", allSystemsCompleter),
-		kongplete.WithPredictor("templateSource", templateSourceCompleter),
-		kongplete.WithPredictor("system", systemCompleter),
-	)
+	runCompletion(ctx, parser)
 
 	kongCtx, err := parser.Parse(args)
 	parser.FatalIfErrorf(err)
 	err = kongCtx.Run()
 	parser.FatalIfErrorf(err)
+}
+
+func runCompletion(ctx context.Context, parser *kong.Kong) {
+	ctx, cancel := context.WithTimeout(ctx, time.Second)
+	defer cancel()
+	kongplete.Complete(parser,
+		kongplete.WithPredictor("bin", binCompleter(ctx)),
+		kongplete.WithPredictor("allSystems", allSystemsCompleter),
+		kongplete.WithPredictor("templateSource", templateSourceCompleter(ctx)),
+		kongplete.WithPredictor("system", systemCompleter(ctx)),
+		kongplete.WithPredictor("localTemplate", localTemplateCompleter(ctx)),
+		kongplete.WithPredictor("localTemplateFromSource", localTemplateFromSourceCompleter(ctx)),
+		kongplete.WithPredictor("template", templateCompleter(ctx)),
+	)
 }
 
 type initCmd struct{}
@@ -139,28 +155,11 @@ func (c *initCmd) Run() error {
 	return cfg.Write(cli.JSONConfig)
 }
 
-type addChecksumsCmd struct {
-	Dependency []string             `kong:"help=${checksums_dep_help},predictor=bin"`
-	Systems    []bindown.SystemInfo `kong:"name=system,help=${systems_help},predictor=allSystems"`
-}
-
-func (d *addChecksumsCmd) Run(_ *kong.Context) error {
-	config, err := configLoader.Load(cli.Configfile, true)
-	if err != nil {
-		return err
-	}
-	err = config.AddChecksums(d.Dependency, d.Systems)
-	if err != nil {
-		return err
-	}
-	return config.Write(cli.JSONConfig)
-}
-
 type fmtCmd struct{}
 
-func (c fmtCmd) Run(_ *kong.Context) error {
+func (c fmtCmd) Run(ctx context.Context) error {
 	cli.Cache = ""
-	config, err := configLoader.Load(cli.Configfile, true)
+	config, err := configLoader.Load(ctx, cli.Configfile, true)
 	if err != nil {
 		return err
 	}
@@ -168,12 +167,12 @@ func (c fmtCmd) Run(_ *kong.Context) error {
 }
 
 type validateCmd struct {
-	Dependency string               `kong:"required=true,arg,help=${config_validate_bin_help},predictor=bin"`
+	Dependency string               `kong:"required=true,arg,predictor=bin"`
 	Systems    []bindown.SystemInfo `kong:"name=system,predictor=allSystems"`
 }
 
-func (d validateCmd) Run(ctx *kong.Context) error {
-	config, err := configLoader.Load(cli.Configfile, false)
+func (d validateCmd) Run(ctx context.Context) error {
+	config, err := configLoader.Load(ctx, cli.Configfile, false)
 	if err != nil {
 		return err
 	}
@@ -187,8 +186,9 @@ type installCmd struct {
 	System     bindown.SystemInfo `kong:"name=system,default=${system_default},help=${system_help},predictor=allSystems"`
 }
 
-func (d *installCmd) Run(ctx *kong.Context) error {
-	config, err := configLoader.Load(cli.Configfile, false)
+func (d *installCmd) Run(kctx *kong.Context) error {
+	ctx := context.Background()
+	config, err := configLoader.Load(ctx, cli.Configfile, false)
 	if err != nil {
 		return err
 	}
@@ -199,7 +199,7 @@ func (d *installCmd) Run(ctx *kong.Context) error {
 	if err != nil {
 		return err
 	}
-	fmt.Fprintf(ctx.Stdout, "installed %s to %s\n", d.Dependency, pth)
+	fmt.Fprintf(kctx.Stdout, "installed %s to %s\n", d.Dependency, pth)
 	return nil
 }
 
@@ -210,8 +210,8 @@ type downloadCmd struct {
 	TargetFile string             `kong:"name=output,help=${download_target_file_help}"`
 }
 
-func (d *downloadCmd) Run(ctx *kong.Context) error {
-	config, err := configLoader.Load(cli.Configfile, false)
+func (d *downloadCmd) Run(ctx context.Context, kctx *kong.Context) error {
+	config, err := configLoader.Load(ctx, cli.Configfile, false)
 	if err != nil {
 		return err
 	}
@@ -222,7 +222,7 @@ func (d *downloadCmd) Run(ctx *kong.Context) error {
 	if err != nil {
 		return err
 	}
-	fmt.Fprintf(ctx.Stdout, "downloaded %s to %s\n", d.Dependency, pth)
+	fmt.Fprintf(kctx.Stdout, "downloaded %s to %s\n", d.Dependency, pth)
 	return nil
 }
 
@@ -232,8 +232,8 @@ type extractCmd struct {
 	TargetDir  string             `kong:"name=output,help=${extract_target_dir_help}"`
 }
 
-func (d *extractCmd) Run(ctx *kong.Context) error {
-	config, err := configLoader.Load(cli.Configfile, false)
+func (d *extractCmd) Run(ctx context.Context, kctx *kong.Context) error {
+	config, err := configLoader.Load(ctx, cli.Configfile, false)
 	if err != nil {
 		return err
 	}
@@ -244,7 +244,7 @@ func (d *extractCmd) Run(ctx *kong.Context) error {
 	if err != nil {
 		return err
 	}
-	fmt.Fprintf(ctx.Stdout, "extracted %s to %s\n", d.Dependency, pth)
+	fmt.Fprintf(kctx.Stdout, "extracted %s to %s\n", d.Dependency, pth)
 	return nil
 }
 

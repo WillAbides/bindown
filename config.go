@@ -1,6 +1,7 @@
 package bindown
 
 import (
+	"context"
 	"fmt"
 	"hash/fnv"
 	"io"
@@ -214,6 +215,33 @@ func (c *Config) AddChecksums(dependencies []string, systems []SystemInfo) error
 			if err != nil {
 				return err
 			}
+		}
+	}
+	return nil
+}
+
+// PruneChecksums removes checksums for dependencies that are not used by any configured system.
+func (c *Config) PruneChecksums() error {
+	allURLS := make(map[string]bool, len(c.Dependencies)*8)
+	for depName := range c.Dependencies {
+		systems, err := c.DependencySystems(depName)
+		if err != nil {
+			return err
+		}
+		for _, system := range systems {
+			var dep *Dependency
+			dep, err = c.BuildDependency(depName, system)
+			if err != nil {
+				return err
+			}
+			if dep.URL != nil {
+				allURLS[*dep.URL] = true
+			}
+		}
+	}
+	for u := range c.URLChecksums {
+		if !allURLS[u] {
+			delete(c.URLChecksums, u)
 		}
 	}
 	return nil
@@ -486,7 +514,7 @@ type AddDependencyFromTemplateOpts struct {
 }
 
 // AddDependencyFromTemplate adds a dependency to the config
-func (c *Config) AddDependencyFromTemplate(templateName string, opts *AddDependencyFromTemplateOpts) error {
+func (c *Config) AddDependencyFromTemplate(ctx context.Context, templateName string, opts *AddDependencyFromTemplateOpts) error {
 	if opts == nil {
 		opts = new(AddDependencyFromTemplateOpts)
 	}
@@ -500,7 +528,7 @@ func (c *Config) AddDependencyFromTemplate(templateName string, opts *AddDepende
 	if c.Dependencies[dependencyName] != nil {
 		return fmt.Errorf("dependency named %q already exists", dependencyName)
 	}
-	templateName, err := c.addOrGetTemplate(templateName, opts.TemplateSource)
+	templateName, err := c.addOrGetTemplate(ctx, templateName, opts.TemplateSource)
 	if err != nil {
 		return err
 	}
@@ -511,7 +539,7 @@ func (c *Config) AddDependencyFromTemplate(templateName string, opts *AddDepende
 	return nil
 }
 
-func (c *Config) addOrGetTemplate(name, src string) (string, error) {
+func (c *Config) addOrGetTemplate(ctx context.Context, name, src string) (string, error) {
 	destName := name
 	if src != "" {
 		destName = fmt.Sprintf("%s#%s", src, name)
@@ -527,7 +555,7 @@ func (c *Config) addOrGetTemplate(name, src string) (string, error) {
 	if _, ok := tmplSrcs[tmplSrc]; ok {
 		tmplSrc = tmplSrcs[tmplSrc]
 	}
-	err := c.addTemplateFromSource(tmplSrc, name, destName)
+	err := c.addTemplateFromSource(ctx, tmplSrc, name, destName)
 	if err != nil {
 		return "", err
 	}
@@ -535,7 +563,7 @@ func (c *Config) addOrGetTemplate(name, src string) (string, error) {
 }
 
 // CopyTemplateFromSource copies a template from source
-func (c *Config) CopyTemplateFromSource(src, srcTemplate, destName string) error {
+func (c *Config) CopyTemplateFromSource(ctx context.Context, src, srcTemplate, destName string) error {
 	if c.TemplateSources == nil {
 		return fmt.Errorf("no template source named %q", src)
 	}
@@ -543,12 +571,12 @@ func (c *Config) CopyTemplateFromSource(src, srcTemplate, destName string) error
 	if tmplSrc == "" {
 		return fmt.Errorf("no template source named %q", src)
 	}
-	return c.addTemplateFromSource(tmplSrc, srcTemplate, destName)
+	return c.addTemplateFromSource(ctx, tmplSrc, srcTemplate, destName)
 }
 
 // addTemplateFromSource copies a template from another config file
-func (c *Config) addTemplateFromSource(src, srcTemplate, destName string) error {
-	srcCfg, err := configFromURL(src)
+func (c *Config) addTemplateFromSource(ctx context.Context, src, srcTemplate, destName string) error {
+	srcCfg, err := ConfigFromURL(ctx, src)
 	if err != nil {
 		return err
 	}
@@ -573,22 +601,22 @@ func (c *Config) templatesList() []string {
 }
 
 // ListTemplates lists templates available in this config or one of its template sources.
-func (c *Config) ListTemplates(templateSource string) ([]string, error) {
+func (c *Config) ListTemplates(ctx context.Context, templateSource string) ([]string, error) {
 	if templateSource == "" {
 		return c.templatesList(), nil
 	}
-	srcCfg, err := c.templateSourceConfig(templateSource)
+	srcCfg, err := c.templateSourceConfig(ctx, templateSource)
 	if err != nil {
 		return nil, err
 	}
 	return srcCfg.templatesList(), nil
 }
 
-func (c *Config) templateSourceConfig(name string) (*Config, error) {
+func (c *Config) templateSourceConfig(ctx context.Context, name string) (*Config, error) {
 	if c.TemplateSources == nil || c.TemplateSources[name] == "" {
 		return nil, fmt.Errorf("no template source named %q", name)
 	}
-	return configFromURL(c.TemplateSources[name])
+	return ConfigFromURL(ctx, c.TemplateSources[name])
 }
 
 // DependencySystems returns the supported systems of either the config or the dependency if one is not empty
@@ -624,27 +652,32 @@ func (c *Config) DependencySystems(depName string) ([]SystemInfo, error) {
 	return result, nil
 }
 
-func configFromURL(cfgSrc string) (*Config, error) {
+// ConfigFromURL loads a config from a URL
+func ConfigFromURL(ctx context.Context, cfgSrc string) (*Config, error) {
 	cfgURL, err := url.Parse(cfgSrc)
 	if err != nil {
 		return nil, err
 	}
 	switch cfgURL.Scheme {
 	case "", "file":
-		cfg, err := LoadConfigFile(cfgURL.Path, true)
+		cfg, err := LoadConfigFile(ctx, cfgURL.Path, true)
 		if err != nil {
 			return nil, err
 		}
 		return &cfg.Config, nil
 	case "http", "https":
-		return configFromHTTP(cfgSrc)
+		return configFromHTTP(ctx, cfgSrc)
 	default:
 		return nil, fmt.Errorf("invalid src: %s", cfgSrc)
 	}
 }
 
-func configFromHTTP(src string) (*Config, error) {
-	resp, err := http.Get(src)
+func configFromHTTP(ctx context.Context, src string) (*Config, error) {
+	req, err := http.NewRequestWithContext(ctx, "GET", src, http.NoBody)
+	if err != nil {
+		return nil, err
+	}
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return nil, err
 	}
@@ -655,11 +688,11 @@ func configFromHTTP(src string) (*Config, error) {
 	if err != nil {
 		return nil, err
 	}
-	return configFromYAML(data)
+	return configFromYAML(ctx, data)
 }
 
-func configFromYAML(data []byte) (*Config, error) {
-	err := validateConfig(data)
+func configFromYAML(ctx context.Context, data []byte) (*Config, error) {
+	err := validateConfig(ctx, data)
 	if err != nil {
 		return nil, err
 	}
