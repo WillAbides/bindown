@@ -259,7 +259,7 @@ func (c *Config) addChecksum(dependencyName string, sysInfo SystemInfo) error {
 	if existingSum != "" {
 		return nil
 	}
-	sum, err := getURLChecksum(*dep.URL)
+	sum, err := getURLChecksum(*dep.URL, "")
 	if err != nil {
 		return err
 	}
@@ -334,8 +334,9 @@ func (c *Config) validateDep(systems []SystemInfo, depName string) error {
 
 // ConfigDownloadDependencyOpts options for Config.DownloadDependency
 type ConfigDownloadDependencyOpts struct {
-	TargetFile string
-	Force      bool
+	TargetFile           string
+	Force                bool
+	AllowMissingChecksum bool
 }
 
 // extractsCacheDir returns the cache directory for an extraction based on the download's checksum and dependency name
@@ -357,7 +358,7 @@ func (c *Config) downloadCacheDir(checksum string) (string, error) {
 }
 
 // DownloadDependency downloads a dependency
-func (c *Config) DownloadDependency(dependencyName string, sysInfo SystemInfo, opts *ConfigDownloadDependencyOpts) (string, error) {
+func (c *Config) DownloadDependency(dependencyName string, sysInfo SystemInfo, opts *ConfigDownloadDependencyOpts) (_ string, errOut error) {
 	if opts == nil {
 		opts = &ConfigDownloadDependencyOpts{}
 	}
@@ -366,17 +367,37 @@ func (c *Config) DownloadDependency(dependencyName string, sysInfo SystemInfo, o
 	if err != nil {
 		return "", err
 	}
-	if dep.URL == nil {
-		return "", fmt.Errorf("no URL configured")
-	}
-
-	checksum, err := c.dependencyChecksum(dependencyName, sysInfo)
+	depURL, err := dep.url()
 	if err != nil {
 		return "", err
 	}
 
+	tempDir, err := os.MkdirTemp("", "bindown")
+	if err != nil {
+		return "", err
+	}
+	defer func() {
+		cleanupErr := os.RemoveAll(tempDir)
+		if errOut == nil {
+			errOut = cleanupErr
+		}
+	}()
+	tempFile := filepath.Join(tempDir, "download")
+	downloadedToTemp := false
+	checksum, err := c.dependencyChecksum(dependencyName, sysInfo)
+	if err != nil {
+		if !opts.AllowMissingChecksum {
+			return "", err
+		}
+		checksum, err = getURLChecksum(depURL, tempFile)
+		if err != nil {
+			return "", err
+		}
+		downloadedToTemp = true
+	}
+
 	if targetFile == "" {
-		dlFile, err := urlFilename(*dep.URL)
+		dlFile, err := urlFilename(depURL)
 		if err != nil {
 			return "", err
 		}
@@ -386,7 +407,40 @@ func (c *Config) DownloadDependency(dependencyName string, sysInfo SystemInfo, o
 		}
 		targetFile = filepath.Join(cacheDir, dlFile)
 	}
-	return targetFile, download(strFromPtr(dep.URL), targetFile, checksum, opts.Force)
+
+	if !downloadedToTemp {
+		return targetFile, download(depURL, targetFile, checksum, opts.Force)
+	}
+
+	ok, err := fileExistsWithChecksum(targetFile, checksum)
+	if err != nil {
+		return "", err
+	}
+	if ok {
+		return targetFile, nil
+	}
+
+	err = os.MkdirAll(filepath.Dir(targetFile), 0o750)
+	if err != nil {
+		return "", err
+	}
+
+	// copy the file from the temp dir to the target file
+	out, err := os.Create(targetFile)
+	if err != nil {
+		return "", err
+	}
+	defer logCloseErr(out)
+	in, err := os.Open(tempFile)
+	if err != nil {
+		return "", err
+	}
+	defer logCloseErr(in)
+	_, err = io.Copy(out, in)
+	if err != nil {
+		return "", err
+	}
+	return targetFile, nil
 }
 
 func urlFilename(dlURL string) (string, error) {
@@ -414,8 +468,9 @@ func (c *Config) dependencyChecksum(dependencyName string, sysInfo SystemInfo) (
 
 // ConfigExtractDependencyOpts options for Config.ExtractDependency
 type ConfigExtractDependencyOpts struct {
-	TargetDirectory string
-	Force           bool
+	TargetDirectory      string
+	Force                bool
+	AllowMissingChecksum bool
 }
 
 // ExtractDependency downloads and extracts a dependency
@@ -424,7 +479,8 @@ func (c *Config) ExtractDependency(dependencyName string, sysInfo SystemInfo, op
 		opts = &ConfigExtractDependencyOpts{}
 	}
 	downloadPath, err := c.DownloadDependency(dependencyName, sysInfo, &ConfigDownloadDependencyOpts{
-		Force: opts.Force,
+		Force:                opts.Force,
+		AllowMissingChecksum: opts.AllowMissingChecksum,
 	})
 	if err != nil {
 		return "", err
@@ -443,7 +499,13 @@ func (c *Config) ExtractDependency(dependencyName string, sysInfo SystemInfo, op
 		var checksum string
 		checksum, err = c.dependencyChecksum(dependencyName, sysInfo)
 		if err != nil {
-			return "", err
+			if !opts.AllowMissingChecksum {
+				return "", err
+			}
+			checksum, err = fileChecksum(downloadPath)
+			if err != nil {
+				return "", err
+			}
 		}
 		targetDir, err = c.extractsCacheDir(dependencyName, checksum)
 		if err != nil {
@@ -465,8 +527,10 @@ func (c *Config) ExtractDependency(dependencyName string, sysInfo SystemInfo, op
 type ConfigInstallDependencyOpts struct {
 	// TargetPath is the path where the executable should end up
 	TargetPath string
-	// Force - whether to force the install even if it already exists
+	// Force - install even if it already exists
 	Force bool
+	// AllowMissingChecksum - whether to allow missing checksum
+	AllowMissingChecksum bool
 }
 
 // InstallDependency downloads, extracts and installs a dependency
@@ -475,7 +539,8 @@ func (c *Config) InstallDependency(dependencyName string, sysInfo SystemInfo, op
 		opts = &ConfigInstallDependencyOpts{}
 	}
 	extractDir, err := c.ExtractDependency(dependencyName, sysInfo, &ConfigExtractDependencyOpts{
-		Force: opts.Force,
+		Force:                opts.Force,
+		AllowMissingChecksum: opts.AllowMissingChecksum,
 	})
 	if err != nil {
 		return "", err
