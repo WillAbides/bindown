@@ -120,6 +120,13 @@ func varsWithSubstitutions(vars map[string]string, subs map[string]map[string]st
 	return vars
 }
 
+func (d *Dependency) url() (string, error) {
+	if d.URL == nil {
+		return "", fmt.Errorf("no URL configured")
+	}
+	return *d.URL, nil
+}
+
 func (d *Dependency) clone() *Dependency {
 	dep := *d
 	if d.Vars != nil {
@@ -435,24 +442,29 @@ func extract(archivePath, extractDir string) error {
 	return os.WriteFile(extractSumFile, []byte(extractSum), 0o600)
 }
 
-// getURLChecksum returns the checksum of what is returned from this url
-func getURLChecksum(dlURL string) (string, error) {
-	downloadDir, err := os.MkdirTemp("", "bindown")
+// getURLChecksum returns the checksum of the file at dlURL. If tempFile is specified
+// it will be used as the temporary file to download the file to and it will be the caller's
+// responsibility to clean it up. Otherwise, a temporary file will be created and cleaned up
+// automatically.
+func getURLChecksum(dlURL, tempFile string) (_ string, errOut error) {
+	if tempFile == "" {
+		downloadDir, err := os.MkdirTemp("", "bindown")
+		if err != nil {
+			return "", err
+		}
+		tempFile = filepath.Join(downloadDir, "foo")
+		defer func() {
+			cleanupErr := os.RemoveAll(downloadDir)
+			if errOut == nil {
+				errOut = cleanupErr
+			}
+		}()
+	}
+	err := downloadFile(tempFile, dlURL)
 	if err != nil {
 		return "", err
 	}
-	dlPath := filepath.Join(downloadDir, "foo")
-	err = downloadFile(dlPath, dlURL)
-	if err != nil {
-		_ = os.RemoveAll(downloadDir) //nolint:errcheck // we already have an error to report
-		return "", err
-	}
-	sum, err := fileChecksum(dlPath)
-	cleanupErr := os.RemoveAll(downloadDir)
-	if err == nil {
-		err = cleanupErr
-	}
-	return sum, err
+	return fileChecksum(tempFile)
 }
 
 func downloadFile(targetPath, url string) error {

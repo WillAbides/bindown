@@ -89,7 +89,7 @@ func Test_downloadFile(t *testing.T) {
 
 func TestGetURLChecksum(t *testing.T) {
 	ts := serveFile(t, filepath.Join("testdata", "downloadables", "foo.tar.gz"), "/foo/foo.tar.gz", "")
-	got, err := getURLChecksum(ts.URL + "/foo/foo.tar.gz")
+	got, err := getURLChecksum(ts.URL+"/foo/foo.tar.gz", "")
 	require.NoError(t, err)
 	require.Equal(t, fooChecksum, got)
 }
