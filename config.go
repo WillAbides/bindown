@@ -397,11 +397,12 @@ func (c *Config) DownloadDependency(dependencyName string, sysInfo SystemInfo, o
 	}
 
 	if targetFile == "" {
-		dlFile, err := urlFilename(depURL)
+		var dlFile, cacheDir string
+		dlFile, err = urlFilename(depURL)
 		if err != nil {
 			return "", err
 		}
-		cacheDir, err := c.downloadCacheDir(checksum)
+		cacheDir, err = c.downloadCacheDir(checksum)
 		if err != nil {
 			return "", err
 		}
