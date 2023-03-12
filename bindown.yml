@@ -9,15 +9,15 @@ dependencies:
   go:
     template: local-origin#go
     vars:
-      version: 1.17.5
+      version: 1.20.2
   gofumpt:
     template: local-origin#gofumpt
     vars:
-      version: 0.2.1
+      version: 0.4.0
   golangci-lint:
     template: local-origin#golangci-lint
     vars:
-      version: 1.43.0
+      version: 1.51.2
   goreleaser:
     template: local-origin#goreleaser
     vars:
@@ -267,10 +267,10 @@ template_sources:
   local-origin: ./bindown_templates.yml
   origin: https://raw.githubusercontent.com/WillAbides/bindown/main/bindown_templates.yml
 url_checksums:
-  https://dl.google.com/go/go1.17.5.darwin-amd64.tar.gz: 2db6a5d25815b56072465a2cacc8ed426c18f1d5fc26c1fc8c4f5a7188658264
-  https://dl.google.com/go/go1.17.5.darwin-arm64.tar.gz: 111f71166de0cb8089bb3e8f9f5b02d76e1bf1309256824d4062a47b0e5f98e0
-  https://dl.google.com/go/go1.17.5.linux-amd64.tar.gz: bd78114b0d441b029c8fe0341f4910370925a4d270a6a590668840675b0c653e
-  https://dl.google.com/go/go1.17.5.windows-amd64.zip: 671faf99cd5d81cd7e40936c0a94363c64d654faa0148d2af4bbc262555620b9
+  https://dl.google.com/go/go1.20.2.darwin-amd64.tar.gz: c93b8ced9517d07e1cd4c362c6e2d5242cb139e29b417a328fbf19aded08764c
+  https://dl.google.com/go/go1.20.2.darwin-arm64.tar.gz: 7343c87f19e79c0063532e82e1c4d6f42175a32d99f7a4d15e658e88bf97f885
+  https://dl.google.com/go/go1.20.2.linux-amd64.tar.gz: 4eaea32f59cde4dc635fbc42161031d13e1c780b87097f4b4234cfce671f1768
+  https://dl.google.com/go/go1.20.2.windows-amd64.zip: fe439f0e438f7555a7f5f7194ddb6f4a07b0de1fa414385d19f2aeb26d9f43db
   https://github.com/WillAbides/semver-next/releases/download/v0.4.0/semver-next_0.4.0_darwin_amd64.tar.gz: a519f2c3bbe8972deb094d56c196fec89496f663431321c22be343ced23839fb
   https://github.com/WillAbides/semver-next/releases/download/v0.4.0/semver-next_0.4.0_linux_amd64.tar.gz: 6317c36bec63158038381e8878601151ae996310fef58306f70cb03f1b46ef7f
   https://github.com/WillAbides/semver-next/releases/download/v0.4.0/semver-next_0.4.0_windows_amd64.tar.gz: 573ea65ef3b40442626fbb19d07880bb4929e7b12fd7161e41732a03f23b2c95
@@ -278,17 +278,17 @@ url_checksums:
   https://github.com/golang/mock/releases/download/v1.6.0/mock_1.6.0_darwin_arm64.tar.gz: 67a4a597dd759e186e17400cbc273be99c8cffc590335381134b3e933b409c83
   https://github.com/golang/mock/releases/download/v1.6.0/mock_1.6.0_linux_amd64.tar.gz: c73e117943739df5dd89d63fed6e80cb783852a0cc42abc3359d708c2e125b78
   https://github.com/golang/mock/releases/download/v1.6.0/mock_1.6.0_windows_amd64.tar.gz: 12f760cc521b45d0726de11512ed04aea2424d067312f39c926f96b085002590
-  https://github.com/golangci/golangci-lint/releases/download/v1.43.0/golangci-lint-1.43.0-darwin-amd64.tar.gz: 5971ed73d25767b2b955a694e59c7381d56df46e3681a93e067c601d0d6cffad
-  https://github.com/golangci/golangci-lint/releases/download/v1.43.0/golangci-lint-1.43.0-darwin-arm64.tar.gz: d0c69713b675ee09212273c2136a0d1b30203ddfc1c611a1a4fd5bfa90f9e457
-  https://github.com/golangci/golangci-lint/releases/download/v1.43.0/golangci-lint-1.43.0-linux-amd64.tar.gz: f3515cebec926257da703ba0a2b169e4a322c11dc31a8b4656b50a43e48877f4
-  https://github.com/golangci/golangci-lint/releases/download/v1.43.0/golangci-lint-1.43.0-windows-amd64.zip: 5e671027474c2fdc8b5533d492b8373da70f4968724ff10cf4dcbef1d58a2f57
+  https://github.com/golangci/golangci-lint/releases/download/v1.51.2/golangci-lint-1.51.2-darwin-amd64.tar.gz: 0549cbaa2df451cf3a2011a9d73a9cb127784d26749d9cd14c9f4818af104d44
+  https://github.com/golangci/golangci-lint/releases/download/v1.51.2/golangci-lint-1.51.2-darwin-arm64.tar.gz: 36e69882205a0e42a63ad57ec3015639c11051e03f0beb9cf7949c6451408960
+  https://github.com/golangci/golangci-lint/releases/download/v1.51.2/golangci-lint-1.51.2-linux-amd64.tar.gz: 4de479eb9d9bc29da51aec1834e7c255b333723d38dbd56781c68e5dddc6a90b
+  https://github.com/golangci/golangci-lint/releases/download/v1.51.2/golangci-lint-1.51.2-windows-amd64.zip: aac163d9bf3f79457399c2852cfae550cd250f23df9b324966f9c54e767ff42d
   https://github.com/goreleaser/goreleaser/releases/download/v1.0.0/goreleaser_Darwin_all.tar.gz: 8708f2febcb888fd10a4369f47d37c51cc656a7da8c6dfc0d740a0c2f701ecb0
   https://github.com/goreleaser/goreleaser/releases/download/v1.0.0/goreleaser_Linux_x86_64.tar.gz: 304fc638ef7b4138a0d680e25ab6019636a42f79c4b0e2e93abd7c42d1629967
   https://github.com/goreleaser/goreleaser/releases/download/v1.0.0/goreleaser_Windows_x86_64.zip: eee50e95e2c6442aa9a267dcfd9d76372a455f6d68dc7b5baf3c2c618e61787c
   https://github.com/mikefarah/yq/releases/download/3.2.1/yq_darwin_amd64: 116f74a384d0b4fa31a58dd01cfcdeffa6fcd21c066de223cbb0ebc042a8bc28
   https://github.com/mikefarah/yq/releases/download/3.2.1/yq_linux_amd64: 11a830ffb72aad0eaa7640ef69637068f36469be4f68a93da822fbe454e998f8
   https://github.com/mikefarah/yq/releases/download/3.2.1/yq_windows_amd64.exe: 9b3466ff4e37c8a93d7530e3dc7a047314d0897dbfbffb50b82235695e231fff
-  https://github.com/mvdan/gofumpt/releases/download/v0.2.1/gofumpt_v0.2.1_darwin_amd64: a055f7a3ea46a30412c3ec4f01c5f7740f80181f1f245f669e33ac5e7f268614
-  https://github.com/mvdan/gofumpt/releases/download/v0.2.1/gofumpt_v0.2.1_darwin_arm64: 0f1e6e7555398e8602b7b3dec530deae383fda09a254c7ee7f3200832645bc21
-  https://github.com/mvdan/gofumpt/releases/download/v0.2.1/gofumpt_v0.2.1_linux_amd64: a99322fe9d367936d961d6ff9818dd4cfd40c8ad70f62ebde78315089c7fa6d2
-  https://github.com/mvdan/gofumpt/releases/download/v0.2.1/gofumpt_v0.2.1_windows_amd64.exe: 9e094e038a8e301913ba2f3c77df8fad72ab4571c16dd49712f9ab9eb2a6d2ad
+  https://github.com/mvdan/gofumpt/releases/download/v0.4.0/gofumpt_v0.4.0_darwin_amd64: 3f550baa6d4c071b01e9c68b9308bd2ca3bae6b3b09d203f19ed8626ee0fe487
+  https://github.com/mvdan/gofumpt/releases/download/v0.4.0/gofumpt_v0.4.0_darwin_arm64: 768263452749a3a3cabf412f29f8a14e8bbdc7f6c6471427e977eebc6592ddb8
+  https://github.com/mvdan/gofumpt/releases/download/v0.4.0/gofumpt_v0.4.0_linux_amd64: d3ca535e6b0b230a9c4f05a3ec54e358336b5e7474d239c15514e63a0b2a8041
+  https://github.com/mvdan/gofumpt/releases/download/v0.4.0/gofumpt_v0.4.0_windows_amd64.exe: 1f4c74ac30ef41ea9859c445c84baff7b283b3c16b467fef1d728a93d90d3e92
