@@ -102,16 +102,17 @@ func directoryChecksum(inputDir string) (string, error) {
 }
 
 // hexHash returns a hex representation of data's hash
-// This will only return non-nil error if given a hasher that can return a non-nil error from Write()
-func hexHash(hasher hash.Hash, data ...[]byte) (string, error) {
+func hexHash(hasher hash.Hash, data ...[]byte) string {
 	hasher.Reset()
 	for _, datum := range data {
 		_, err := hasher.Write(datum)
 		if err != nil {
-			return "", err
+			// hash.Hash.Write() never returns an error
+			// https://github.com/golang/go/blob/go1.17/src/hash/hash.go#L27-L29
+			panic(err)
 		}
 	}
-	return hex.EncodeToString(hasher.Sum(nil)), nil
+	return hex.EncodeToString(hasher.Sum(nil))
 }
 
 // fileChecksum returns the hex checksum of a file
@@ -120,7 +121,7 @@ func fileChecksum(filename string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return hexHash(sha256.New(), fileBytes)
+	return hexHash(sha256.New(), fileBytes), nil
 }
 
 // fileExists asserts that a file exists
