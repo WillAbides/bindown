@@ -21,7 +21,7 @@ dependencies:
   goreleaser:
     template: local-origin#goreleaser
     vars:
-      version: 1.0.0
+      version: 1.16.1
   mockgen:
     template: local-origin#mockgen
     vars:
@@ -282,9 +282,10 @@ url_checksums:
   https://github.com/golangci/golangci-lint/releases/download/v1.51.2/golangci-lint-1.51.2-darwin-arm64.tar.gz: 36e69882205a0e42a63ad57ec3015639c11051e03f0beb9cf7949c6451408960
   https://github.com/golangci/golangci-lint/releases/download/v1.51.2/golangci-lint-1.51.2-linux-amd64.tar.gz: 4de479eb9d9bc29da51aec1834e7c255b333723d38dbd56781c68e5dddc6a90b
   https://github.com/golangci/golangci-lint/releases/download/v1.51.2/golangci-lint-1.51.2-windows-amd64.zip: aac163d9bf3f79457399c2852cfae550cd250f23df9b324966f9c54e767ff42d
-  https://github.com/goreleaser/goreleaser/releases/download/v1.0.0/goreleaser_Darwin_all.tar.gz: 8708f2febcb888fd10a4369f47d37c51cc656a7da8c6dfc0d740a0c2f701ecb0
-  https://github.com/goreleaser/goreleaser/releases/download/v1.0.0/goreleaser_Linux_x86_64.tar.gz: 304fc638ef7b4138a0d680e25ab6019636a42f79c4b0e2e93abd7c42d1629967
-  https://github.com/goreleaser/goreleaser/releases/download/v1.0.0/goreleaser_Windows_x86_64.zip: eee50e95e2c6442aa9a267dcfd9d76372a455f6d68dc7b5baf3c2c618e61787c
+  https://github.com/goreleaser/goreleaser/releases/download/v1.16.1/goreleaser_Darwin_arm64.tar.gz: c2546797aeb6cdd94a98fc2fc4a2d60d8c60a84a53f5e8843f4ebf941abc8702
+  https://github.com/goreleaser/goreleaser/releases/download/v1.16.1/goreleaser_Darwin_x86_64.tar.gz: e709a44d112ceab37e017f3be6d436cfaaab0dbcf841381544c681408127761b
+  https://github.com/goreleaser/goreleaser/releases/download/v1.16.1/goreleaser_Linux_x86_64.tar.gz: fa370201538b2a93d960ca620cb3e26e25adba5abd115bb91f3517086f2324b7
+  https://github.com/goreleaser/goreleaser/releases/download/v1.16.1/goreleaser_Windows_x86_64.zip: 1b5c2a3d3a507e909c6fdf8d2061590a0933d695cce9ba37467f7a3b283a83f4
   https://github.com/mikefarah/yq/releases/download/3.2.1/yq_darwin_amd64: 116f74a384d0b4fa31a58dd01cfcdeffa6fcd21c066de223cbb0ebc042a8bc28
   https://github.com/mikefarah/yq/releases/download/3.2.1/yq_linux_amd64: 11a830ffb72aad0eaa7640ef69637068f36469be4f68a93da822fbe454e998f8
   https://github.com/mikefarah/yq/releases/download/3.2.1/yq_windows_amd64.exe: 9b3466ff4e37c8a93d7530e3dc7a047314d0897dbfbffb50b82235695e231fff
