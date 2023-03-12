@@ -73,17 +73,11 @@ func Test_fileChecksum(t *testing.T) {
 }
 
 func Test_hexHash(t *testing.T) {
-	got, err := hexHash(fnv.New64a(), []byte("foo"))
-	require.NoError(t, err)
-	require.Equal(t, "dcb27518fed9d577", got)
-	got, err = hexHash(fnv.New64a(), []byte("foo"), []byte("bar"))
-	require.NoError(t, err)
-	require.Equal(t, "85944171f73967e8", got)
+	require.Equal(t, "dcb27518fed9d577", hexHash(fnv.New64a(), []byte("foo")))
+	require.Equal(t, "85944171f73967e8", hexHash(fnv.New64a(), []byte("foo"), []byte("bar")))
 	content, err := os.ReadFile(filepath.Join("testdata", "downloadables", "foo.tar.gz"))
 	require.NoError(t, err)
-	got, err = hexHash(sha256.New(), content)
-	require.NoError(t, err)
-	require.Equal(t, fooChecksum, got)
+	require.Equal(t, fooChecksum, hexHash(sha256.New(), content))
 }
 
 func Test_copyFile(t *testing.T) {

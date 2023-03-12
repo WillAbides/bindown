@@ -340,21 +340,15 @@ type ConfigDownloadDependencyOpts struct {
 }
 
 // extractsCacheDir returns the cache directory for an extraction based on the download's checksum and dependency name
-func (c *Config) extractsCacheDir(dependencyName, checksum string) (string, error) {
-	hsh, err := hexHash(fnv.New64a(), []byte(checksum))
-	if err != nil {
-		return "", err
-	}
-	return filepath.Join(c.Cache, "extracts", hsh), nil
+func (c *Config) extractsCacheDir(hashMaterial string) string {
+	hsh := hexHash(fnv.New64a(), []byte(hashMaterial))
+	return filepath.Join(c.Cache, "extracts", hsh)
 }
 
 // downloadCacheDir returns the cache directory for a file based on its checksum
-func (c *Config) downloadCacheDir(checksum string) (string, error) {
-	hsh, err := hexHash(fnv.New64a(), []byte(checksum))
-	if err != nil {
-		return "", err
-	}
-	return filepath.Join(c.Cache, "downloads", hsh), nil
+func (c *Config) downloadCacheDir(hashMaterial string) string {
+	hsh := hexHash(fnv.New64a(), []byte(hashMaterial))
+	return filepath.Join(c.Cache, "downloads", hsh)
 }
 
 // DownloadDependency downloads a dependency
@@ -397,15 +391,12 @@ func (c *Config) DownloadDependency(dependencyName string, sysInfo SystemInfo, o
 	}
 
 	if targetFile == "" {
-		var dlFile, cacheDir string
+		var dlFile string
 		dlFile, err = urlFilename(depURL)
 		if err != nil {
 			return "", err
 		}
-		cacheDir, err = c.downloadCacheDir(checksum)
-		if err != nil {
-			return "", err
-		}
+		cacheDir := c.downloadCacheDir(checksum)
 		targetFile = filepath.Join(cacheDir, dlFile)
 	}
 
@@ -508,7 +499,7 @@ func (c *Config) ExtractDependency(dependencyName string, sysInfo SystemInfo, op
 				return "", err
 			}
 		}
-		targetDir, err = c.extractsCacheDir(dependencyName, checksum)
+		targetDir = c.extractsCacheDir(checksum)
 		if err != nil {
 			return "", err
 		}
