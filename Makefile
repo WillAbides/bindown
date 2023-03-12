@@ -8,7 +8,7 @@ bin/bootstrapped/bindown:
 	./script/bootstrap-bindown.sh -b bin/bootstrapped
 bins += bin/bootstrapped/bindown
 
-bin/go:
+bin/go: bin/bootstrapped/bindown bindown.yml
 	$(MAKE) bin/bootstrapped/bindown
 	bin/bootstrapped/bindown install $(notdir $@)
 bins += bin/go

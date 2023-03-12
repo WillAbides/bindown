@@ -165,7 +165,6 @@ func (c *Config) allDependencyNames() []string {
 
 // ConfigAddChecksumsOptions contains options for Config.AddChecksums
 type ConfigAddChecksumsOptions struct {
-
 	// Only add checksums for these dependencies. When Dependencies is empty, AddChecksums adds checksums for all
 	// configured dependencies.
 	Dependencies []string
@@ -272,7 +271,6 @@ func (c *Config) addChecksum(dependencyName string, sysInfo SystemInfo) error {
 
 // ConfigValidateOptions contains options for Config.Validate
 type ConfigValidateOptions struct {
-
 	// Only validates these dependencies. When Dependencies is empty, Validate validates all configured dependencies.
 	Dependencies []string
 
