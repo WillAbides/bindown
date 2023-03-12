@@ -439,7 +439,7 @@ func extract(archivePath, extractDir string) error {
 }
 
 // getURLChecksum returns the checksum of the file at dlURL. If tempFile is specified
-// it will be used as the temporary file to download the file to and it will be the caller's
+// it will be used as the temporary file to download the file to, and it will be the caller's
 // responsibility to clean it up. Otherwise, a temporary file will be created and cleaned up
 // automatically.
 func getURLChecksum(dlURL, tempFile string) (_ string, errOut error) {
