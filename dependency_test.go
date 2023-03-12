@@ -50,20 +50,44 @@ func Test_copyBin(t *testing.T) {
 }
 
 func Test_linkBin(t *testing.T) {
-	dir := t.TempDir()
-	extractDir := filepath.Join(dir, ".bindown", "extracts", "deadbeef")
-	binName := "bleep"
-	require.NoError(t, os.MkdirAll(extractDir, 0o750))
-	err := copyFile(filepath.Join("testdata", "downloadables", filepath.FromSlash("rawfile/foo")), filepath.Join(extractDir, binName), nil)
-	require.NoError(t, err)
-	target := filepath.Join(dir, "bin", "foo")
-	err = linkBin(target, extractDir, "", binName)
-	require.NoError(t, err)
-	wantContent, err := os.ReadFile(filepath.Join(extractDir, binName))
-	require.NoError(t, err)
-	gotContent, err := os.ReadFile(target)
-	require.NoError(t, err)
-	require.Equal(t, string(wantContent), string(gotContent))
+	t.Run("nothing at target", func(t *testing.T) {
+		dir := t.TempDir()
+		target := filepath.Join(dir, "bin", "foo")
+		extractDir := filepath.Join(dir, ".bindown", "extracts", "deadbeef")
+		require.NoError(t, os.MkdirAll(extractDir, 0o750))
+		binName := "bleep"
+		rawFile := filepath.FromSlash("testdata/downloadables/rawfile/foo")
+		err := copyFile(rawFile, filepath.Join(extractDir, binName), nil)
+		require.NoError(t, err)
+		err = linkBin(target, extractDir, "", binName)
+		require.NoError(t, err)
+		wantContent, err := os.ReadFile(filepath.Join(extractDir, binName))
+		require.NoError(t, err)
+		gotContent, err := os.ReadFile(target)
+		require.NoError(t, err)
+		require.Equal(t, string(wantContent), string(gotContent))
+	})
+
+	t.Run("target has link to non-existent file", func(t *testing.T) {
+		dir := t.TempDir()
+		target := filepath.Join(dir, "bin", "foo")
+		require.NoError(t, os.MkdirAll(filepath.Dir(target), 0o750))
+		//	make target a link to a non-existent file
+		require.NoError(t, os.Symlink("non-existent", target))
+		extractDir := filepath.Join(dir, ".bindown", "extracts", "deadbeef")
+		require.NoError(t, os.MkdirAll(extractDir, 0o750))
+		binName := "bleep"
+		rawFile := filepath.FromSlash("testdata/downloadables/rawfile/foo")
+		err := copyFile(rawFile, filepath.Join(extractDir, binName), nil)
+		require.NoError(t, err)
+		err = linkBin(target, extractDir, "", binName)
+		require.NoError(t, err)
+		wantContent, err := os.ReadFile(filepath.Join(extractDir, binName))
+		require.NoError(t, err)
+		gotContent, err := os.ReadFile(target)
+		require.NoError(t, err)
+		require.Equal(t, string(wantContent), string(gotContent))
+	})
 }
 
 func Test_downloadFile(t *testing.T) {
