@@ -124,12 +124,11 @@ func fileChecksum(filename string) (string, error) {
 	return hexHash(sha256.New(), fileBytes), nil
 }
 
-// fileExists asserts that a file exists
+// fileExists asserts that a file exist or symlink exists.
+// Returns false for symlinks pointing to non-existent files.
 func fileExists(path string) bool {
-	if _, err := os.Stat(filepath.FromSlash(path)); !os.IsNotExist(err) {
-		return true
-	}
-	return false
+	_, statErr := os.Stat(filepath.FromSlash(path))
+	return !os.IsNotExist(statErr)
 }
 
 // fileExistsWithChecksum returns true if the file both exists and has a matching checksum

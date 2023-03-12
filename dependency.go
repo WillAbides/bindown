@@ -311,34 +311,27 @@ func strFromPtr(sPtr *string) string {
 	return *sPtr
 }
 
-func linkBin(target, extractDir, archivePath, binName string) error {
+func linkBin(link, extractDir, archivePath, binName string) error {
 	archivePath = filepath.FromSlash(archivePath)
 	if archivePath == "" {
 		archivePath = filepath.FromSlash(binName)
 	}
-	var err error
-	if fileExists(target) {
-		err = os.RemoveAll(target)
-		if err != nil {
-			return err
-		}
-	}
-	extractDir, err = filepath.Abs(extractDir)
+	absExtractDir, err := filepath.Abs(extractDir)
 	if err != nil {
 		return err
 	}
-	extractedBin := filepath.Join(extractDir, archivePath)
-	err = os.MkdirAll(filepath.Dir(target), 0o750)
+	extractedBin := filepath.Join(absExtractDir, archivePath)
+	err = os.MkdirAll(filepath.Dir(link), 0o750)
 	if err != nil {
 		return err
 	}
-	var linkTargetDir string
-	linkTargetDir, err = filepath.Abs(filepath.Dir(target))
+	var linkDir string
+	linkDir, err = filepath.Abs(filepath.Dir(link))
 	if err != nil {
 		return err
 	}
 
-	linkTargetDir, err = filepath.EvalSymlinks(linkTargetDir)
+	linkDir, err = filepath.EvalSymlinks(linkDir)
 	if err != nil {
 		return err
 	}
@@ -348,20 +341,23 @@ func linkBin(target, extractDir, archivePath, binName string) error {
 		return err
 	}
 
-	var dst string
-	dst, err = filepath.Rel(linkTargetDir, extractedBin)
+	dst, err := filepath.Rel(linkDir, extractedBin)
 	if err != nil {
 		return err
 	}
-	err = os.Symlink(dst, target)
+	err = os.RemoveAll(link)
 	if err != nil {
 		return err
 	}
-	info, err := os.Stat(target)
+	err = os.Symlink(dst, link)
 	if err != nil {
 		return err
 	}
-	return os.Chmod(target, info.Mode().Perm()|0o750)
+	info, err := os.Stat(link)
+	if err != nil {
+		return err
+	}
+	return os.Chmod(link, info.Mode().Perm()|0o750)
 }
 
 func copyBin(target, extractDir, archivePath, binName string) error {
