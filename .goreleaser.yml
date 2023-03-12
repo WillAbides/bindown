@@ -10,7 +10,7 @@ builds:
       - windows
     env:
       - CGO_ENABLED=0
-archives:
+archives: []
 checksum:
   name_template: 'checksums.txt'
 snapshot:
