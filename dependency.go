@@ -485,6 +485,8 @@ func downloadFile(targetPath, url string) error {
 	return err
 }
 
+// download downloads a file from the url to outputPath if the file does not exist or if the checksum is different.
+// No checksum validation is done when checksum is empty.
 func download(dlURL, outputPath, checksum string, force bool) error {
 	var err error
 	if force {
@@ -503,6 +505,9 @@ func download(dlURL, outputPath, checksum string, force bool) error {
 	err = downloadFile(outputPath, dlURL)
 	if err != nil {
 		return err
+	}
+	if checksum == "" {
+		return nil
 	}
 	return validateFileChecksum(outputPath, checksum)
 }

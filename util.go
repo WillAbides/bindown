@@ -131,10 +131,14 @@ func fileExists(path string) bool {
 	return !os.IsNotExist(statErr)
 }
 
-// fileExistsWithChecksum returns true if the file both exists and has a matching checksum
+// fileExistsWithChecksum returns true if the file both exists and has a matching checksum. If checksum is empty,
+// it only checks if the file exists.
 func fileExistsWithChecksum(filename, checksum string) (bool, error) {
 	if !fileExists(filename) {
 		return false, nil
+	}
+	if checksum == "" {
+		return true, nil
 	}
 	got, err := fileChecksum(filename)
 	if err != nil {

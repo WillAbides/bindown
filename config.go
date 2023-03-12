@@ -352,7 +352,7 @@ func (c *Config) downloadCacheDir(hashMaterial string) string {
 }
 
 // DownloadDependency downloads a dependency
-func (c *Config) DownloadDependency(dependencyName string, sysInfo SystemInfo, opts *ConfigDownloadDependencyOpts) (_ string, errOut error) {
+func (c *Config) DownloadDependency(dependencyName string, sysInfo SystemInfo, opts *ConfigDownloadDependencyOpts) (string, error) {
 	if opts == nil {
 		opts = &ConfigDownloadDependencyOpts{}
 	}
@@ -365,70 +365,25 @@ func (c *Config) DownloadDependency(dependencyName string, sysInfo SystemInfo, o
 	if err != nil {
 		return "", err
 	}
-
-	tempDir, err := os.MkdirTemp("", "bindown")
-	if err != nil {
-		return "", err
-	}
-	defer func() {
-		cleanupErr := os.RemoveAll(tempDir)
-		if errOut == nil {
-			errOut = cleanupErr
-		}
-	}()
-	tempFile := filepath.Join(tempDir, "download")
-	downloadedToTemp := false
-	checksum, err := c.dependencyChecksum(dependencyName, sysInfo)
-	if err != nil {
-		if !opts.AllowMissingChecksum {
-			return "", err
-		}
-		checksum, err = getURLChecksum(depURL, tempFile)
-		if err != nil {
-			return "", err
-		}
-		downloadedToTemp = true
-	}
-
 	if targetFile == "" {
 		var dlFile string
 		dlFile, err = urlFilename(depURL)
 		if err != nil {
 			return "", err
 		}
-		cacheDir := c.downloadCacheDir(checksum)
+		cacheDir := c.downloadCacheDir(depURL)
 		targetFile = filepath.Join(cacheDir, dlFile)
 	}
 
-	if !downloadedToTemp {
-		return targetFile, download(depURL, targetFile, checksum, opts.Force)
+	checksum, err := c.dependencyChecksum(dependencyName, sysInfo)
+	if err != nil {
+		if !opts.AllowMissingChecksum {
+			return "", err
+		}
+		checksum = ""
 	}
 
-	ok, err := fileExistsWithChecksum(targetFile, checksum)
-	if err != nil {
-		return "", err
-	}
-	if ok {
-		return targetFile, nil
-	}
-
-	err = os.MkdirAll(filepath.Dir(targetFile), 0o750)
-	if err != nil {
-		return "", err
-	}
-
-	// copy the file from the temp dir to the target file
-	out, err := os.Create(targetFile)
-	if err != nil {
-		return "", err
-	}
-	defer logCloseErr(out)
-	in, err := os.Open(tempFile)
-	if err != nil {
-		return "", err
-	}
-	defer logCloseErr(in)
-	_, err = io.Copy(out, in)
+	err = download(depURL, targetFile, checksum, opts.Force)
 	if err != nil {
 		return "", err
 	}
@@ -482,29 +437,16 @@ func (c *Config) ExtractDependency(dependencyName string, sysInfo SystemInfo, op
 	if err != nil {
 		return "", err
 	}
-	if dep.URL == nil {
-		return "", fmt.Errorf("no URL configured")
+	depURL, err := dep.url()
+	if err != nil {
+		return "", err
 	}
 
 	targetDir := opts.TargetDirectory
 	if targetDir == "" {
-		var checksum string
-		checksum, err = c.dependencyChecksum(dependencyName, sysInfo)
-		if err != nil {
-			if !opts.AllowMissingChecksum {
-				return "", err
-			}
-			checksum, err = fileChecksum(downloadPath)
-			if err != nil {
-				return "", err
-			}
-		}
-		targetDir = c.extractsCacheDir(checksum)
-		if err != nil {
-			return "", err
-		}
+		targetDir = c.extractsCacheDir(depURL)
 	}
-	dlFile, err := urlFilename(*dep.URL)
+	dlFile, err := urlFilename(depURL)
 	if err != nil {
 		return "", err
 	}
