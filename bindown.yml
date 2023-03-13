@@ -29,7 +29,7 @@ dependencies:
   semver-next:
     template: local-origin#semver-next
     vars:
-      version: 0.9.0
+      version: 0.11.3
   yq:
     template: local-origin#yq
     vars:
@@ -271,9 +271,9 @@ url_checksums:
   https://dl.google.com/go/go1.20.2.darwin-arm64.tar.gz: 7343c87f19e79c0063532e82e1c4d6f42175a32d99f7a4d15e658e88bf97f885
   https://dl.google.com/go/go1.20.2.linux-amd64.tar.gz: 4eaea32f59cde4dc635fbc42161031d13e1c780b87097f4b4234cfce671f1768
   https://dl.google.com/go/go1.20.2.windows-amd64.zip: fe439f0e438f7555a7f5f7194ddb6f4a07b0de1fa414385d19f2aeb26d9f43db
-  https://github.com/WillAbides/semver-next/releases/download/v0.9.0/semver-next_0.9.0_darwin_amd64.tar.gz: f40720df116ae869d1364130fd2f447fc7e22fdddeafccdde6289a3a7b8c2379
-  https://github.com/WillAbides/semver-next/releases/download/v0.9.0/semver-next_0.9.0_linux_amd64.tar.gz: 13d72ebc992d0c34cfc6d3344f1a47168fb8424c1d566eea5494cb81106b0747
-  https://github.com/WillAbides/semver-next/releases/download/v0.9.0/semver-next_0.9.0_windows_amd64.tar.gz: 9d3393281a89edda57406a62878be739aa2588fc1172bfd3fff49bcd15bd11be
+  https://github.com/WillAbides/semver-next/releases/download/v0.11.3/semver-next_0.11.3_darwin_amd64.tar.gz: 4f7fbb6b16600bdbd049250a1389a01e08a1490f4ceb864b78a19be9f4f74e75
+  https://github.com/WillAbides/semver-next/releases/download/v0.11.3/semver-next_0.11.3_linux_amd64.tar.gz: 35b024a2ace9977672e78979f13e9bc48973c4a8f19ae7517f1796fbb91a6c11
+  https://github.com/WillAbides/semver-next/releases/download/v0.11.3/semver-next_0.11.3_windows_amd64.tar.gz: 0a5e3e743daf3e2eb1e8b41f4787472be1791ac9157c40ac2e9ff39c85eb8730
   https://github.com/golang/mock/releases/download/v1.6.0/mock_1.6.0_darwin_amd64.tar.gz: 938649db27055ec85bede32ccb95ff82f82af3c90a084ee52687a92066bcca92
   https://github.com/golang/mock/releases/download/v1.6.0/mock_1.6.0_darwin_arm64.tar.gz: 67a4a597dd759e186e17400cbc273be99c8cffc590335381134b3e933b409c83
   https://github.com/golang/mock/releases/download/v1.6.0/mock_1.6.0_linux_amd64.tar.gz: c73e117943739df5dd89d63fed6e80cb783852a0cc42abc3359d708c2e125b78

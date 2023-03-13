@@ -1,0 +1,36 @@
+name: releasable
+on:
+  pull_request:
+    branches:
+      - main
+    types:
+      - labeled
+      - unlabeled
+      - synchronize
+      - opened
+      - reopened
+  workflow_dispatch:
+jobs:
+  releasable:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: WillAbides/setup-go-faster@v1
+        id: setup-go
+        with:
+          go-version: '1.20.x'
+      - uses: actions/cache@v3
+        with:
+          path: |
+            ${{ steps.setup-go.outputs.GOCACHE }}
+            ${{ steps.setup-go.outputs.GOMODCACHE }}
+          key: ${{ runner.os }}-releasable-${{ hashFiles('**/go.sum') }}
+          restore-keys: ${{ runner.os }}-releasable-
+      - name: check releasable
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          #!/bin/sh
+          set -e
+          make bin/semver-next
+          bin/semver-next "$GITHUB_REPOSITORY" -r "$GITHUB_SHA" --require-labels
