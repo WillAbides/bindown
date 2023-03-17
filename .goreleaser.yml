@@ -10,7 +10,15 @@ builds:
       - windows
     env:
       - CGO_ENABLED=0
-archives: []
+archives:
+  - id: tar.gz
+    builds:
+      - bindown
+    format: tar.gz
+  - id: binary
+    builds:
+      - bindown
+    format: binary
 checksum:
   name_template: 'checksums.txt'
 snapshot:
