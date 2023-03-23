@@ -10,7 +10,7 @@ bins += bin/bootstrapped/bindown
 
 bin/go: bin/bootstrapped/bindown bindown.yml
 	$(MAKE) bin/bootstrapped/bindown
-	bin/bootstrapped/bindown install $(notdir $@)
+	bin/bootstrapped/bindown install $(notdir $@) >/dev/null
 bins += bin/go
 
 bin/bindown: gobuildcache bin/go

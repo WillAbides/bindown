@@ -300,6 +300,7 @@ Flags:
                              bindown.yaml, bindown.json, .bindown.yml, .bindown.yaml or
                              .bindown.json ($BINDOWN_CONFIG_FILE)
       --cache=STRING         directory downloads will be cached ($BINDOWN_CACHE)
+  -q, --quiet                suppress output to stdout
 
 Commands:
   download                       download a dependency but don't extract or install it
