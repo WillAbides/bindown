@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"fmt"
+	"io"
 	"os"
 	"runtime"
 	"time"
@@ -47,6 +48,7 @@ var cli struct {
 	JSONConfig bool   `kong:"name=json,help='treat config file as json instead of yaml'"`
 	Configfile string `kong:"type=path,help=${configfile_help},env='BINDOWN_CONFIG_FILE'"`
 	Cache      string `kong:"type=path,help=${cache_help},env='BINDOWN_CACHE'"`
+	Quiet      bool   `kong:"short='q',help='suppress output to stdout'"`
 
 	Download        downloadCmd        `kong:"cmd,help=${download_help}"`
 	Extract         extractCmd         `kong:"cmd,help=${extract_help}"`
@@ -115,6 +117,9 @@ func Run(args []string, kongOptions ...kong.Option) {
 
 	kongCtx, err := parser.Parse(args)
 	parser.FatalIfErrorf(err)
+	if cli.Quiet {
+		kongCtx.Stdout = io.Discard
+	}
 	err = kongCtx.Run()
 	parser.FatalIfErrorf(err)
 }
