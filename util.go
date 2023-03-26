@@ -12,38 +12,24 @@ import (
 	"path/filepath"
 	"strings"
 	"text/template"
+
+	"golang.org/x/exp/maps"
 )
-
-// copyStringMap returns a copy of mp
-func copyStringMap(mp map[string]string) map[string]string {
-	result := make(map[string]string, len(mp))
-	for k, v := range mp {
-		result[k] = v
-	}
-	return result
-}
-
-// setStringMapDefault sets map[key] to val unless it is already set
-func setStringMapDefault(mp map[string]string, key, val string) {
-	_, ok := mp[key]
-	if ok {
-		return
-	}
-	mp[key] = val
-}
 
 // executeTemplate executes a template
 func executeTemplate(tmplString, goos, arch string, vars map[string]string) (string, error) {
-	vars = copyStringMap(vars)
-	setStringMapDefault(vars, "os", goos)
-	setStringMapDefault(vars, "arch", arch)
+	tmplData := map[string]string{
+		"os":   goos,
+		"arch": arch,
+	}
+	maps.Copy(tmplData, vars)
 	tmpl, err := template.New("").Option("missingkey=error").Parse(tmplString)
 	if err != nil {
 		fmt.Println(err.Error())
 		return "", fmt.Errorf("%q is not a valid template", tmplString)
 	}
 	var buf bytes.Buffer
-	err = tmpl.Execute(&buf, vars)
+	err = tmpl.Execute(&buf, tmplData)
 	if err != nil {
 		return "", fmt.Errorf("error applying template: %v", err)
 	}
@@ -170,4 +156,20 @@ func copyFile(src, dst string, closeCloser func(io.Closer)) error {
 
 	_, err = io.Copy(writer, rdr)
 	return err
+}
+
+func clonePointer[T comparable](p *T) *T {
+	if p == nil {
+		return nil
+	}
+	val := *p
+	return &val
+}
+
+// overrideValue sets p to override if override is not nil
+func overrideValue[T comparable](p, override *T) *T {
+	if override == nil {
+		return p
+	}
+	return clonePointer(override)
 }
