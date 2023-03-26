@@ -49,7 +49,7 @@ var cli struct {
 	JSONConfig bool   `kong:"name=json,help='treat config file as json instead of yaml'"`
 	Configfile string `kong:"type=path,help=${configfile_help},env='BINDOWN_CONFIG_FILE'"`
 	Cache      string `kong:"type=path,help=${cache_help},env='BINDOWN_CACHE'"`
-	TrustCache bool   `kong:"help=${trust_cache_help},env='BINDOWN_TRUST_CACHE'"`
+	TrustCache *bool  `kong:"help=${trust_cache_help},env='BINDOWN_TRUST_CACHE'"`
 	Quiet      bool   `kong:"short='q',help='suppress output to stdout'"`
 
 	Download        downloadCmd        `kong:"cmd,help=${download_help}"`
@@ -98,8 +98,8 @@ func (d defaultConfigLoader) Load(ctx context.Context, filename string, noDefaul
 	if cli.Cache != "" {
 		configFile.Cache = cli.Cache
 	}
-	if cli.TrustCache {
-		configFile.TrustCache = true
+	if cli.TrustCache != nil {
+		configFile.TrustCache = *cli.TrustCache
 	}
 	return configFile, nil
 }
