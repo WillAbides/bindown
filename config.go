@@ -403,6 +403,10 @@ func (c *Config) DownloadDependency(dependencyName string, sysInfo SystemInfo, o
 		return targetFile, download(depURL, targetFile, checksum, opts.Force)
 	}
 
+	if c.TrustCache && !opts.Force && fileExists(targetFile) {
+		return targetFile, nil
+	}
+
 	ok, err := fileExistsWithChecksum(targetFile, checksum)
 	if err != nil {
 		return "", err
@@ -499,8 +503,8 @@ func (c *Config) ExtractDependency(dependencyName string, sysInfo SystemInfo, op
 			}
 		}
 		targetDir = c.extractsCacheDir(checksum)
-		if err != nil {
-			return "", err
+		if c.TrustCache && !opts.Force && fileExists(targetDir) {
+			return targetDir, nil
 		}
 	}
 	dlFile, err := urlFilename(*dep.URL)

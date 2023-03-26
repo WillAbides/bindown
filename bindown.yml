@@ -1,4 +1,5 @@
 cache: ./bin/.bindown
+trust_cache: true
 install_dir: ./bin
 systems:
 - darwin/amd64
