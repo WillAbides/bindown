@@ -20,6 +20,7 @@ import (
 // Config is our main config
 type Config struct {
 	Cache           string                 `json:"cache,omitempty" yaml:"cache,omitempty"`
+	TrustCache      bool                   `json:"trust_cache,omitempty" yaml:"trust_cache,omitempty"`
 	InstallDir      string                 `json:"install_dir,omitempty" yaml:"install_dir,omitempty"`
 	Systems         []SystemInfo           `json:"systems,omitempty" yaml:"systems,omitempty"`
 	Dependencies    map[string]*Dependency `json:"dependencies,omitempty" yaml:",omitempty"`
@@ -396,6 +397,10 @@ func (c *Config) DownloadDependency(dependencyName string, sysInfo SystemInfo, o
 		}
 		cacheDir := c.downloadCacheDir(checksum)
 		targetFile = filepath.Join(cacheDir, dlFile)
+
+		if c.TrustCache && !opts.Force && fileExists(targetFile) {
+			return targetFile, nil
+		}
 	}
 
 	if !downloadedToTemp {
@@ -498,8 +503,8 @@ func (c *Config) ExtractDependency(dependencyName string, sysInfo SystemInfo, op
 			}
 		}
 		targetDir = c.extractsCacheDir(checksum)
-		if err != nil {
-			return "", err
+		if c.TrustCache && !opts.Force && fileExists(targetDir) {
+			return targetDir, nil
 		}
 	}
 	dlFile, err := urlFilename(*dep.URL)
