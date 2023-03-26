@@ -80,17 +80,23 @@ var defaultConfigFilenames = []string{
 }
 
 func (d defaultConfigLoader) Load(ctx context.Context, filename string, noDefaultDirs bool) (ifaces.ConfigFile, error) {
-	if filename != "" {
-		return bindown.LoadConfigFile(ctx, filename, noDefaultDirs)
-	}
-	for _, configFilename := range defaultConfigFilenames {
-		info, err := os.Stat(configFilename)
-		if err == nil && !info.IsDir() {
-			filename = configFilename
-			break
+	if filename == "" {
+		for _, configFilename := range defaultConfigFilenames {
+			info, err := os.Stat(configFilename)
+			if err == nil && !info.IsDir() {
+				filename = configFilename
+				break
+			}
 		}
 	}
-	return bindown.LoadConfigFile(ctx, filename, noDefaultDirs)
+	configFile, err := bindown.LoadConfigFile(ctx, filename, noDefaultDirs)
+	if err != nil {
+		return nil, err
+	}
+	if cli.Cache != "" {
+		configFile.Cache = cli.Cache
+	}
+	return configFile, nil
 }
 
 var configLoader ifaces.ConfigLoader = defaultConfigLoader{}
