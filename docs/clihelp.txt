@@ -1,15 +1,15 @@
 Usage: bindown <command>
 
 Flags:
-  -h, --help                 Show context-sensitive help.
-      --json                 treat config file as json instead of yaml
-      --configfile=STRING    file with bindown config. default is the first one of bindown.yml,
-                             bindown.yaml, bindown.json, .bindown.yml, .bindown.yaml or
-                             .bindown.json ($BINDOWN_CONFIG_FILE)
-      --cache=STRING         directory downloads will be cached ($BINDOWN_CACHE)
-      --trust-cache          trust the cache contents and do not recheck existing downloads and
-                             extracts in the cache ($BINDOWN_TRUST_CACHE)
-  -q, --quiet                suppress output to stdout
+  -h, --help                       Show context-sensitive help.
+      --json                       treat config file as json instead of yaml
+      --configfile=STRING          file with bindown config. default is the first one of
+                                   bindown.yml, bindown.yaml, bindown.json, .bindown.yml,
+                                   .bindown.yaml or .bindown.json ($BINDOWN_CONFIG_FILE)
+      --cache=STRING               directory downloads will be cached ($BINDOWN_CACHE)
+      --trust-cache=TRUST-CACHE    trust the cache contents and do not recheck existing downloads
+                                   and extracts in the cache ($BINDOWN_TRUST_CACHE)
+  -q, --quiet                      suppress output to stdout
 
 Commands:
   download                       download a dependency but don't extract or install it
