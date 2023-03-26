@@ -10,7 +10,7 @@ bins += bin/bootstrapped/bindown
 
 bin/go: bin/bootstrapped/bindown bindown.yml
 	$(MAKE) bin/bootstrapped/bindown
-	bin/bootstrapped/bindown install $(notdir $@) >/dev/null
+	bin/bootstrapped/bindown install -q $(notdir $@)
 bins += bin/go
 
 bin/bindown: gobuildcache bin/go
@@ -18,27 +18,27 @@ bin/bindown: gobuildcache bin/go
 bins += bin/bindown
 
 bin/golangci-lint: bin/bindown
-	bin/bindown install $(notdir $@)
+	bin/bindown install -q  $(notdir $@)
 bins += bin/golangci-lint
 
 bin/goreleaser: bin/bindown
-	bin/bindown install $(notdir $@)
+	bin/bindown install -q  $(notdir $@)
 bins += bin/goreleaser
 
 bin/yq: bin/bindown
-	bin/bindown install $(notdir $@)
+	bin/bindown install -q  $(notdir $@)
 bins += bin/yq
 
 bin/mockgen: bin/bindown
-	bin/bindown install $(notdir $@)
+	bin/bindown install -q  $(notdir $@)
 bins += bin/mockgen
 
 bin/semver-next: bin/bindown
-	bin/bindown install $(notdir $@)
+	bin/bindown install -q  $(notdir $@)
 bins += bin/semver-next
 
 bin/gofumpt: bin/bindown
-	bin/bindown install $(notdir $@)
+	bin/bindown install -q  $(notdir $@)
 bins += bin/bindown
 
 HANDCRAFTED_REV := 082e94edadf89c33db0afb48889c8419a2cb46a9
