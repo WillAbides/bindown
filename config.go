@@ -20,6 +20,7 @@ import (
 // Config is our main config
 type Config struct {
 	Cache           string                 `json:"cache,omitempty" yaml:"cache,omitempty"`
+	TrustCache      bool                   `json:"trust_cache,omitempty" yaml:"trust_cache,omitempty"`
 	InstallDir      string                 `json:"install_dir,omitempty" yaml:"install_dir,omitempty"`
 	Systems         []SystemInfo           `json:"systems,omitempty" yaml:"systems,omitempty"`
 	Dependencies    map[string]*Dependency `json:"dependencies,omitempty" yaml:",omitempty"`

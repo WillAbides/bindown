@@ -9,7 +9,7 @@ $defs:
       template:
         description: >
           A template for this dependency. Any unset fields in this dependency will be set by values from the template.
-          Overrides in the dependency and its template are concatinated with the template's overrides coming first.
+          Overrides in the dependency and its template are concatenated with the template's overrides coming first.
           Vars and substitutions are both combined with the dependency's value taking precedence.
         type: string
       url:
@@ -106,6 +106,12 @@ properties:
       operating systems where the native delimiter isn't /.
     default: ./.bindown
     type: string
+  trust_cache:
+    description: >
+      If true, bindown will trust the contents of the cache and not recheck checksums or verify that the files in the
+      cache are the same as the files that were downloaded.
+    default: false
+    type: boolean
   install_directory:
     description: >
       The directory that bindown installs files to. This is relative to the directory where the configuration file

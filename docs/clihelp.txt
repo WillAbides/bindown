@@ -7,6 +7,8 @@ Flags:
                              bindown.yaml, bindown.json, .bindown.yml, .bindown.yaml or
                              .bindown.json ($BINDOWN_CONFIG_FILE)
       --cache=STRING         directory downloads will be cached ($BINDOWN_CACHE)
+      --trust-cache          trust the cache contents and do not recheck existing downloads and
+                             extracts in the cache ($BINDOWN_TRUST_CACHE)
   -q, --quiet                suppress output to stdout
 
 Commands:
