@@ -11,6 +11,8 @@ import (
 
 	"github.com/Masterminds/semver/v3"
 	"github.com/mholt/archiver/v3"
+	"golang.org/x/exp/maps"
+	"golang.org/x/exp/slices"
 )
 
 // DependencyOverride overrides a dependency's configuration
@@ -20,9 +22,8 @@ type DependencyOverride struct {
 }
 
 func (o *DependencyOverride) clone() *DependencyOverride {
-	dl := o.Dependency.clone()
 	return &DependencyOverride{
-		Dependency:      *dl,
+		Dependency:      *(o.Dependency.clone()),
 		OverrideMatcher: o.OverrideMatcher.clone(),
 	}
 }
@@ -68,12 +69,11 @@ func (o OverrideMatcher) matches(info SystemInfo, vars map[string]string) bool {
 }
 
 func (o OverrideMatcher) clone() OverrideMatcher {
-	m := make(OverrideMatcher, len(o))
-	for k, v := range o {
-		m[k] = make([]string, len(v))
-		copy(m[k], v)
+	clone := maps.Clone(o)
+	for i := range clone {
+		clone[i] = slices.Clone(clone[i])
 	}
-	return m
+	return clone
 }
 
 // Dependency is something to download, extract and install
@@ -91,31 +91,23 @@ type Dependency struct {
 }
 
 func cloneSubstitutions(subs map[string]map[string]string) map[string]map[string]string {
-	if subs == nil {
-		return nil
+	clone := maps.Clone(subs)
+	for k, v := range clone {
+		clone[k] = maps.Clone(v)
 	}
-	result := make(map[string]map[string]string, len(subs))
-	for k, v := range subs {
-		result[k] = copyStringMap(v)
-	}
-	return result
+	return clone
 }
 
 func varsWithSubstitutions(vars map[string]string, subs map[string]map[string]string) map[string]string {
 	if vars == nil || subs == nil {
 		return vars
 	}
-	vars = copyStringMap(vars)
+	vars = maps.Clone(vars)
 	for key, val := range vars {
-		varSubs := subs[key]
-		if varSubs == nil {
+		if subs[key] == nil || subs[key][val] == "" {
 			continue
 		}
-		sub, ok := varSubs[val]
-		if !ok {
-			continue
-		}
-		vars[key] = sub
+		vars[key] = subs[key][val]
 	}
 	return vars
 }
@@ -128,65 +120,34 @@ func (d *Dependency) url() (string, error) {
 }
 
 func (d *Dependency) clone() *Dependency {
-	dep := *d
-	if d.Vars != nil {
-		dep.Vars = copyStringMap(d.Vars)
+	dep := Dependency{
+		Vars:          maps.Clone(d.Vars),
+		URL:           clonePointer(d.URL),
+		ArchivePath:   clonePointer(d.ArchivePath),
+		Template:      clonePointer(d.Template),
+		BinName:       clonePointer(d.BinName),
+		Link:          clonePointer(d.Link),
+		Overrides:     slices.Clone(d.Overrides),
+		Substitutions: cloneSubstitutions(d.Substitutions),
 	}
-	if d.URL != nil {
-		val := *d.URL
-		d.URL = &val
+	//nolint:gocritic // rangeValCopy -- memory allocation is not a concern here
+	for i, override := range dep.Overrides {
+		dep.Overrides[i] = *override.clone()
 	}
-	if d.ArchivePath != nil {
-		val := *d.ArchivePath
-		d.ArchivePath = &val
-	}
-	if d.Template != nil {
-		val := *d.Template
-		d.Template = &val
-	}
-	if d.BinName != nil {
-		val := *d.BinName
-		d.BinName = &val
-	}
-	if d.Link != nil {
-		val := *d.Link
-		d.Link = &val
-	}
-	if d.Overrides != nil {
-		dep.Overrides = make([]DependencyOverride, len(d.Overrides))
-		for i := range d.Overrides {
-			dep.Overrides[i] = *d.Overrides[i].clone()
-		}
-	}
-	dep.Substitutions = cloneSubstitutions(d.Substitutions)
 	return &dep
 }
 
 // interpolateVars executes go templates in values
 func (d *Dependency) interpolateVars(system SystemInfo) error {
-	interpolate := func(tmpl string) (string, error) {
-		return executeTemplate(tmpl, system.OS, system.Arch, d.Vars)
-	}
-	if d.URL != nil {
-		val, err := interpolate(*d.URL)
+	for _, p := range []*string{d.URL, d.ArchivePath, d.BinName} {
+		if p == nil {
+			continue
+		}
+		var err error
+		*p, err = executeTemplate(*p, system.OS, system.Arch, d.Vars)
 		if err != nil {
 			return err
 		}
-		d.URL = &val
-	}
-	if d.ArchivePath != nil {
-		val, err := interpolate(*d.ArchivePath)
-		if err != nil {
-			return err
-		}
-		d.ArchivePath = &val
-	}
-	if d.BinName != nil {
-		val, err := interpolate(*d.BinName)
-		if err != nil {
-			return err
-		}
-		d.BinName = &val
 	}
 	return nil
 }
@@ -217,28 +178,15 @@ func (d *Dependency) applyTemplate(templates map[string]*Dependency, depth int) 
 	if newDL.Vars == nil && d.Vars != nil {
 		newDL.Vars = make(map[string]string, len(d.Vars))
 	}
-	for k, v := range d.Vars {
-		newDL.Vars[k] = v
-	}
-	if d.ArchivePath != nil {
-		newDL.ArchivePath = d.ArchivePath
-	}
-	if d.BinName != nil {
-		newDL.BinName = d.BinName
-	}
-	if d.URL != nil {
-		newDL.URL = d.URL
-	}
-	if d.Link != nil {
-		newDL.Link = d.Link
-	}
+	maps.Copy(newDL.Vars, d.Vars)
+	newDL.ArchivePath = overrideValue(newDL.ArchivePath, d.ArchivePath)
+	newDL.BinName = overrideValue(newDL.BinName, d.BinName)
+	newDL.URL = overrideValue(newDL.URL, d.URL)
+	newDL.Link = overrideValue(newDL.Link, d.Link)
 	if d.RequiredVars != nil {
 		newDL.RequiredVars = append(newDL.RequiredVars, d.RequiredVars...)
 	}
-	if len(d.Systems) > 0 {
-		newDL.Systems = make([]SystemInfo, len(d.Systems))
-		copy(newDL.Systems, d.Systems)
-	}
+	newDL.Systems = slices.Clone(d.Systems)
 	newDL.addOverrides(d.Overrides)
 	*d = *newDL
 	return nil
@@ -267,24 +215,11 @@ func (d *Dependency) applyOverrides(info SystemInfo, depth int) {
 		if depth <= maxOverrideDepth {
 			dependency.applyOverrides(info, depth+1)
 		}
-		if dependency.Link != nil {
-			d.Link = dependency.Link
-		}
-		if d.Vars == nil {
-			d.Vars = make(map[string]string, len(dependency.Vars))
-		}
-		for k, v := range dependency.Vars {
-			d.Vars[k] = v
-		}
-		if dependency.ArchivePath != nil {
-			d.ArchivePath = dependency.ArchivePath
-		}
-		if dependency.BinName != nil {
-			d.BinName = dependency.BinName
-		}
-		if dependency.URL != nil {
-			d.URL = dependency.URL
-		}
+		d.Link = overrideValue(d.Link, dependency.Link)
+		d.ArchivePath = overrideValue(d.ArchivePath, dependency.ArchivePath)
+		d.BinName = overrideValue(d.BinName, dependency.BinName)
+		d.URL = overrideValue(d.URL, dependency.URL)
+		maps.Copy(d.Vars, dependency.Vars)
 	}
 	d.Overrides = nil
 }
