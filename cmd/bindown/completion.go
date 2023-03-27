@@ -184,7 +184,7 @@ func systemCompleter(ctx context.Context) complete.PredictFunc {
 }
 
 var allSystemsCompleter = complete.PredictFunc(func(a complete.Args) []string {
-	return strings.Split(goDists, "\n")
+	return append([]string{"current"}, strings.Split(goDists, "\n")...)
 })
 
 // from `go tool dist list`

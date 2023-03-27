@@ -3,6 +3,7 @@ package bindown
 import (
 	"bytes"
 	"fmt"
+	"runtime"
 )
 
 // SystemInfo contains os and architecture for a target system
@@ -24,6 +25,11 @@ func (s *SystemInfo) String() string {
 
 // UnmarshalText implements encoding.TextUnmarshaler
 func (s *SystemInfo) UnmarshalText(text []byte) error {
+	if string(text) == "current" {
+		s.OS = runtime.GOOS
+		s.Arch = runtime.GOARCH
+		return nil
+	}
 	parts := bytes.Split(text, []byte{'/'})
 	if len(parts) != 2 {
 		return fmt.Errorf(`systemInfo must be in the form "os/architecture"`)
