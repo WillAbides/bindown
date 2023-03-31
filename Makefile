@@ -4,7 +4,7 @@ PATH := "${CURDIR}/bin:$(PATH)"
 
 .PHONY: gobuildcache
 
-bin/bootstrapped/bindown:
+bin/bootstrapped/bindown: script/bootstrap-bindown.sh
 	./script/bootstrap-bindown.sh -b bin/bootstrapped
 bins += bin/bootstrapped/bindown
 
