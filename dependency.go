@@ -129,6 +129,8 @@ func (d *Dependency) clone() *Dependency {
 		Link:          clonePointer(d.Link),
 		Overrides:     slices.Clone(d.Overrides),
 		Substitutions: cloneSubstitutions(d.Substitutions),
+		Systems:       slices.Clone(d.Systems),
+		RequiredVars:  slices.Clone(d.RequiredVars),
 	}
 	//nolint:gocritic // rangeValCopy -- memory allocation is not a concern here
 	for i, override := range dep.Overrides {
