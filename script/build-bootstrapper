@@ -31,5 +31,5 @@ EOT
 
 EOF
 
-cat bootstrapper/shlib.sh | grep -v "^##/" >> dist/bootstrap-bindown.sh
-cat bootstrapper/main.sh | grep -v "^##/" >> dist/bootstrap-bindown.sh
+grep -v "^##/" bootstrapper/shlib.sh >> dist/bootstrap-bindown.sh
+grep -v "^##/" bootstrapper/main.sh >> dist/bootstrap-bindown.sh
