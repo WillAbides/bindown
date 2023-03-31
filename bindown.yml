@@ -35,6 +35,10 @@ dependencies:
     template: origin#shellcheck
     vars:
       version: 0.9.0
+  shfmt:
+    template: origin#shfmt
+    vars:
+      version: 3.6.0
   yq:
     template: local-origin#yq
     vars:
@@ -297,6 +301,30 @@ templates:
     - darwin/arm64
     - linux/amd64
     - windows/amd64
+  origin#shfmt:
+    url: https://github.com/mvdan/sh/releases/download/v{{.version}}/shfmt_v{{.version}}_{{.os}}_{{.arch}}{{.suffix}}
+    archive_path: shfmt_v{{.version}}_{{.os}}_{{.arch}}{{.suffix}}
+    bin: shfmt
+    vars:
+      suffix: ""
+    required_vars:
+    - version
+    overrides:
+    - matcher:
+        os:
+        - windows
+      dependency:
+        vars:
+          suffix: .exe
+    systems:
+    - darwin/amd64
+    - darwin/arm64
+    - linux/386
+    - linux/amd64
+    - linux/arm
+    - linux/arm64
+    - windows/386
+    - windows/amd64
 template_sources:
   local-origin: ./bindown_templates.yml
   origin: https://raw.githubusercontent.com/WillAbides/bindown-templates/main/bindown.yml
@@ -330,3 +358,7 @@ url_checksums:
   https://github.com/mvdan/gofumpt/releases/download/v0.4.0/gofumpt_v0.4.0_darwin_arm64: 768263452749a3a3cabf412f29f8a14e8bbdc7f6c6471427e977eebc6592ddb8
   https://github.com/mvdan/gofumpt/releases/download/v0.4.0/gofumpt_v0.4.0_linux_amd64: d3ca535e6b0b230a9c4f05a3ec54e358336b5e7474d239c15514e63a0b2a8041
   https://github.com/mvdan/gofumpt/releases/download/v0.4.0/gofumpt_v0.4.0_windows_amd64.exe: 1f4c74ac30ef41ea9859c445c84baff7b283b3c16b467fef1d728a93d90d3e92
+  https://github.com/mvdan/sh/releases/download/v3.6.0/shfmt_v3.6.0_darwin_amd64: b8c9c025b498e2816b62f0b717f6032e9ab49e725a45b8205f52f66318f17185
+  https://github.com/mvdan/sh/releases/download/v3.6.0/shfmt_v3.6.0_darwin_arm64: 633f242246ee0a866c5f5df25cbf61b6af0d5e143555aca32950059cf13d91e0
+  https://github.com/mvdan/sh/releases/download/v3.6.0/shfmt_v3.6.0_linux_amd64: 5741a02a641de7e56b8da170e71a97e58050d66a3cf485fb268d6a5a8bb74afb
+  https://github.com/mvdan/sh/releases/download/v3.6.0/shfmt_v3.6.0_windows_amd64.exe: 18122d910ba434be366588f37c302c309cde4ca5403f93285254a3cf96839d01
