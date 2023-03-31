@@ -6,5 +6,4 @@ CDPATH="" cd -- "$(dirname -- "$(dirname -- "$0")")"
 
 make -s bin/bindown
 
-# shellcheck disable=SC2068
-bin/bindown $@
+bin/bindown "$@"

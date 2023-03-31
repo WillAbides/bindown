@@ -41,6 +41,14 @@ bin/gofumpt: bin/bindown
 	bin/bindown install -q  $(notdir $@)
 bins += bin/bindown
 
+bin/shellcheck: bin/bindown
+	bin/bindown install -q  $(notdir $@)
+bins += bin/shellcheck
+
+bin/shfmt: bin/bindown
+	bin/bindown install -q  $(notdir $@)
+bins += bin/shfmt
+
 HANDCRAFTED_REV := 082e94edadf89c33db0afb48889c8419a2cb46a9
 bin/handcrafted: Makefile
 	GOBIN=${CURDIR}/bin \
