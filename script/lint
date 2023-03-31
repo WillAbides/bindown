@@ -9,7 +9,5 @@ CDPATH="" cd -- "$(dirname -- "$(dirname -- "$0")")"
 make -s bin/golangci-lint bin/shellcheck
 
 bin/golangci-lint run
-(
-  GLOBIGNORE="*bootstrap-bindown.sh";
-  bin/shellcheck script/*
-)
+# Don't check bootstrap-bindown.sh because it's dynamically generated
+find script -type f -not -name 'bootstrap-bindown.sh' -print0 | xargs -0 bin/shellcheck
