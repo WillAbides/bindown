@@ -10,6 +10,6 @@ make -s bin/golangci-lint bin/shellcheck
 
 bin/golangci-lint run
 (
-  GLOBIGNORE="script/bootstrap-bindown.sh";
+  GLOBIGNORE="*bootstrap-bindown.sh";
   bin/shellcheck script/*
 )
