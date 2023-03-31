@@ -6,6 +6,7 @@ CDPATH="" cd -- "$(dirname -- "$(dirname -- "$0")")"
 
 . script/goenv
 
-make -s bin/golangci-lint
+make -s bin/golangci-lint bin/shellcheck
 
 bin/golangci-lint run
+bin/shellcheck script/*

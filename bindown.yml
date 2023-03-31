@@ -31,6 +31,10 @@ dependencies:
     template: local-origin#semver-next
     vars:
       version: 0.11.3
+  shellcheck:
+    template: origin#shellcheck
+    vars:
+      version: 0.9.0
   yq:
     template: local-origin#yq
     vars:
@@ -264,9 +268,38 @@ templates:
     - openbsd/amd64
     - windows/386
     - windows/amd64
+  origin#shellcheck:
+    url: https://github.com/koalaman/shellcheck/releases/download/v{{.version}}/shellcheck-v{{.version}}.{{.os}}.{{.arch}}.tar.xz
+    archive_path: shellcheck-v{{.version}}/shellcheck
+    bin: shellcheck
+    required_vars:
+    - version
+    overrides:
+    - matcher:
+        os:
+        - windows
+      dependency:
+        url: https://github.com/koalaman/shellcheck/releases/download/v{{.version}}/shellcheck-v{{.version}}.zip
+        archive_path: shellcheck.exe
+    - matcher:
+        arch:
+        - arm64
+        os:
+        - darwin
+      dependency:
+        vars:
+          arch: amd64
+    substitutions:
+      arch:
+        amd64: x86_64
+    systems:
+    - darwin/amd64
+    - darwin/arm64
+    - linux/amd64
+    - windows/amd64
 template_sources:
   local-origin: ./bindown_templates.yml
-  origin: https://raw.githubusercontent.com/WillAbides/bindown/main/bindown_templates.yml
+  origin: https://raw.githubusercontent.com/WillAbides/bindown-templates/main/bindown.yml
 url_checksums:
   https://dl.google.com/go/go1.20.2.darwin-amd64.tar.gz: c93b8ced9517d07e1cd4c362c6e2d5242cb139e29b417a328fbf19aded08764c
   https://dl.google.com/go/go1.20.2.darwin-arm64.tar.gz: 7343c87f19e79c0063532e82e1c4d6f42175a32d99f7a4d15e658e88bf97f885
@@ -287,6 +320,9 @@ url_checksums:
   https://github.com/goreleaser/goreleaser/releases/download/v1.16.1/goreleaser_Darwin_x86_64.tar.gz: e709a44d112ceab37e017f3be6d436cfaaab0dbcf841381544c681408127761b
   https://github.com/goreleaser/goreleaser/releases/download/v1.16.1/goreleaser_Linux_x86_64.tar.gz: fa370201538b2a93d960ca620cb3e26e25adba5abd115bb91f3517086f2324b7
   https://github.com/goreleaser/goreleaser/releases/download/v1.16.1/goreleaser_Windows_x86_64.zip: 1b5c2a3d3a507e909c6fdf8d2061590a0933d695cce9ba37467f7a3b283a83f4
+  https://github.com/koalaman/shellcheck/releases/download/v0.9.0/shellcheck-v0.9.0.darwin.x86_64.tar.xz: 7d3730694707605d6e60cec4efcb79a0632d61babc035aa16cda1b897536acf5
+  https://github.com/koalaman/shellcheck/releases/download/v0.9.0/shellcheck-v0.9.0.linux.x86_64.tar.xz: 700324c6dd0ebea0117591c6cc9d7350d9c7c5c287acbad7630fa17b1d4d9e2f
+  https://github.com/koalaman/shellcheck/releases/download/v0.9.0/shellcheck-v0.9.0.zip: ae58191b1ea4ffd9e5b15da9134146e636440302ce3e2f46863e8d71c8be1bbb
   https://github.com/mikefarah/yq/releases/download/3.2.1/yq_darwin_amd64: 116f74a384d0b4fa31a58dd01cfcdeffa6fcd21c066de223cbb0ebc042a8bc28
   https://github.com/mikefarah/yq/releases/download/3.2.1/yq_linux_amd64: 11a830ffb72aad0eaa7640ef69637068f36469be4f68a93da822fbe454e998f8
   https://github.com/mikefarah/yq/releases/download/3.2.1/yq_windows_amd64.exe: 9b3466ff4e37c8a93d7530e3dc7a047314d0897dbfbffb50b82235695e231fff
