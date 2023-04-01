@@ -1,0 +1,12 @@
+#!/bin/sh
+
+set -e
+
+TAG="{{ .tag }}"
+
+CHECKSUMS="
+{{ .checksums }}
+"
+
+{{ .shlib }}
+{{ .main }}

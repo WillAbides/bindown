@@ -17,6 +17,10 @@ bin/bindown: gobuildcache bin/go
 	$(GOBUILD) -o $@ ./cmd/bindown
 bins += bin/bindown
 
+bin/build-bootstrapper: gobuildcache bin/go
+	$(GOBUILD) -o $@ ./internal/build-bootstrapper
+bins += bin/build-bootstrapper
+
 bin/golangci-lint: bin/bindown
 	bin/bindown install -q  $(notdir $@)
 bins += bin/golangci-lint
@@ -48,6 +52,14 @@ bins += bin/shellcheck
 bin/shfmt: bin/bindown
 	bin/bindown install -q  $(notdir $@)
 bins += bin/shfmt
+
+bin/gh: bin/bindown
+	bin/bindown install -q  $(notdir $@)
+bins += bin/gh
+
+bin/jq: bin/bindown
+	bin/bindown install -q  $(notdir $@)
+bins += bin/jq
 
 HANDCRAFTED_REV := 082e94edadf89c33db0afb48889c8419a2cb46a9
 bin/handcrafted: Makefile

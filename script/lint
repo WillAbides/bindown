@@ -11,4 +11,4 @@ make -s bin/golangci-lint bin/shellcheck
 bin/golangci-lint run
 # Don't check bootstrap-bindown.sh because it's dynamically generated
 find script -type f -not -name 'bootstrap-bindown.sh' -print0 | xargs -0 bin/shellcheck
-bin/shellcheck -s sh bootstrapper/*.sh
+bin/shellcheck -s sh internal/build-bootstrapper/assets/*.sh

@@ -1,7 +1,29 @@
-##/ this is the part of bootstrap-bindown.sh that comes from https://github.com/client9/shlib
-##/ used in script/build-bootstrapper
+#!/bin/sh
 
-cat /dev/null <<EOF
+set -e
+
+TAG="v3.15.5"
+
+CHECKSUMS="
+00e936e28e816ac4f05e3f9e47aad3771df3a847fcbea3f3bbe33159508b478d  bindown_3.15.5_darwin_arm64
+07568b436622d3a28cbd4e9a81c6b619e4e3d9533e8f65184f0e9cf3f82df620  bindown_3.15.5_linux_arm64.tar.gz
+0c06832f8a795e99dfebe550482cf790c9a7cca304635a8393dfba0eb7c1c872  bindown_3.15.5_windows_arm64.tar.gz
+1727fb1a696e46432ac6110f73524e5ae87d0a136e2c649049e3886db9260331  bindown_3.15.5_windows_amd64.exe
+25a9b2bf3e7ae99935cd7d93034a5166192120d9e8a572f4b38a124baa62e274  bindown_3.15.5_windows_arm64.exe
+43c099b123585df691a0018ebd63def5c2876f64fe6fe2e736792e359ac489b9  bindown_3.15.5_linux_amd64
+59266496ab2410582726d11bb8204cc11ba69e0333d9d6b016f912d19ab30885  bindown_3.15.5_darwin_amd64
+6334cf81db488a4ac217c1799d165a6a96dd74a76cc08e080487fbb32d15fdf6  bindown_3.15.5_linux_amd64.tar.gz
+72cdb65fb8361c0bc9cb85fd7768e75cb831f3527365ae348e62bba9ca44d6c6  bindown_3.15.5_linux_arm64
+87d9f9b81010e83ca16115634503071673f3d898e073326524e795e50b37e690  bindown_3.15.5_windows_386.exe
+90a6d0fb9fd59004aa80dc0738773b59e4d4c3ed7428996695583c1eee5cc18b  bindown_3.15.5_windows_386.tar.gz
+b1099c0f3558ccc70a06d5c33b2172b3cc911a13b58388e7d6573c7ca01471be  bindown_3.15.5_windows_amd64.tar.gz
+c4a5f4f80c5729bf56b9448798ae3aebb61104bf7bb46f6b04adaf0c650cd4e2  bindown_3.15.5_darwin_amd64.tar.gz
+cdb3c98fa5bee90e6c5c3e3e8f2214513f1a7bad1ade2663180ac1cce3ef0701  bindown_3.15.5_darwin_arm64.tar.gz
+d3b824e6b1bab234ac76a00e5d073fca647e917efd05df3fe620e9771a74d037  bindown_3.15.5_linux_386.tar.gz
+e2a62bfb094bd973d9e215f520effbab236ef7acdc9b5d592be688f624a30454  bindown_3.15.5_linux_386
+"
+
+cat /dev/null << EOF
 ------------------------------------------------------------------------
 https://github.com/client9/shlib - portable posix shell functions
 Public domain - http://unlicense.org
@@ -10,7 +32,7 @@ but credit (and pull requests) appreciated.
 ------------------------------------------------------------------------
 EOF
 is_command() {
-  command -v "$1" >/dev/null
+  command -v "$1" > /dev/null
 }
 echoerr() {
   echo "$@" 1>&2
@@ -178,7 +200,7 @@ hash_sha256() {
     hash=$(sha256sum "$TARGET") || return 1
     echo "$hash" | cut -d ' ' -f 1
   elif is_command shasum; then
-    hash=$(shasum -a 256 "$TARGET" 2>/dev/null) || return 1
+    hash=$(shasum -a 256 "$TARGET" 2> /dev/null) || return 1
     echo "$hash" | cut -d ' ' -f 1
   elif is_command openssl; then
     hash=$(openssl -dst openssl dgst -sha256 "$TARGET") || return 1
@@ -196,7 +218,7 @@ hash_sha256_verify() {
     return 1
   fi
   BASENAME=${TARGET##*/}
-  want=$(grep "${BASENAME}" "${checksums}" 2>/dev/null | tr '\t' ' ' | cut -d ' ' -f 1)
+  want=$(grep "${BASENAME}" "${checksums}" 2> /dev/null | tr '\t' ' ' | cut -d ' ' -f 1)
   if [ -z "$want" ]; then
     log_err "hash_sha256_verify unable to find checksum for '${TARGET}' in '${checksums}'"
     return 1
@@ -207,8 +229,73 @@ hash_sha256_verify() {
     return 1
   fi
 }
-cat /dev/null <<EOF
+cat /dev/null << EOF
 ------------------------------------------------------------------------
 End of functions from https://github.com/client9/shlib
 ------------------------------------------------------------------------
 EOF
+
+FORMAT=tar.gz
+GITHUB_DOWNLOAD=https://github.com/WillAbides/bindown/releases/download
+
+usage() {
+  this=$1
+  cat << EOT
+Usage: $this [-b bindir] [-d]
+
+Usage: $this [-b] bindir [-d]
+  -b sets bindir or installation directory, Defaults to ./bin
+  -d turns on debug logging
+
+EOT
+  exit 2
+}
+
+parse_args() {
+  #BINDIR is ./bin unless set be ENV
+  # over-ridden by flag below
+
+  BINDIR=${BINDIR:-./bin}
+  while getopts "b:dh?x" arg; do
+    case "$arg" in
+      b) BINDIR="$OPTARG" ;;
+      d) log_set_priority 10 ;;
+      h | \?) usage "$0" ;;
+      x) set -x ;;
+    esac
+  done
+  shift $((OPTIND - 1))
+}
+
+execute() {
+  tmpdir=$(mktemp -d)
+  echo "$CHECKSUMS" > "${tmpdir}/checksums.txt"
+  log_debug "downloading files into ${tmpdir}"
+  http_download "${tmpdir}/${TARBALL}" "${TARBALL_URL}"
+  hash_sha256_verify "${tmpdir}/${TARBALL}" "${tmpdir}/checksums.txt"
+  srcdir="${tmpdir}"
+  (cd "${tmpdir}" && untar "${TARBALL}")
+  test ! -d "${BINDIR}" && install -d "${BINDIR}"
+  binexe="bindown"
+  if [ "$OS" = "windows" ]; then
+    binexe="${binexe}.exe"
+  fi
+  install "${srcdir}/${binexe}" "${BINDIR}/"
+  log_info "installed ${BINDIR}/${binexe}"
+  rm -rf "${tmpdir}"
+}
+
+OS=$(uname_os)
+ARCH=$(uname_arch)
+
+uname_os_check "$OS"
+uname_arch_check "$ARCH"
+
+parse_args "$@"
+
+VERSION=${TAG#v}
+NAME=bindown_${VERSION}_${OS}_${ARCH}
+TARBALL=${NAME}.${FORMAT}
+TARBALL_URL=${GITHUB_DOWNLOAD}/${TAG}/${TARBALL}
+
+execute

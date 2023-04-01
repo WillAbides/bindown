@@ -2,11 +2,18 @@
 
 set -e
 
-CDPATH="" cd -- "$(dirname -- "$(dirname -- "$0")")"
+SCRIPT_DIR="$(CDPATH="" cd -- "$(dirname -- "$0")" && pwd)"
+
+CDPATH="" cd -- "$SCRIPT_DIR/.."
+
+[ -n "$GITHUB_TOKEN" ] || {
+  echo GITHUB_TOKEN must be set
+  exit 1
+}
 
 . script/goenv
 
-make -s bin/goreleaser bin/semver-next
+make -s bin/goreleaser bin/semver-next bin/jq bin/build-bootstrapper bin/gh
 
 GITHUB_SHA="${GITHUB_SHA:-"$(git rev-parse HEAD)"}"
 GITHUB_REPOSITORY="${GITHUB_REPOSITORY:-"WillAbides/bindown"}"
@@ -16,5 +23,8 @@ bin/semver-next "$GITHUB_REPOSITORY" -r "$GITHUB_SHA" --create-tag --require-lab
 git fetch --tags
 
 bin/goreleaser release
-script/build-bootstrapper
-script/upload-release-bootstrap
+TAG="$(bin/jq -r '.tag' dist/metadata.json)"
+mkdir -p dist
+bin/build-bootstrapper -tag "$TAG" > bootstrap-bindown.sh
+chmod +x dist/bootstrap-bindown.sh
+bin/gh release upload "$TAG" bootstrap-bindown.sh
