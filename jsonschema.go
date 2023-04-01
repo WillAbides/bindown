@@ -8,8 +8,8 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/ghodss/yaml"
 	"github.com/qri-io/jsonschema"
+	"gopkg.in/yaml.v3"
 )
 
 //go:embed bindown.schema.json
@@ -17,7 +17,7 @@ var jsonSchemaText string
 
 // validateConfig checks whether cfg meets the json schema.
 func validateConfig(ctx context.Context, cfg []byte) error {
-	cfgJSON, err := yaml.YAMLToJSON(cfg)
+	cfgJSON, err := yaml2json(cfg)
 	if err != nil {
 		return fmt.Errorf("config is not valid yaml (or json)")
 	}
@@ -41,4 +41,13 @@ func validateConfig(ctx context.Context, cfg []byte) error {
 		msgs[i] = validationErr.Error()
 	}
 	return fmt.Errorf("invalid config:\n%s", strings.Join(msgs, "\n"))
+}
+
+func yaml2json(y []byte) ([]byte, error) {
+	var data any
+	err := yaml.Unmarshal(y, &data)
+	if err != nil {
+		return nil, err
+	}
+	return json.Marshal(data)
 }
