@@ -24,6 +24,5 @@ git fetch --tags
 
 bin/goreleaser release
 TAG="$(bin/jq -r '.tag' dist/metadata.json)"
-mkdir -p dist
 bin/build-bootstrapper -tag "$TAG" > bootstrap-bindown.sh
 bin/gh release upload "$TAG" bootstrap-bindown.sh
