@@ -8,12 +8,12 @@ import (
 	"path/filepath"
 	"sort"
 
-	"gopkg.in/yaml.v3"
+	"gopkg.in/yaml.v2"
 )
 
 // ConfigFile is a file containing config
 type ConfigFile struct {
-	Filename string
+	Filename string `json:"-"`
 	Config
 }
 
