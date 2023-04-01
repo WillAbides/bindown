@@ -13,6 +13,7 @@ require (
 	github.com/stretchr/testify v1.7.0
 	github.com/willabides/kongplete v0.3.0
 	golang.org/x/exp v0.0.0-20230321023759-10a507213a29
+	gopkg.in/yaml.v2 v2.2.2
 	gopkg.in/yaml.v3 v3.0.1
 )
 
