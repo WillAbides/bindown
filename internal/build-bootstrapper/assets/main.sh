@@ -1,6 +1,3 @@
-##/ this is the static part of bootstrap-bindown.sh
-##/ used in script/build-bootstrapper
-
 FORMAT=tar.gz
 GITHUB_DOWNLOAD=https://github.com/WillAbides/bindown/releases/download
 
