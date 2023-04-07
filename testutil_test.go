@@ -26,3 +26,10 @@ func serveFile(t *testing.T, file, path, query string) *httptest.Server {
 	t.Cleanup(ts.Close)
 	return ts
 }
+
+func newSystemInfo(os, arch string) SystemInfo {
+	return SystemInfo{
+		OS:   os,
+		Arch: arch,
+	}
+}

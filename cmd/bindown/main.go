@@ -1,14 +1,16 @@
 package main
 
 import (
+	"context"
 	"os"
 )
 
 var version string
 
 func main() {
+	ctx := context.Background()
 	if version != "" {
 		Version = version
 	}
-	Run(os.Args[1:])
+	Run(ctx, os.Args[1:], nil)
 }

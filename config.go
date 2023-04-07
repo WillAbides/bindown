@@ -63,7 +63,7 @@ func (c *Config) SetDependencyVars(depName string, vars map[string]string) error
 func (c *Config) UnsetTemplateVars(tmplName string, vars []string) error {
 	tmpl := c.Templates[tmplName]
 	if tmpl == nil {
-		return fmt.Errorf("dependency %q does not exist", tmplName)
+		return fmt.Errorf("template %q does not exist", tmplName)
 	}
 	if tmpl.Vars == nil {
 		return nil
@@ -607,6 +607,9 @@ func (c *Config) addOrGetTemplate(ctx context.Context, name, src string) (string
 	if _, ok := c.Templates[destName]; ok {
 		return destName, nil
 	}
+	if src == "" {
+		return "", fmt.Errorf("no template named %q", name)
+	}
 	tmplSrc := src
 	tmplSrcs := c.TemplateSources
 	if tmplSrcs == nil {
@@ -642,7 +645,7 @@ func (c *Config) addTemplateFromSource(ctx context.Context, src, srcTemplate, de
 	}
 	tmpl := srcCfg.Templates[srcTemplate]
 	if tmpl == nil {
-		return fmt.Errorf("src has no template named %q", srcTemplate)
+		return fmt.Errorf("source has no template named %q", srcTemplate)
 	}
 	if c.Templates == nil {
 		c.Templates = map[string]*Dependency{}

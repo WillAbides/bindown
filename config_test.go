@@ -174,7 +174,7 @@ func TestConfig_addTemplateFromSource(t *testing.T) {
 			cfg := new(Config)
 			src := filepath.Join("testdata", "configs", "ex1.yaml")
 			err := cfg.addTemplateFromSource(ctx, src, "fake", "myfake")
-			require.EqualError(t, err, `src has no template named "fake"`)
+			require.EqualError(t, err, `source has no template named "fake"`)
 		})
 
 		t.Run("missing file", func(t *testing.T) {

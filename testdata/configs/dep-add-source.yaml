@@ -1,0 +1,18 @@
+templates:
+  tmpl1:
+    url: "{{ .addr }}/foo/v{{ .version }}/foo-{{ .os }}-{{ .arch }}{{ .urlsuffix }}"
+    archive_path: bin/runnable{{ .archivepathsuffix }}
+    vars:
+      archivepathsuffix: .sh
+      urlsuffix: .tar.gz
+    required_vars:
+      - version
+      - addr
+    overrides:
+      - matcher:
+          os:
+            - windows
+        dependency:
+          vars:
+            archivepathsuffix: .bat
+            urlsuffix: .zip

@@ -1,15 +1,15 @@
 package main
 
 import (
-	"github.com/alecthomas/kong"
+	"fmt"
 )
 
-// Version version to display for `bindown version`
+// Version the version to display for `bindown version`
 var Version = "unknown"
 
 type versionCmd struct{}
 
-func (*versionCmd) Run(k *kong.Context) error {
-	k.Printf("version %s", Version)
+func (*versionCmd) Run(ctx *runContext) error {
+	fmt.Fprintf(ctx.stdout, "bindown: version %s\n", Version)
 	return nil
 }

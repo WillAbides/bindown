@@ -1,8 +1,6 @@
 package main
 
 import (
-	"context"
-
 	"github.com/willabides/bindown/v3"
 )
 
@@ -16,8 +14,8 @@ type addChecksumsCmd struct {
 	Systems    []bindown.SystemInfo `kong:"name=system,help=${systems_help},predictor=allSystems"`
 }
 
-func (d *addChecksumsCmd) Run(ctx context.Context) error {
-	config, err := configLoader.Load(ctx, cli.Configfile, true)
+func (d *addChecksumsCmd) Run(ctx *runContext) error {
+	config, err := loadConfigFile(ctx, true)
 	if err != nil {
 		return err
 	}
@@ -25,13 +23,13 @@ func (d *addChecksumsCmd) Run(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	return config.Write(cli.JSONConfig)
+	return config.Write(ctx.rootCmd.JSONConfig)
 }
 
 type pruneChecksumsCmd struct{}
 
-func (d *pruneChecksumsCmd) Run(ctx context.Context) error {
-	config, err := configLoader.Load(ctx, cli.Configfile, true)
+func (d *pruneChecksumsCmd) Run(ctx *runContext) error {
+	config, err := loadConfigFile(ctx, true)
 	if err != nil {
 		return err
 	}
@@ -39,5 +37,5 @@ func (d *pruneChecksumsCmd) Run(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	return config.Write(cli.JSONConfig)
+	return config.Write(ctx.rootCmd.JSONConfig)
 }

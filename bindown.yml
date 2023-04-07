@@ -31,10 +31,6 @@ dependencies:
     template: origin#jq
     vars:
       version: "1.6"
-  mockgen:
-    template: local-origin#mockgen
-    vars:
-      version: 1.6.0
   semver-next:
     template: local-origin#semver-next
     vars:
@@ -178,28 +174,6 @@ templates:
         darwin: Darwin
         linux: Linux
         windows: Windows
-    systems:
-    - darwin/amd64
-    - darwin/arm64
-    - linux/386
-    - linux/amd64
-    - windows/386
-    - windows/amd64
-  local-origin#mockgen:
-    url: https://github.com/golang/mock/releases/download/v{{.version}}/mock_{{.version}}_{{.os}}_{{.arch}}.tar.gz
-    archive_path: mock_{{.version}}_{{.os}}_{{.arch}}/mockgen{{.archivepathsuffix}}
-    bin: mockgen
-    vars:
-      archivepathsuffix: ""
-    required_vars:
-    - version
-    overrides:
-    - matcher:
-        os:
-        - windows
-      dependency:
-        vars:
-          archivepathsuffix: .exe
     systems:
     - darwin/amd64
     - darwin/arm64
@@ -416,10 +390,6 @@ url_checksums:
   https://github.com/cli/cli/releases/download/v2.25.1/gh_2.25.1_macOS_amd64.tar.gz: 414f5766a50b95ec73fcff17af6dc5c354b44d7f041370fea9de8f91990cc419
   https://github.com/cli/cli/releases/download/v2.25.1/gh_2.25.1_macOS_arm64.tar.gz: e18f423f9983f84f011bebf9dea3b3bcd67cc79ef419040316cba35595bdb4b4
   https://github.com/cli/cli/releases/download/v2.25.1/gh_2.25.1_windows_amd64.zip: 33be468155dabc1990e984eb9cb9e134c50cfe1c0bbeab92643355a8ea04e162
-  https://github.com/golang/mock/releases/download/v1.6.0/mock_1.6.0_darwin_amd64.tar.gz: 938649db27055ec85bede32ccb95ff82f82af3c90a084ee52687a92066bcca92
-  https://github.com/golang/mock/releases/download/v1.6.0/mock_1.6.0_darwin_arm64.tar.gz: 67a4a597dd759e186e17400cbc273be99c8cffc590335381134b3e933b409c83
-  https://github.com/golang/mock/releases/download/v1.6.0/mock_1.6.0_linux_amd64.tar.gz: c73e117943739df5dd89d63fed6e80cb783852a0cc42abc3359d708c2e125b78
-  https://github.com/golang/mock/releases/download/v1.6.0/mock_1.6.0_windows_amd64.tar.gz: 12f760cc521b45d0726de11512ed04aea2424d067312f39c926f96b085002590
   https://github.com/golangci/golangci-lint/releases/download/v1.51.2/golangci-lint-1.51.2-darwin-amd64.tar.gz: 0549cbaa2df451cf3a2011a9d73a9cb127784d26749d9cd14c9f4818af104d44
   https://github.com/golangci/golangci-lint/releases/download/v1.51.2/golangci-lint-1.51.2-darwin-arm64.tar.gz: 36e69882205a0e42a63ad57ec3015639c11051e03f0beb9cf7949c6451408960
   https://github.com/golangci/golangci-lint/releases/download/v1.51.2/golangci-lint-1.51.2-linux-amd64.tar.gz: 4de479eb9d9bc29da51aec1834e7c255b333723d38dbd56781c68e5dddc6a90b

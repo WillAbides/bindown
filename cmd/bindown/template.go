@@ -1,11 +1,9 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"strings"
 
-	"github.com/alecthomas/kong"
 	"github.com/willabides/bindown/v3"
 )
 
@@ -22,8 +20,8 @@ type templateUpdateVarCmd struct {
 	Unset    []string          `kong:"help='remove a var'"`
 }
 
-func (c *templateUpdateVarCmd) Run(ctx context.Context) error {
-	config, err := configLoader.Load(ctx, cli.Configfile, true)
+func (c *templateUpdateVarCmd) Run(ctx *runContext) error {
+	config, err := loadConfigFile(ctx, true)
 	if err != nil {
 		return err
 	}
@@ -39,31 +37,31 @@ func (c *templateUpdateVarCmd) Run(ctx context.Context) error {
 			return err
 		}
 	}
-	return config.Write(cli.JSONConfig)
+	return config.Write(ctx.rootCmd.JSONConfig)
 }
 
 type templateUpdateFromSourceCmd struct {
-	Source   string `kong:"help='source of the update',predictor=templateSource"`
+	Source   string `kong:"help='source of the update in the form of source_name#template_name',predictor=templateSource"`
 	Template string `kong:"arg,help='template to update',predictor=localTemplateFromSource"`
 }
 
-func (c *templateUpdateFromSourceCmd) Run(ctx context.Context) error {
+func (c *templateUpdateFromSourceCmd) Run(ctx *runContext) error {
 	if c.Source == "" {
 		c.Source = c.Template
 	}
 
 	srcParts := strings.SplitN(c.Source, "#", 2)
 	if len(srcParts) != 2 {
-		return fmt.Errorf("source must be formated as name#source (with the #)")
+		return fmt.Errorf("source must be formatted as source#name (with the #)")
 	}
 	src := srcParts[0]
 	srcTmpl := srcParts[1]
 
-	cfgIface, err := configLoader.Load(ctx, cli.Configfile, true)
+	cfg, err := loadConfigFile(ctx, true)
 	if err != nil {
 		return err
 	}
-	cfg := cfgIface.(*bindown.ConfigFile)
+
 	if cfg.Templates == nil {
 		cfg.Templates = map[string]*bindown.Dependency{}
 	}
@@ -71,24 +69,24 @@ func (c *templateUpdateFromSourceCmd) Run(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	return cfg.Write(cli.JSONConfig)
+	return cfg.Write(ctx.rootCmd.JSONConfig)
 }
 
 type templateListCmd struct {
 	Source string `kong:"help='source of templates to list',predictor=templateSource"`
 }
 
-func (c *templateListCmd) Run(ctx context.Context, kctx *kong.Context) error {
-	cfgIface, err := configLoader.Load(ctx, cli.Configfile, true)
+func (c *templateListCmd) Run(ctx *runContext) error {
+	cfg, err := loadConfigFile(ctx, true)
 	if err != nil {
 		return err
 	}
-	cfg := cfgIface.(*bindown.ConfigFile)
+
 	templates, err := cfg.ListTemplates(ctx, c.Source)
 	if err != nil {
 		return err
 	}
-	fmt.Fprintln(kctx.Stdout, strings.Join(templates, "\n"))
+	fmt.Fprintln(ctx.stdout, strings.Join(templates, "\n"))
 	return nil
 }
 
@@ -96,12 +94,12 @@ type templateRemoveCmd struct {
 	Template string `kong:"arg,predictor=localTemplate"`
 }
 
-func (c *templateRemoveCmd) Run(ctx context.Context) error {
-	cfgIface, err := configLoader.Load(ctx, cli.Configfile, true)
+func (c *templateRemoveCmd) Run(ctx *runContext) error {
+	cfg, err := loadConfigFile(ctx, true)
 	if err != nil {
 		return err
 	}
-	cfg := cfgIface.(*bindown.ConfigFile)
+
 	if cfg.Templates == nil {
 		return fmt.Errorf("no template named %q", c.Template)
 	}
@@ -109,5 +107,5 @@ func (c *templateRemoveCmd) Run(ctx context.Context) error {
 		return fmt.Errorf("no template named %q", c.Template)
 	}
 	delete(cfg.Templates, c.Template)
-	return cfg.Write(cli.JSONConfig)
+	return cfg.Write(ctx.rootCmd.JSONConfig)
 }
