@@ -7,7 +7,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/mholt/archiver/v3"
 	"github.com/stretchr/testify/require"
 	"github.com/willabides/bindown/v3"
 )
@@ -591,26 +590,18 @@ url_checksums:
 	})
 
 	t.Run("with http server", func(t *testing.T) {
-		serverTmp := t.TempDir()
-		testdataDir, err := filepath.Abs(filepath.FromSlash("../../testdata"))
-		require.NoError(t, err)
-		err = archiver.Archive([]string{
-			filepath.Join(testdataDir, "downloadables", "runnable_windows", "bin"),
-		}, filepath.Join(serverTmp, "foo.zip"))
-		require.NoError(t, err)
-		err = archiver.Archive([]string{
-			filepath.Join(testdataDir, "downloadables", "runnable", "bin"),
-		}, filepath.Join(serverTmp, "foo.tar.gz"))
-		require.NoError(t, err)
+		downloadablesDir := filepath.FromSlash("../../testdata/downloadables")
+		tar := filepath.Join(downloadablesDir, "runnable.tar.gz")
+		zip := filepath.Join(downloadablesDir, "runnable_windows.zip")
 
 		server := serveFiles(t, map[string]string{
-			"/foo/v1.2.3/foo-darwin-amd64.tar.gz": filepath.Join(serverTmp, "foo.tar.gz"),
-			"/foo/v1.2.3/foo-darwin-arm64.tar.gz": filepath.Join(serverTmp, "foo.tar.gz"),
-			"/foo/v1.2.3/foo-linux-amd64.tar.gz":  filepath.Join(serverTmp, "foo.tar.gz"),
-			"/foo/v1.2.3/foo-windows-amd64.zip":   filepath.Join(serverTmp, "foo.zip"),
+			"/foo/v1.2.3/foo-darwin-amd64.tar.gz": tar,
+			"/foo/v1.2.3/foo-darwin-arm64.tar.gz": tar,
+			"/foo/v1.2.3/foo-linux-amd64.tar.gz":  tar,
+			"/foo/v1.2.3/foo-windows-amd64.zip":   zip,
 		})
 
-		srcPath := filepath.Join(testdataDir, "configs", "dep-add-source.yaml")
+		srcPath := filepath.FromSlash("../../testdata/configs/dep-add-source.yaml")
 		runner := newCmdRunner(t)
 		runner.writeConfig(&bindown.Config{
 			Systems: []bindown.SystemInfo{
@@ -650,23 +641,15 @@ url_checksums:
 
 func Test_dependencyValidateCmd(t *testing.T) {
 	t.Run("valid", func(t *testing.T) {
-		serverTmp := t.TempDir()
-		testdataDir, err := filepath.Abs(filepath.FromSlash("../../testdata"))
-		require.NoError(t, err)
-		err = archiver.Archive([]string{
-			filepath.Join(testdataDir, "downloadables", "runnable_windows", "bin"),
-		}, filepath.Join(serverTmp, "foo.zip"))
-		require.NoError(t, err)
-		err = archiver.Archive([]string{
-			filepath.Join(testdataDir, "downloadables", "runnable", "bin"),
-		}, filepath.Join(serverTmp, "foo.tar.gz"))
-		require.NoError(t, err)
+		downloadablesDir := filepath.FromSlash("../../testdata/downloadables")
+		tar := filepath.Join(downloadablesDir, "runnable.tar.gz")
+		zip := filepath.Join(downloadablesDir, "runnable_windows.zip")
 
 		server := serveFiles(t, map[string]string{
-			"/foo/v1.2.3/foo-darwin-amd64.tar.gz": filepath.Join(serverTmp, "foo.tar.gz"),
-			"/foo/v1.2.3/foo-darwin-arm64.tar.gz": filepath.Join(serverTmp, "foo.tar.gz"),
-			"/foo/v1.2.3/foo-linux-amd64.tar.gz":  filepath.Join(serverTmp, "foo.tar.gz"),
-			"/foo/v1.2.3/foo-windows-amd64.zip":   filepath.Join(serverTmp, "foo.zip"),
+			"/foo/v1.2.3/foo-darwin-amd64.tar.gz": tar,
+			"/foo/v1.2.3/foo-darwin-arm64.tar.gz": tar,
+			"/foo/v1.2.3/foo-linux-amd64.tar.gz":  tar,
+			"/foo/v1.2.3/foo-windows-amd64.zip":   zip,
 		})
 
 		runner := newCmdRunner(t)
