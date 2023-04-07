@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bufio"
 	"context"
 	"fmt"
 	"io"
@@ -11,11 +10,8 @@ import (
 
 	"github.com/alecthomas/kong"
 	"github.com/willabides/bindown/v3"
-	"github.com/willabides/bindown/v3/cmd/bindown/ifaces"
 	"github.com/willabides/kongplete"
 )
-
-//go:generate mockgen -source ifaces/ifaces.go -destination mocks/$GOFILE -package mocks
 
 var kongVars = kong.Vars{
 	"configfile_help":                 `file with bindown config. default is the first one of bindown.yml, bindown.yaml, bindown.json, .bindown.yml, .bindown.yaml or .bindown.json`,
@@ -45,7 +41,7 @@ var kongVars = kong.Vars{
 	"trust_cache_help":                `trust the cache contents and do not recheck existing downloads and extracts in the cache`,
 }
 
-var cli struct {
+type rootCmd struct {
 	JSONConfig bool   `kong:"name=json,help='treat config file as json instead of yaml'"`
 	Configfile string `kong:"type=path,help=${configfile_help},env='BINDOWN_CONFIG_FILE'"`
 	Cache      string `kong:"type=path,help=${cache_help},env='BINDOWN_CACHE'"`
@@ -70,8 +66,6 @@ var cli struct {
 	Validate     validateCmd     `kong:"cmd,hidden"`
 }
 
-type defaultConfigLoader struct{}
-
 var defaultConfigFilenames = []string{
 	"bindown.yml",
 	"bindown.yaml",
@@ -81,7 +75,8 @@ var defaultConfigFilenames = []string{
 	".bindown.json",
 }
 
-func (d defaultConfigLoader) Load(ctx context.Context, filename string, noDefaultDirs bool) (ifaces.ConfigFile, error) {
+func loadConfigFile(ctx *runContext, noDefaultDirs bool) (*bindown.ConfigFile, error) {
+	filename := ctx.rootCmd.Configfile
 	if filename == "" {
 		for _, configFilename := range defaultConfigFilenames {
 			info, err := os.Stat(configFilename)
@@ -95,40 +90,94 @@ func (d defaultConfigLoader) Load(ctx context.Context, filename string, noDefaul
 	if err != nil {
 		return nil, err
 	}
-	if cli.Cache != "" {
-		configFile.Cache = cli.Cache
+	if ctx.rootCmd.Cache != "" {
+		configFile.Cache = ctx.rootCmd.Cache
 	}
-	if cli.TrustCache != nil {
-		configFile.TrustCache = *cli.TrustCache
+	if ctx.rootCmd.TrustCache != nil {
+		configFile.TrustCache = *ctx.rootCmd.TrustCache
 	}
 	return configFile, nil
 }
 
-var configLoader ifaces.ConfigLoader = defaultConfigLoader{}
+type runContext struct {
+	parent  context.Context
+	stdin   io.Reader
+	stdout  io.Writer
+	rootCmd *rootCmd
+}
 
-func newParser(kongOptions ...kong.Option) *kong.Kong {
-	kongOptions = append(kongOptions,
-		kongVars,
-		kong.UsageOnError(),
-	)
-	return kong.Must(&cli, kongOptions...)
+func newRunContext(ctx context.Context) *runContext {
+	return &runContext{
+		parent: ctx,
+	}
+}
+
+func (r *runContext) Deadline() (deadline time.Time, ok bool) {
+	return r.parent.Deadline()
+}
+
+func (r *runContext) Done() <-chan struct{} {
+	return r.parent.Done()
+}
+
+func (r *runContext) Err() error {
+	return r.parent.Err()
+}
+
+func (r *runContext) Value(key any) any {
+	return r.parent.Value(key)
+}
+
+type runOpts struct {
+	stdin       io.Reader
+	stdout      io.Writer
+	stderr      io.Writer
+	cmdName     string
+	exitHandler func(int)
 }
 
 // Run let's light this candle
-func Run(args []string, kongOptions ...kong.Option) {
-	ctx := context.Background()
-	kongOptions = append(kongOptions,
-		kong.HelpOptions{
-			Compact: true,
-		},
-		kong.BindTo(ctx, &ctx),
-	)
-	parser := newParser(kongOptions...)
+func Run(ctx context.Context, args []string, opts *runOpts) {
+	if opts == nil {
+		opts = &runOpts{}
+	}
+	var root rootCmd
+	runCtx := newRunContext(ctx)
+	runCtx.rootCmd = &root
+	runCtx.stdin = opts.stdin
+	if runCtx.stdin == nil {
+		runCtx.stdin = os.Stdin
+	}
+	runCtx.stdout = opts.stdout
+	if runCtx.stdout == nil {
+		runCtx.stdout = os.Stdout
+	}
+	stderr := opts.stderr
+	if stderr == nil {
+		stderr = os.Stderr
+	}
+
+	kongOptions := []kong.Option{
+		kong.HelpOptions{Compact: true},
+		kong.BindTo(runCtx, &runCtx),
+		kongVars,
+		kong.UsageOnError(),
+		kong.Writers(runCtx.stdout, stderr),
+	}
+	if opts.exitHandler != nil {
+		kongOptions = append(kongOptions, kong.Exit(opts.exitHandler))
+	}
+	if opts.cmdName != "" {
+		kongOptions = append(kongOptions, kong.Name(opts.cmdName))
+	}
+
+	parser := kong.Must(&root, kongOptions...)
 	runCompletion(ctx, parser)
 
 	kongCtx, err := parser.Parse(args)
 	parser.FatalIfErrorf(err)
-	if cli.Quiet {
+	if root.Quiet {
+		runCtx.stdout = io.Discard
 		kongCtx.Stdout = io.Discard
 	}
 	err = kongCtx.Run()
@@ -151,14 +200,18 @@ func runCompletion(ctx context.Context, parser *kong.Kong) {
 
 type initCmd struct{}
 
-func (c *initCmd) Run() error {
+func (c *initCmd) Run(ctx *runContext) error {
 	for _, filename := range defaultConfigFilenames {
 		info, err := os.Stat(filename)
 		if err == nil && !info.IsDir() {
 			return fmt.Errorf("%s already exists", filename)
 		}
 	}
-	file, err := os.Create(".bindown.yaml")
+	configfile := ctx.rootCmd.Configfile
+	if configfile == "" {
+		configfile = ".bindown.yaml"
+	}
+	file, err := os.Create(configfile)
 	if err != nil {
 		return err
 	}
@@ -169,31 +222,28 @@ func (c *initCmd) Run() error {
 	cfg := &bindown.ConfigFile{
 		Filename: file.Name(),
 	}
-	return cfg.Write(cli.JSONConfig)
+	return cfg.Write(ctx.rootCmd.JSONConfig)
 }
 
 type fmtCmd struct{}
 
-func (c fmtCmd) Run(ctx context.Context) error {
-	cli.Cache = ""
-	config, err := configLoader.Load(ctx, cli.Configfile, true)
+func (c fmtCmd) Run(ctx *runContext, cli *rootCmd) error {
+	ctx.rootCmd.Cache = ""
+	config, err := loadConfigFile(ctx, true)
 	if err != nil {
 		return err
 	}
-	return config.Write(cli.JSONConfig)
+	return config.Write(ctx.rootCmd.JSONConfig)
 }
 
+// validateCmd is a deprecated synonym for dependencyValidateCmd
 type validateCmd struct {
 	Dependency string               `kong:"required=true,arg,predictor=bin"`
 	Systems    []bindown.SystemInfo `kong:"name=system,predictor=allSystems"`
 }
 
-func (d validateCmd) Run(ctx context.Context) error {
-	config, err := configLoader.Load(ctx, cli.Configfile, false)
-	if err != nil {
-		return err
-	}
-	return config.Validate([]string{d.Dependency}, d.Systems)
+func (d validateCmd) Run(ctx *runContext) error {
+	return dependencyValidateCmd(d).Run(ctx)
 }
 
 type installCmd struct {
@@ -204,9 +254,8 @@ type installCmd struct {
 	AllowMissingChecksum bool               `kong:"name=allow-missing-checksum,help=${allow_missing_checksum}"`
 }
 
-func (d *installCmd) Run(kctx *kong.Context) error {
-	ctx := context.Background()
-	config, err := configLoader.Load(ctx, cli.Configfile, false)
+func (d *installCmd) Run(ctx *runContext) error {
+	config, err := loadConfigFile(ctx, false)
 	if err != nil {
 		return err
 	}
@@ -218,7 +267,7 @@ func (d *installCmd) Run(kctx *kong.Context) error {
 	if err != nil {
 		return err
 	}
-	fmt.Fprintf(kctx.Stdout, "installed %s to %s\n", d.Dependency, pth)
+	fmt.Fprintf(ctx.stdout, "installed %s to %s\n", d.Dependency, pth)
 	return nil
 }
 
@@ -230,8 +279,8 @@ type downloadCmd struct {
 	AllowMissingChecksum bool               `kong:"name=allow-missing-checksum,help=${allow_missing_checksum}"`
 }
 
-func (d *downloadCmd) Run(ctx context.Context, kctx *kong.Context) error {
-	config, err := configLoader.Load(ctx, cli.Configfile, false)
+func (d *downloadCmd) Run(ctx *runContext) error {
+	config, err := loadConfigFile(ctx, false)
 	if err != nil {
 		return err
 	}
@@ -243,7 +292,7 @@ func (d *downloadCmd) Run(ctx context.Context, kctx *kong.Context) error {
 	if err != nil {
 		return err
 	}
-	fmt.Fprintf(kctx.Stdout, "downloaded %s to %s\n", d.Dependency, pth)
+	fmt.Fprintf(ctx.stdout, "downloaded %s to %s\n", d.Dependency, pth)
 	return nil
 }
 
@@ -254,8 +303,8 @@ type extractCmd struct {
 	AllowMissingChecksum bool               `kong:"name=allow-missing-checksum,help=${allow_missing_checksum}"`
 }
 
-func (d *extractCmd) Run(ctx context.Context, kctx *kong.Context) error {
-	config, err := configLoader.Load(ctx, cli.Configfile, false)
+func (d *extractCmd) Run(ctx *runContext) error {
+	config, err := loadConfigFile(ctx, false)
 	if err != nil {
 		return err
 	}
@@ -267,20 +316,6 @@ func (d *extractCmd) Run(ctx context.Context, kctx *kong.Context) error {
 	if err != nil {
 		return err
 	}
-	fmt.Fprintf(kctx.Stdout, "extracted %s to %s\n", d.Dependency, pth)
+	fmt.Fprintf(ctx.stdout, "extracted %s to %s\n", d.Dependency, pth)
 	return nil
-}
-
-func requestRequiredVar(ctx *kong.Context, name string, vars map[string]string) (map[string]string, error) {
-	fmt.Fprintf(ctx.Stdout, "Please enter a value for required variable %q:\t", name)
-	scanner := bufio.NewScanner(os.Stdin)
-	scanner.Scan()
-	err := scanner.Err()
-	if err != nil {
-		return nil, err
-	}
-	val := scanner.Text()
-
-	vars[name] = val
-	return vars, nil
 }

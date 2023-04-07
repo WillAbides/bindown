@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"io"
 	"os"
 	"path/filepath"
 	"sort"
@@ -97,4 +98,34 @@ func inDir(t *testing.T, dir string, f func()) {
 	f()
 	err = os.Chdir(oldDir)
 	require.NoError(t, err)
+}
+
+func setConfigFileEnvVar(t *testing.T, file string) {
+	t.Helper()
+	err := os.Setenv("BINDOWN_CONFIG_FILE", file)
+	require.NoError(t, err)
+	t.Cleanup(func() {
+		require.NoError(t, os.Unsetenv("BINDOWN_CONFIG_FILE"))
+	})
+}
+
+func createConfigFile(t *testing.T, sourceFile string) string {
+	t.Helper()
+	sourceFile = filepath.Join("..", "..", "testdata", "configs", sourceFile)
+	dir := t.TempDir()
+	dest := filepath.Join(dir, "bindown.config")
+	copyFile(t, sourceFile, dest)
+	return dest
+}
+
+func copyFile(t *testing.T, sourceFile, destFile string) {
+	t.Helper()
+	source, err := os.Open(sourceFile)
+	require.NoError(t, err)
+	dest, err := os.Create(destFile)
+	require.NoError(t, err)
+	_, err = io.Copy(dest, source)
+	require.NoError(t, err)
+	require.NoError(t, source.Close())
+	require.NoError(t, dest.Close())
 }

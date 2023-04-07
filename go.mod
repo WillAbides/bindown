@@ -5,7 +5,6 @@ go 1.18
 require (
 	github.com/Masterminds/semver/v3 v3.1.1
 	github.com/alecthomas/kong v0.7.1
-	github.com/golang/mock v1.6.0
 	github.com/google/go-cmp v0.5.8
 	github.com/mholt/archiver/v3 v3.5.1
 	github.com/posener/complete v1.2.3

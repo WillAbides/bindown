@@ -32,36 +32,40 @@ func (o *DependencyOverride) clone() *DependencyOverride {
 type OverrideMatcher map[string][]string
 
 func (o OverrideMatcher) matches(info SystemInfo, vars map[string]string) bool {
-	excluded := func(patterns []string, val string) bool {
-		for _, pattern := range patterns {
-			if pattern == val {
-				return false
-			}
-			// if pattern can be parsed as a semver constraint return true if val meets the constraint
-			if constraint, err := semver.NewConstraint(pattern); err == nil {
-				if version, err := semver.NewVersion(val); err == nil {
-					if constraint.Check(version) {
-						return false
-					}
-				}
-			}
-		}
-		return true
+	if vars == nil {
+		vars = map[string]string{}
 	}
 	for varName, patterns := range o {
-		if varName == "os" {
-			if excluded(patterns, info.OS) {
-				return false
+		val, ok := vars[varName]
+		if !ok {
+			if varName == "os" {
+				val = info.OS
 			}
-			continue
-		}
-		if varName == "arch" {
-			if excluded(patterns, info.Arch) {
-				return false
+			if varName == "arch" {
+				val = info.Arch
 			}
-			continue
 		}
-		if excluded(patterns, vars[varName]) {
+		match := false
+		for _, pattern := range patterns {
+			if pattern == val {
+				match = true
+				break
+			}
+			// If pattern can be parsed as a semver constraint and val can be parsed as a semver version, check if val meets the constraint
+			constraint, err := semver.NewConstraint(pattern)
+			if err != nil {
+				continue
+			}
+			version, err := semver.NewVersion(val)
+			if err != nil {
+				continue
+			}
+			if constraint.Check(version) {
+				match = true
+				break
+			}
+		}
+		if !match {
 			return false
 		}
 	}

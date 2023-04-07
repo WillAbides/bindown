@@ -1,12 +1,11 @@
 package main
 
 import (
-	"context"
 	"fmt"
+	"sort"
 	"text/tabwriter"
 
-	"github.com/alecthomas/kong"
-	"github.com/willabides/bindown/v3"
+	"golang.org/x/exp/maps"
 )
 
 type templateSourceCmd struct {
@@ -17,14 +16,16 @@ type templateSourceCmd struct {
 
 type templateSourceListCmd struct{}
 
-func (c *templateSourceListCmd) Run(ctx context.Context, kctx *kong.Context) error {
-	cfg, err := configLoader.Load(ctx, cli.Configfile, true)
+func (c *templateSourceListCmd) Run(ctx *runContext) error {
+	cfg, err := loadConfigFile(ctx, true)
 	if err != nil {
 		return err
 	}
-	w := tabwriter.NewWriter(kctx.Stdout, 0, 0, 1, ' ', 0)
-	for name, val := range cfg.(*bindown.ConfigFile).TemplateSources {
-		fmt.Fprintln(w, name+"\t"+val)
+	w := tabwriter.NewWriter(ctx.stdout, 0, 0, 1, ' ', 0)
+	sourceNames := maps.Keys(cfg.TemplateSources)
+	sort.Strings(sourceNames)
+	for _, name := range sourceNames {
+		fmt.Fprintln(w, name+"\t"+cfg.TemplateSources[name])
 	}
 	return w.Flush()
 }
@@ -34,12 +35,12 @@ type templateSourceAddCmd struct {
 	Source string `kong:"arg"`
 }
 
-func (c *templateSourceAddCmd) Run(ctx context.Context) error {
-	cfgIface, err := configLoader.Load(ctx, cli.Configfile, true)
+func (c *templateSourceAddCmd) Run(ctx *runContext) error {
+	cfg, err := loadConfigFile(ctx, true)
 	if err != nil {
 		return err
 	}
-	cfg := cfgIface.(*bindown.ConfigFile)
+
 	if cfg.TemplateSources == nil {
 		cfg.TemplateSources = map[string]string{}
 	}
@@ -47,19 +48,19 @@ func (c *templateSourceAddCmd) Run(ctx context.Context) error {
 		return fmt.Errorf("template source already exists")
 	}
 	cfg.TemplateSources[c.Name] = c.Source
-	return cfg.Write(cli.JSONConfig)
+	return cfg.Write(ctx.rootCmd.JSONConfig)
 }
 
 type templateSourceRemoveCmd struct {
 	Name string `kong:"arg,predictor=templateSource"`
 }
 
-func (c *templateSourceRemoveCmd) Run(ctx context.Context) error {
-	cfgIface, err := configLoader.Load(ctx, cli.Configfile, true)
+func (c *templateSourceRemoveCmd) Run(ctx *runContext) error {
+	cfg, err := loadConfigFile(ctx, true)
 	if err != nil {
 		return err
 	}
-	cfg := cfgIface.(*bindown.ConfigFile)
+
 	if cfg.TemplateSources == nil {
 		return fmt.Errorf("no template source named %q", c.Name)
 	}
@@ -67,5 +68,5 @@ func (c *templateSourceRemoveCmd) Run(ctx context.Context) error {
 		return fmt.Errorf("no template source named %q", c.Name)
 	}
 	delete(cfg.TemplateSources, c.Name)
-	return cfg.Write(cli.JSONConfig)
+	return cfg.Write(ctx.rootCmd.JSONConfig)
 }

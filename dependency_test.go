@@ -283,3 +283,110 @@ func Test_Dependency_applyOverrides(t *testing.T) {
 		require.Empty(t, cmp.Diff(&want, dep))
 	})
 }
+
+func TestOverrideMatcher_matches(t *testing.T) {
+	for _, td := range []struct {
+		name    string
+		matcher OverrideMatcher
+		info    SystemInfo
+		vars    map[string]string
+		want    bool
+	}{
+		{
+			name: "empty matcher always matches",
+			want: true,
+		},
+		{
+			name: "os match",
+			matcher: OverrideMatcher{
+				"os": {"windows", "darwin"},
+			},
+			info: newSystemInfo("darwin", "amd64"),
+			want: true,
+		},
+		{
+			name: "os mismatch",
+			matcher: OverrideMatcher{
+				"os": {"windows", "darwin"},
+			},
+			info: newSystemInfo("linux", "amd64"),
+			want: false,
+		},
+		{
+			name: "arch match",
+			matcher: OverrideMatcher{
+				"arch": {"amd64", "arm64"},
+			},
+			info: newSystemInfo("linux", "amd64"),
+			want: true,
+		},
+		{
+			name: "arch mismatch",
+			matcher: OverrideMatcher{
+				"arch": {"amd64", "arm64"},
+			},
+			info: newSystemInfo("linux", "386"),
+			want: false,
+		},
+		{
+			name: "var match",
+			matcher: OverrideMatcher{
+				"foo": {"bar", "baz"},
+			},
+			vars: map[string]string{
+				"foo": "bar",
+			},
+			want: true,
+		},
+		{
+			name: "var mismatch",
+			matcher: OverrideMatcher{
+				"foo": {"bar", "baz"},
+			},
+			vars: map[string]string{
+				"foo": "qux",
+			},
+		},
+		{
+			name: "var not set",
+			matcher: OverrideMatcher{
+				"foo": {"bar", "baz"},
+			},
+			want: false,
+		},
+		{
+			name: "var match with semver glob",
+			matcher: OverrideMatcher{
+				"foo": {"bar", "baz", "1.*"},
+			},
+			vars: map[string]string{
+				"foo": "1.2.3",
+			},
+			want: true,
+		},
+		{
+			name: "semver glob with non-semver version",
+			matcher: OverrideMatcher{
+				"foo": {"1.*", "bar", "baz"},
+			},
+			vars: map[string]string{
+				"foo": "bar",
+			},
+			want: true,
+		},
+		{
+			name: "empty os var overrides system info",
+			matcher: OverrideMatcher{
+				"os": {"windows", "darwin"},
+			},
+			vars: map[string]string{
+				"os": "",
+			},
+			info: newSystemInfo("linux", "amd64"),
+		},
+	} {
+		t.Run(td.name, func(t *testing.T) {
+			require.Equal(t, td.want, td.matcher.matches(td.info, td.vars))
+		})
+	}
+}

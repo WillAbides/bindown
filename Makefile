@@ -33,10 +33,6 @@ bin/yq: bin/bindown
 	bin/bindown install -q  $(notdir $@)
 bins += bin/yq
 
-bin/mockgen: bin/bindown
-	bin/bindown install -q  $(notdir $@)
-bins += bin/mockgen
-
 bin/semver-next: bin/bindown
 	bin/bindown install -q  $(notdir $@)
 bins += bin/semver-next

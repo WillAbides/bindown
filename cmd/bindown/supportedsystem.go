@@ -1,11 +1,10 @@
 package main
 
 import (
-	"context"
 	"fmt"
 
-	"github.com/alecthomas/kong"
 	"github.com/willabides/bindown/v3"
+	"golang.org/x/exp/slices"
 )
 
 type supportedSystemCmd struct {
@@ -16,14 +15,14 @@ type supportedSystemCmd struct {
 
 type supportedSystemListCmd struct{}
 
-func (c *supportedSystemListCmd) Run(ctx context.Context, kctx *kong.Context) error {
-	cfgIface, err := configLoader.Load(ctx, cli.Configfile, true)
+func (c *supportedSystemListCmd) Run(ctx *runContext) error {
+	cfg, err := loadConfigFile(ctx, true)
 	if err != nil {
 		return err
 	}
-	cfg := cfgIface.(*bindown.ConfigFile)
+
 	for _, system := range cfg.Systems {
-		fmt.Fprintln(kctx.Stdout, system.String())
+		fmt.Fprintln(ctx.stdout, system.String())
 	}
 	return nil
 }
@@ -32,12 +31,12 @@ type supportedSystemsRemoveCmd struct {
 	System bindown.SystemInfo `kong:"arg,predictor=system,help='system to remove'"`
 }
 
-func (c *supportedSystemsRemoveCmd) Run(ctx context.Context) error {
-	cfgIface, err := configLoader.Load(ctx, cli.Configfile, true)
+func (c *supportedSystemsRemoveCmd) Run(ctx *runContext) error {
+	cfg, err := loadConfigFile(ctx, true)
 	if err != nil {
 		return err
 	}
-	cfg := cfgIface.(*bindown.ConfigFile)
+
 	systems := cfg.Systems
 	newSystems := make([]bindown.SystemInfo, 0, len(systems))
 	for _, system := range systems {
@@ -46,7 +45,7 @@ func (c *supportedSystemsRemoveCmd) Run(ctx context.Context) error {
 		}
 	}
 	cfg.Systems = newSystems
-	return cfg.Write(cli.JSONConfig)
+	return cfg.Write(ctx.rootCmd.JSONConfig)
 }
 
 type supportedSystemAddCmd struct {
@@ -54,45 +53,35 @@ type supportedSystemAddCmd struct {
 	SkipChecksums bool               `kong:"name=skipchecksums,help='do not add checksums for this system'"`
 }
 
-func (c *supportedSystemAddCmd) Run(ctx context.Context) error {
-	cfgIface, err := configLoader.Load(ctx, cli.Configfile, true)
+func (c *supportedSystemAddCmd) Run(ctx *runContext) error {
+	cfg, err := loadConfigFile(ctx, true)
 	if err != nil {
 		return err
 	}
-	cfg := cfgIface.(*bindown.ConfigFile)
+
 	for _, system := range cfg.Systems {
 		if system.String() == c.System.String() {
 			return nil
 		}
 	}
 	cfg.Systems = append(cfg.Systems, c.System)
+	var depsForSystem []string
 	if !c.SkipChecksums {
-		var updateDeps []string
-		updateDeps, err = dependenciesWithSystem(cfg, c.System)
-		if err != nil {
-			return err
+		for depName := range cfg.Dependencies {
+			depSystems, depErr := cfg.DependencySystems(depName)
+			if depErr != nil {
+				return depErr
+			}
+			if slices.Contains(depSystems, c.System) {
+				depsForSystem = append(depsForSystem, depName)
+			}
 		}
-		err = cfg.AddChecksums(updateDeps, []bindown.SystemInfo{c.System})
-		if err != nil {
-			return err
-		}
-	}
-	return cfg.Write(cli.JSONConfig)
-}
-
-func dependenciesWithSystem(cfg *bindown.ConfigFile, system bindown.SystemInfo) ([]string, error) {
-	deps := make([]string, 0, len(cfg.Dependencies))
-	for depName := range cfg.Dependencies {
-		depSystems, err := cfg.DependencySystems(depName)
-		if err != nil {
-			return nil, err
-		}
-		for _, s := range depSystems {
-			if s.OS == system.OS && s.Arch == system.Arch {
-				deps = append(deps, depName)
-				break
+		if len(depsForSystem) > 0 {
+			err = cfg.AddChecksums(depsForSystem, []bindown.SystemInfo{c.System})
+			if err != nil {
+				return err
 			}
 		}
 	}
-	return deps, nil
+	return cfg.Write(ctx.rootCmd.JSONConfig)
 }

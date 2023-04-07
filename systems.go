@@ -12,13 +12,6 @@ type SystemInfo struct {
 	Arch string
 }
 
-func newSystemInfo(os, arch string) SystemInfo {
-	return SystemInfo{
-		OS:   os,
-		Arch: arch,
-	}
-}
-
 func (s *SystemInfo) String() string {
 	return fmt.Sprintf("%s/%s", s.OS, s.Arch)
 }
@@ -42,9 +35,4 @@ func (s *SystemInfo) UnmarshalText(text []byte) error {
 // MarshalText implements encoding.TextMarshaler
 func (s SystemInfo) MarshalText() (text []byte, err error) {
 	return []byte(s.String()), nil
-}
-
-// Equal tests equality
-func (s SystemInfo) Equal(other SystemInfo) bool {
-	return s.OS == other.OS && s.Arch == other.Arch
 }
