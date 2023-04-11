@@ -2,7 +2,6 @@ package bindown
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -443,9 +442,5 @@ func TestConfig_addChecksum(t *testing.T) {
 	require.NoError(t, err)
 	err = cfg.addChecksum("dut", newSystemInfo("testOS2", "foo"))
 	require.NoError(t, err)
-
-	b, err := yaml.Marshal(cfg)
-	require.NoError(t, err)
-	fmt.Println(string(b))
 	require.Equal(t, want, cfg)
 }

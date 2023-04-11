@@ -26,7 +26,6 @@ func executeTemplate(tmplString, goos, arch string, vars map[string]string) (str
 	maps.Copy(tmplData, vars)
 	tmpl, err := template.New("").Option("missingkey=error").Parse(tmplString)
 	if err != nil {
-		fmt.Println(err.Error())
 		return "", fmt.Errorf("%q is not a valid template", tmplString)
 	}
 	var buf bytes.Buffer

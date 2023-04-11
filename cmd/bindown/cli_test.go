@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -529,7 +528,6 @@ func Test_installCmd(t *testing.T) {
 			},
 		})
 		result := runner.run("install", "foo")
-		fmt.Println(result.stdErr.String())
 		require.Equal(t, 1, result.exitVal)
 		require.True(t, strings.HasPrefix(result.stdErr.String(), `cmd: error: checksum mismatch in downloaded file`))
 		require.NoFileExists(t, filepath.Join(runner.tmpDir, "bin", "foo"))
