@@ -7,9 +7,9 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-
 	"github.com/stretchr/testify/require"
 	"github.com/willabides/bindown/v3"
+	"github.com/willabides/bindown/v3/internal/cache"
 )
 
 func Test_fmtCmd(t *testing.T) {
@@ -182,10 +182,20 @@ func Test_extractCmd(t *testing.T) {
 		})
 		result := runner.run("extract", "foo")
 		assertExtractSuccess(t, result)
+
+		// corrupt the cache
 		extractDir := result.getExtractDir()
-		unsealDir(t, extractDir)
-		err := os.WriteFile(filepath.Join(extractDir, "foo"), []byte("foo"), 0o666)
+		exCache := &cache.Cache{
+			Root: filepath.Dir(extractDir),
+		}
+		exCacheKey := filepath.Base(extractDir)
+		require.NoError(t, exCache.Evict(exCacheKey))
+		_, unlock, err := exCache.Dir(exCacheKey, nil, func(d string) error {
+			return os.WriteFile(filepath.Join(d, "foo"), []byte("foo"), 0o666)
+		})
 		require.NoError(t, err)
+		require.NoError(t, unlock())
+
 		result = runner.run("extract", "foo")
 		assertExtractSuccess(t, result)
 	})
@@ -238,17 +248,26 @@ func Test_extractCmd(t *testing.T) {
 		})
 		result := runner.run("extract", "foo")
 		assertExtractSuccess(t, result)
+
+		// corrupt the cache
 		extractDir := result.getExtractDir()
-		extractedFile := filepath.Join(extractDir, "foo")
-		unsealDir(t, extractDir)
-		err := os.WriteFile(extractedFile, []byte("foo"), 0o666)
+		exCache := &cache.Cache{
+			Root: filepath.Dir(extractDir),
+		}
+		exCacheKey := filepath.Base(extractDir)
+		require.NoError(t, exCache.Evict(exCacheKey))
+		_, unlock, err := exCache.Dir(exCacheKey, nil, func(d string) error {
+			return os.WriteFile(filepath.Join(d, "foo"), []byte("foo"), 0o666)
+		})
 		require.NoError(t, err)
+		require.NoError(t, unlock())
+
 		result = runner.run("extract", "foo", "--trust-cache")
 		result.assertState(resultState{
 			stdout: "extracted foo to ",
 		})
 		// make sure the file was not overwritten
-		got, err := os.ReadFile(extractedFile)
+		got, err := os.ReadFile(filepath.Join(extractDir, "foo"))
 		require.NoError(t, err)
 		assert.Equal(t, "foo", string(got))
 	})

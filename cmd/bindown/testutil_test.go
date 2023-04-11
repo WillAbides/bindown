@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"io"
-	"io/fs"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -222,23 +221,4 @@ func testInDir(t testing.TB, dir string) {
 		assert.NoError(t, os.Chdir(orig))
 	})
 	assert.NoError(t, os.Chdir(dir))
-}
-
-func unsealDir(t testing.TB, dir string) {
-	_, err := os.Stat(dir)
-	if os.IsNotExist(err) {
-		return
-	}
-	assert.NoError(t, err)
-	err = filepath.WalkDir(dir, func(path string, d fs.DirEntry, err error) error {
-		if err != nil {
-			return err
-		}
-		info, err := d.Info()
-		if err != nil {
-			return err
-		}
-		return os.Chmod(path, info.Mode()|0o222)
-	})
-	assert.NoError(t, err)
 }
