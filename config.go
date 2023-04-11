@@ -357,6 +357,14 @@ func (c *Config) Validate(dependencies []string, systems []SystemInfo) (errOut e
 	return nil
 }
 
+func (c *Config) ClearCache() error {
+	err := cache.RemoveRoot(c.downloadsCache().Root)
+	if err != nil {
+		return err
+	}
+	return cache.RemoveRoot(c.extractsCache().Root)
+}
+
 // ConfigDownloadDependencyOpts options for Config.DownloadDependency
 type ConfigDownloadDependencyOpts struct {
 	TargetFile           string

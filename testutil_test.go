@@ -1,14 +1,10 @@
 package bindown
 
 import (
-	"io/fs"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"path/filepath"
 	"testing"
-
-	"github.com/stretchr/testify/assert"
 )
 
 // fooChecksum is the checksum of downloadablesPath("foo.tar.gz")
@@ -40,18 +36,4 @@ func newSystemInfo(goOs, goArch string) SystemInfo {
 
 func ptr[T any](val T) *T {
 	return &val
-}
-
-func tmpDir(t testing.TB) string {
-	dir := t.TempDir()
-	t.Cleanup(func() {
-		err := filepath.WalkDir(dir, func(path string, d fs.DirEntry, err error) error {
-			if err != nil {
-				return err
-			}
-			return os.Chmod(path, 0o777)
-		})
-		assert.NoError(t, err)
-	})
-	return dir
 }

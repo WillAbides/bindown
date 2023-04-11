@@ -201,7 +201,7 @@ func TestConfig_addTemplateFromSource(t *testing.T) {
 
 func TestConfig_InstallDependency(t *testing.T) {
 	t.Run("raw file", func(t *testing.T) {
-		dir := tmpDir(t)
+		dir := t.TempDir()
 		servePath := filepath.Join("testdata", "downloadables", filepath.FromSlash("rawfile/foo"))
 		ts := serveFile(t, servePath, "/foo/foo", "")
 		depURL := ts.URL + "/foo/foo"
@@ -220,6 +220,7 @@ func TestConfig_InstallDependency(t *testing.T) {
 				},
 			},
 		}
+		t.Cleanup(func() { require.NoError(t, config.ClearCache()) })
 		wantBin := filepath.Join(binDir, "foo")
 		gotPath, err := config.InstallDependency("foo", newSystemInfo("darwin", "amd64"), &ConfigInstallDependencyOpts{})
 		require.NoError(t, err)
@@ -232,7 +233,7 @@ func TestConfig_InstallDependency(t *testing.T) {
 	})
 
 	t.Run("bin in root", func(t *testing.T) {
-		dir := tmpDir(t)
+		dir := t.TempDir()
 		servePath := filepath.Join("testdata", "downloadables", "fooinroot.tar.gz")
 		ts := serveFile(t, servePath, "/foo/fooinroot.tar.gz", "")
 		depURL := ts.URL + "/foo/fooinroot.tar.gz"
@@ -251,6 +252,7 @@ func TestConfig_InstallDependency(t *testing.T) {
 				},
 			},
 		}
+		t.Cleanup(func() { require.NoError(t, config.ClearCache()) })
 		wantBin := filepath.Join(binDir, "foo")
 		gotPath, err := config.InstallDependency("foo", newSystemInfo("darwin", "amd64"), &ConfigInstallDependencyOpts{})
 		require.NoError(t, err)
@@ -263,7 +265,7 @@ func TestConfig_InstallDependency(t *testing.T) {
 	})
 
 	t.Run("wrong checksum", func(t *testing.T) {
-		dir := tmpDir(t)
+		dir := t.TempDir()
 		servePath := filepath.Join("testdata", "downloadables", "fooinroot.tar.gz")
 		ts := serveFile(t, servePath, "/foo/fooinroot.tar.gz", "")
 		depURL := ts.URL + "/foo/fooinroot.tar.gz"
@@ -282,6 +284,7 @@ func TestConfig_InstallDependency(t *testing.T) {
 				},
 			},
 		}
+		t.Cleanup(func() { require.NoError(t, config.ClearCache()) })
 		wantBin := filepath.Join(binDir, "foo")
 		_, err := config.InstallDependency("foo", newSystemInfo("darwin", "amd64"), &ConfigInstallDependencyOpts{})
 		require.Error(t, err)
