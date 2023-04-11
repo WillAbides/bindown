@@ -362,7 +362,11 @@ func (c *Config) ClearCache() error {
 	if err != nil {
 		return err
 	}
-	return cache.RemoveRoot(c.extractsCache().Root)
+	err = cache.RemoveRoot(c.extractsCache().Root)
+	if err != nil {
+		return err
+	}
+	return os.RemoveAll(c.Cache)
 }
 
 // ConfigDownloadDependencyOpts options for Config.DownloadDependency

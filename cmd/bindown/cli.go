@@ -44,7 +44,7 @@ var kongVars = kong.Vars{
 type rootCmd struct {
 	JSONConfig bool   `kong:"name=json,help='treat config file as json instead of yaml'"`
 	Configfile string `kong:"type=path,help=${configfile_help},env='BINDOWN_CONFIG_FILE'"`
-	Cache      string `kong:"type=path,help=${cache_help},env='BINDOWN_CACHE'"`
+	CacheDir   string `kong:"name=cache,type=path,help=${cache_help},env='BINDOWN_CACHE'"`
 	TrustCache *bool  `kong:"help=${trust_cache_help},env='BINDOWN_TRUST_CACHE'"`
 	Quiet      bool   `kong:"short='q',help='suppress output to stdout'"`
 
@@ -58,6 +58,7 @@ type rootCmd struct {
 	SupportedSystem supportedSystemCmd `kong:"cmd,help='manage supported systems'"`
 	Checksums       checksumsCmd       `kong:"cmd,help='manage checksums'"`
 	Init            initCmd            `kong:"cmd,help='create an empty config file'"`
+	Cache           cacheCmd           `kong:"cmd,help='manage the cache'"`
 
 	Version            versionCmd                   `kong:"cmd,help='show bindown version'"`
 	InstallCompletions kongplete.InstallCompletions `kong:"cmd,help=${config_install_completions_help}"`
@@ -90,8 +91,8 @@ func loadConfigFile(ctx *runContext, noDefaultDirs bool) (*bindown.ConfigFile, e
 	if err != nil {
 		return nil, err
 	}
-	if ctx.rootCmd.Cache != "" {
-		configFile.Cache = ctx.rootCmd.Cache
+	if ctx.rootCmd.CacheDir != "" {
+		configFile.Cache = ctx.rootCmd.CacheDir
 	}
 	if ctx.rootCmd.TrustCache != nil {
 		configFile.TrustCache = *ctx.rootCmd.TrustCache
@@ -228,7 +229,7 @@ func (c *initCmd) Run(ctx *runContext) error {
 type fmtCmd struct{}
 
 func (c fmtCmd) Run(ctx *runContext, cli *rootCmd) error {
-	ctx.rootCmd.Cache = ""
+	ctx.rootCmd.CacheDir = ""
 	config, err := loadConfigFile(ctx, true)
 	if err != nil {
 		return err

@@ -15,7 +15,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/willabides/bindown/v3"
-	"github.com/willabides/bindown/v3/internal/cache"
 )
 
 type cmdRunner struct {
@@ -30,18 +29,18 @@ func newCmdRunner(t testing.TB) *cmdRunner {
 	t.Helper()
 	dir := t.TempDir()
 	cacheDir := filepath.Join(dir, "cache")
-	t.Cleanup(func() {
-		t.Helper()
-		assert.NoError(t, cache.RemoveRoot(filepath.Join(cacheDir, "downloads")))
-		assert.NoError(t, cache.RemoveRoot(filepath.Join(cacheDir, "extracts")))
-	})
 	configfile := filepath.Join(dir, ".bindown.yaml")
-	return &cmdRunner{
+	runner := &cmdRunner{
 		t:          t,
 		cache:      cacheDir,
 		configFile: configfile,
 		tmpDir:     dir,
 	}
+	t.Cleanup(func() {
+		// ignore errors because it fails on test with missing or invalid config files
+		runner.run("cache", "clear")
+	})
+	return runner
 }
 
 func (c *cmdRunner) run(commandLine ...string) *runCmdResult {
