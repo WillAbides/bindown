@@ -329,6 +329,7 @@ Commands:
   checksums add                  add checksums to the config file
   checksums prune                remove unnecessary checksums from the config file
   init                           create an empty config file
+  cache clear                    clear the cache
   version                        show bindown version
   install-completions            install shell completions
 
