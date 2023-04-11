@@ -225,12 +225,11 @@ func (d *Dependency) applyOverrides(info SystemInfo, depth int) {
 	d.Overrides = nil
 }
 
-func linkBin(link, extractDir, archivePath string) error {
-	absExtractDir, err := filepath.Abs(extractDir)
+func linkBin(link, src string) error {
+	absSrc, err := filepath.Abs(src)
 	if err != nil {
 		return err
 	}
-	extractedBin := filepath.Join(absExtractDir, archivePath)
 	err = os.MkdirAll(filepath.Dir(link), 0o750)
 	if err != nil {
 		return err
@@ -246,12 +245,12 @@ func linkBin(link, extractDir, archivePath string) error {
 		return err
 	}
 
-	extractedBin, err = filepath.EvalSymlinks(extractedBin)
+	absSrc, err = filepath.EvalSymlinks(absSrc)
 	if err != nil {
 		return err
 	}
 
-	dst, err := filepath.Rel(linkDir, extractedBin)
+	dst, err := filepath.Rel(linkDir, absSrc)
 	if err != nil {
 		return err
 	}

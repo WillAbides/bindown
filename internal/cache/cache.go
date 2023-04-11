@@ -3,7 +3,6 @@ package cache
 import (
 	"errors"
 	"io"
-	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
@@ -13,7 +12,7 @@ import (
 
 type (
 	populateFunc func(string) error
-	validateFunc func(fs.FS) error
+	validateFunc func(string) error
 )
 
 type Cache struct {
@@ -22,42 +21,41 @@ type Cache struct {
 
 // Dir returns a fs.FS for the given key, populating the cache if necessary.
 // The returned fs.FS is valid until unlock is called. After that the contents may change unexpectedly.
-func (c *Cache) Dir(key string, validate validateFunc, populate populateFunc) (_ fs.FS, unlock func() error, _ error) {
+func (c *Cache) Dir(key string, validate validateFunc, populate populateFunc) (_ string, unlock func() error, _ error) {
 	var err error
 	key, err = parseKey(key)
 	if err != nil {
-		return nil, nil, err
+		return "", nil, err
 	}
 	lock, err := c.rLock(key)
 	if err != nil {
-		return nil, nil, err
+		return "", nil, err
 	}
 	dir := filepath.Join(c.Root, key)
-	fsDir := os.DirFS(dir)
 	validateErr := validateDir(dir, validate)
 	if validateErr == nil {
-		return fsDir, lock.Close, nil
+		return dir, lock.Close, nil
 	}
 	if populate == nil {
-		return nil, nil, errors.Join(validateErr, lock.Close())
+		return "", nil, errors.Join(validateErr, lock.Close())
 	}
 	err = lock.Close()
 	if err != nil {
-		return nil, nil, err
+		return "", nil, err
 	}
 	err = c.populate(key, validate, populate)
 	if err != nil {
-		return nil, nil, err
+		return "", nil, err
 	}
 	lock, err = c.rLock(key)
 	if err != nil {
-		return nil, nil, err
+		return "", nil, err
 	}
 	err = validateDir(dir, validate)
 	if err != nil {
-		return nil, nil, errors.Join(err, lock.Close())
+		return "", nil, errors.Join(err, lock.Close())
 	}
-	return fsDir, lock.Close, nil
+	return dir, lock.Close, nil
 }
 
 // Evict removes acquires a write lock and removes the cache entry for the given key.
@@ -274,7 +272,7 @@ func validateDir(dir string, validate validateFunc) error {
 	if validate == nil {
 		return nil
 	}
-	return validate(os.DirFS(dir))
+	return validate(dir)
 }
 
 func parseKey(key string) (string, error) {
@@ -296,7 +294,7 @@ func parseKey(key string) (string, error) {
 //nolint:errcheck // this is best-effort
 func sealDir(dir string) {
 	var files []string
-	_ = filepath.WalkDir(dir, func(path string, _ fs.DirEntry, err error) error {
+	_ = filepath.WalkDir(dir, func(path string, _ os.DirEntry, err error) error {
 		if err != nil {
 			return nil
 		}
@@ -322,7 +320,7 @@ func unsealDir(dir string) error {
 	if os.IsNotExist(err) {
 		return nil
 	}
-	return filepath.WalkDir(dir, func(path string, d fs.DirEntry, err error) error {
+	return filepath.WalkDir(dir, func(path string, d os.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}

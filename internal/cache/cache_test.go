@@ -2,7 +2,6 @@ package cache
 
 import (
 	"fmt"
-	"io/fs"
 	"os"
 	"path/filepath"
 	"testing"
@@ -18,7 +17,7 @@ func TestCache_Dir(t *testing.T) {
 		mustWriteFile(t, testFile, "bar")
 		dir, unlock, err := cache.Dir("foo", fooValidator, nil)
 		require.NoError(t, err)
-		assertFsFile(t, dir, "foo.txt", "bar")
+		assertFile(t, dir, "foo.txt", "bar")
 		mustUnlock(t, unlock)
 	})
 
@@ -28,7 +27,7 @@ func TestCache_Dir(t *testing.T) {
 		mustWriteFile(t, testFile, "bar")
 		dir, unlock, err := cache.Dir("foo", nil, nil)
 		require.NoError(t, err)
-		assertFsFile(t, dir, "foo.txt", "bar")
+		assertFile(t, dir, "foo.txt", "bar")
 		mustUnlock(t, unlock)
 	})
 
@@ -36,7 +35,7 @@ func TestCache_Dir(t *testing.T) {
 		cache := testCache(t)
 		dir, unlock, err := cache.Dir("foo", fooValidator, fooPopulator)
 		require.NoError(t, err)
-		assertFsFile(t, dir, "foo.txt", "bar")
+		assertFile(t, dir, "foo.txt", "bar")
 		mustUnlock(t, unlock)
 	})
 
@@ -48,8 +47,8 @@ func TestCache_Dir(t *testing.T) {
 		mustWriteFile(t, extraFile, "extra")
 		dir, unlock, err := cache.Dir("foo", fooValidator, fooPopulator)
 		require.NoError(t, err)
-		assertFsFile(t, dir, "foo.txt", "bar")
-		assertFsFileNotExist(t, dir, "extra.txt")
+		assertFile(t, dir, "foo.txt", "bar")
+		assertFileNotExist(t, dir, "extra.txt")
 		mustUnlock(t, unlock)
 	})
 
@@ -72,7 +71,7 @@ func TestCache_Dir(t *testing.T) {
 		_, _, err := cache.Dir("foo", fooValidator, func(dir string) error {
 			return nil
 		})
-		require.EqualError(t, err, "open foo.txt: no such file or directory")
+		require.ErrorIs(t, err, os.ErrNotExist)
 	})
 
 	t.Run("errors when populator returns error", func(t *testing.T) {
@@ -97,8 +96,8 @@ func TestCache_Dir(t *testing.T) {
 		require.NoError(t, err)
 		dir2, unlock2, err := cache.Dir("foo", fooValidator, fooPopulator)
 		require.NoError(t, err)
-		assertFsFile(t, dir1, "foo.txt", "bar")
-		assertFsFile(t, dir2, "foo.txt", "bar")
+		assertFile(t, dir1, "foo.txt", "bar")
+		assertFile(t, dir2, "foo.txt", "bar")
 		mustUnlock(t, unlock1)
 		mustUnlock(t, unlock2)
 	})
@@ -107,11 +106,11 @@ func TestCache_Dir(t *testing.T) {
 		cache := testCache(t)
 		dir1, unlock1, err := cache.Dir("foo", fooValidator, fooPopulator)
 		require.NoError(t, err)
-		assertFsFile(t, dir1, "foo.txt", "bar")
+		assertFile(t, dir1, "foo.txt", "bar")
 		mustUnlock(t, unlock1)
 		dir2, unlock2, err := cache.Dir("foo", fooValidator, fooPopulator)
 		require.NoError(t, err)
-		assertFsFile(t, dir2, "foo.txt", "bar")
+		assertFile(t, dir2, "foo.txt", "bar")
 		mustUnlock(t, unlock2)
 	})
 
@@ -139,7 +138,7 @@ func TestCache_Dir(t *testing.T) {
 		testDir := filepath.Join(cache.Root, "foo")
 		testFile := filepath.Join(testDir, "foo.txt")
 		mustWriteFile(t, testFile, "bar")
-		validate := func(dir fs.FS) error {
+		validate := func(dir string) error {
 			err := os.RemoveAll(testDir)
 			assert.NoError(t, err)
 			mustWriteFile(t, testDir, "bar")
@@ -154,7 +153,7 @@ func TestCache_Dir(t *testing.T) {
 		testFile := filepath.Join(cache.Root, "foo", "foo.txt")
 		mustWriteFile(t, testFile, "bar")
 		validateCallCount := 0
-		validate := func(dir fs.FS) error {
+		validate := func(dir string) error {
 			validateCallCount++
 			if validateCallCount == 1 {
 				return assert.AnError
@@ -163,7 +162,7 @@ func TestCache_Dir(t *testing.T) {
 		}
 		dir, unlock, err := cache.Dir("foo", validate, fooPopulator)
 		require.NoError(t, err)
-		assertFsFile(t, dir, "foo.txt", "bar")
+		assertFile(t, dir, "foo.txt", "bar")
 		mustUnlock(t, unlock)
 	})
 }
@@ -179,10 +178,12 @@ func TestCache_Evict(t *testing.T) {
 		cache := testCache(t)
 		dir, unlock, err := cache.Dir("foo", fooValidator, fooPopulator)
 		require.NoError(t, err)
-		assertFsFile(t, dir, "foo.txt", "bar")
+		assertFile(t, dir, "foo.txt", "bar")
 		mustUnlock(t, unlock)
+		require.FileExists(t, filepath.Join(cache.Root, "foo", "foo.txt"))
 		err = cache.Evict("foo")
 		require.NoError(t, err)
+		require.NoFileExists(t, filepath.Join(cache.Root, "foo", "foo.txt"))
 		// validate it's gone by trying to open it with no populator
 		_, _, err = cache.Dir("foo", nil, nil)
 		require.EqualError(t, err, "entry does not exist")
@@ -221,8 +222,8 @@ var (
 )
 
 func fileValidator(filename, want string) validateFunc {
-	return func(dir fs.FS) error {
-		b, err := fs.ReadFile(dir, filename)
+	return func(dir string) error {
+		b, err := os.ReadFile(filepath.Join(dir, filename))
 		if err != nil {
 			return err
 		}
@@ -240,16 +241,16 @@ func filePopulator(filename, content string) populateFunc {
 	}
 }
 
-func assertFsFile(t testing.TB, dir fs.FS, name, content string) {
+func assertFile(t testing.TB, dir, name, content string) {
 	t.Helper()
-	b, err := fs.ReadFile(dir, name)
+	b, err := os.ReadFile(filepath.Join(dir, name))
 	assert.NoError(t, err)
 	assert.Equal(t, content, string(b))
 }
 
-func assertFsFileNotExist(t testing.TB, dir fs.FS, name string) {
+func assertFileNotExist(t testing.TB, dir, name string) {
 	t.Helper()
-	_, err := dir.Open(name)
+	_, err := os.Stat(filepath.Join(dir, name))
 	assert.True(t, os.IsNotExist(err))
 }
 

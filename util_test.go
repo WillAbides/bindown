@@ -30,7 +30,7 @@ func TestExecuteTemplate(t *testing.T) {
 func Test_fileExistsWithChecksum(t *testing.T) {
 	t.Run("exists", func(t *testing.T) {
 		file := filepath.Join(t.TempDir(), "myfile")
-		require.NoError(t, copyFile(filepath.Join("testdata", "downloadables", "foo.tar.gz"), file, nil))
+		require.NoError(t, copyFile(filepath.Join("testdata", "downloadables", "foo.tar.gz"), file))
 		got, err := fileExistsWithChecksum(file, fooChecksum)
 		require.NoError(t, err)
 		require.True(t, got)
@@ -39,7 +39,7 @@ func Test_fileExistsWithChecksum(t *testing.T) {
 	t.Run("wrong checksum", func(t *testing.T) {
 		file := filepath.Join(t.TempDir(), "myfile")
 		checksum := "0000000000000000000000000000000000000000000000000000000000000000"
-		require.NoError(t, copyFile(filepath.Join("testdata", "downloadables", "foo.tar.gz"), file, nil))
+		require.NoError(t, copyFile(filepath.Join("testdata", "downloadables", "foo.tar.gz"), file))
 		got, err := fileExistsWithChecksum(file, checksum)
 		require.NoError(t, err)
 		require.False(t, got)
@@ -67,7 +67,7 @@ func Test_copyFile(t *testing.T) {
 		dir := t.TempDir()
 		src := filepath.Join(dir, "file1")
 		dst := filepath.Join(dir, "file2")
-		err := copyFile(src, dst, nil)
+		err := copyFile(src, dst)
 		require.Error(t, err)
 	})
 
@@ -77,7 +77,7 @@ func Test_copyFile(t *testing.T) {
 		dst := filepath.Join(dir, "file2")
 		err := os.Mkdir(src, 0o750)
 		require.NoError(t, err)
-		err = copyFile(src, dst, nil)
+		err = copyFile(src, dst)
 		require.Error(t, err)
 	})
 
@@ -87,7 +87,7 @@ func Test_copyFile(t *testing.T) {
 		dst := filepath.Join(dir, "file2")
 		content := []byte("foo")
 		require.NoError(t, os.WriteFile(src, content, 0o600))
-		err := copyFile(src, dst, nil)
+		err := copyFile(src, dst)
 		require.NoError(t, err)
 
 		got, err := os.ReadFile(dst)
@@ -101,7 +101,7 @@ func Test_copyFile(t *testing.T) {
 		dst := filepath.Join(dir, "dst", "file2")
 		content := []byte("foo")
 		require.NoError(t, os.WriteFile(src, content, 0o600))
-		err := copyFile(src, dst, nil)
+		err := copyFile(src, dst)
 		require.Error(t, err)
 	})
 
@@ -112,7 +112,7 @@ func Test_copyFile(t *testing.T) {
 		content := []byte("foo")
 		require.NoError(t, os.WriteFile(src, content, 0o600))
 		require.NoError(t, os.WriteFile(dst, []byte("bar"), 0o600))
-		err := copyFile(src, dst, nil)
+		err := copyFile(src, dst)
 		require.NoError(t, err)
 		got, err := os.ReadFile(dst)
 		require.NoError(t, err)

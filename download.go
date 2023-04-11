@@ -5,7 +5,6 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io"
-	"io/fs"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -17,10 +16,10 @@ func downloadDependency(
 	dep *builtDependency,
 	dlCache *cache.Cache,
 	trustCache, allowMissingChecksum, force bool,
-) (filename, key string, dir fs.FS, unlock func() error, errOut error) {
+) (cachedFile, key string, unlock func() error, errOut error) {
 	dlFile, err := urlFilename(dep.url)
 	if err != nil {
-		return "", "", nil, nil, err
+		return "", "", nil, err
 	}
 
 	var downloader func(dir string) error
@@ -28,12 +27,12 @@ func downloadDependency(
 	if checksum == "" {
 		if !allowMissingChecksum {
 			err = fmt.Errorf("no checksum configured for %s", dep.name)
-			return "", "", nil, nil, err
+			return "", "", nil, err
 		}
 		var tempDir string
 		tempDir, err = os.MkdirTemp("", "bindown")
 		if err != nil {
-			return "", "", nil, nil, err
+			return "", "", nil, err
 		}
 		defer deferErr(&errOut, func() error {
 			return os.RemoveAll(tempDir)
@@ -41,10 +40,10 @@ func downloadDependency(
 		tempFile := filepath.Join(tempDir, dlFile)
 		checksum, err = getURLChecksum(dep.url, tempFile)
 		if err != nil {
-			return "", "", nil, nil, err
+			return "", "", nil, err
 		}
 		downloader = func(dir string) (dlErrOut error) {
-			return copyFile(tempFile, filepath.Join(dir, dlFile), nil)
+			return copyFile(tempFile, filepath.Join(dir, dlFile))
 		}
 	} else {
 		downloader = func(dir string) error {
@@ -59,7 +58,7 @@ func downloadDependency(
 			if checksum != gotSum {
 				return fmt.Errorf(`checksum mismatch in downloaded file %q 
 wanted: %s
-got: %s`, filename, checksum, gotSum)
+got: %s`, cachedFile, checksum, gotSum)
 			}
 			return nil
 		}
@@ -68,12 +67,12 @@ got: %s`, filename, checksum, gotSum)
 	if force {
 		err = dlCache.Evict(key)
 		if err != nil {
-			return "", "", nil, nil, err
+			return "", "", nil, err
 		}
 	}
 
-	validator := func(dir fs.FS) error {
-		got, sumErr := fsFileChecksum(dir, dlFile)
+	validator := func(dir string) error {
+		got, sumErr := fileChecksum(filepath.Join(dir, dlFile))
 		if sumErr != nil {
 			return sumErr
 		}
@@ -86,11 +85,11 @@ got: %s`, filename, checksum, gotSum)
 		validator = nil
 	}
 
-	dir, unlock, err = dlCache.Dir(key, validator, downloader)
+	dir, unlock, err := dlCache.Dir(key, validator, downloader)
 	if err != nil {
-		return "", "", nil, nil, err
+		return "", "", nil, err
 	}
-	return dlFile, key, dir, unlock, nil
+	return filepath.Join(dir, dlFile), key, unlock, nil
 }
 
 // downloadFile downloads the file at url to targetPath. It returns the checksum of the file.

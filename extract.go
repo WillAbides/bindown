@@ -2,7 +2,6 @@ package bindown
 
 import (
 	"fmt"
-	"io/fs"
 	"os"
 	"path/filepath"
 
@@ -14,15 +13,15 @@ func extractDependencyToCache(
 	archivePath, cacheDir, key string,
 	exCache *cache.Cache,
 	trustCache, force bool,
-) (outDir string, fsDir fs.FS, unlock func() error, errOut error) {
+) (extractDir string, unlock func() error, _ error) {
 	extractSumsDir := filepath.Join(cacheDir, ".extract_sums")
 	err := os.MkdirAll(extractSumsDir, 0o755)
 	if err != nil {
-		return "", nil, nil, err
+		return "", nil, err
 	}
 	extractSumFile := filepath.Join(extractSumsDir, key+".sum")
 
-	validator := func(dir fs.FS) error {
+	validator := func(dir string) error {
 		if trustCache {
 			return nil
 		}
@@ -30,7 +29,7 @@ func extractDependencyToCache(
 		if vErr != nil {
 			return vErr
 		}
-		gotSum, vErr := fsDirectoryChecksum(dir)
+		gotSum, vErr := directoryChecksum(dir)
 		if vErr != nil {
 			return vErr
 		}
@@ -45,7 +44,7 @@ func extractDependencyToCache(
 		if exErr != nil {
 			return exErr
 		}
-		gotSum, exErr := fsDirectoryChecksum(os.DirFS(dir))
+		gotSum, exErr := directoryChecksum(dir)
 		if exErr != nil {
 			return exErr
 		}
@@ -55,15 +54,10 @@ func extractDependencyToCache(
 	if force {
 		err = exCache.Evict(key)
 		if err != nil {
-			return "", nil, nil, err
+			return "", nil, err
 		}
 	}
-	fsDir, unlock, err = exCache.Dir(key, validator, extractor)
-	if err != nil {
-		return "", nil, nil, err
-	}
-	outDir = filepath.Join(exCache.Root, key)
-	return outDir, fsDir, unlock, nil
+	return exCache.Dir(key, validator, extractor)
 }
 
 // extract extracts an archive
@@ -82,7 +76,7 @@ func extract(archivePath, extractDir string) error {
 	tarPath := filepath.Join(downloadDir, dlName)
 	_, err = archiver.ByExtension(dlName)
 	if err != nil {
-		return copyFile(tarPath, filepath.Join(extractDir, dlName), nil)
+		return copyFile(tarPath, filepath.Join(extractDir, dlName))
 	}
 	return archiver.Unarchive(tarPath, extractDir)
 }

@@ -8,7 +8,6 @@ import (
 	"hash"
 	"hash/fnv"
 	"io"
-	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
@@ -87,40 +86,6 @@ func directoryChecksum(inputDir string) (string, error) {
 	return hex.EncodeToString(hasher.Sum(nil)), nil
 }
 
-func fsDirectoryChecksum(dir fs.FS) (string, error) {
-	hasher := fnv.New64a()
-	err := fs.WalkDir(dir, ".", func(path string, d fs.DirEntry, err error) error {
-		if err != nil {
-			return err
-		}
-
-		_, err = hasher.Write([]byte(path))
-		if err != nil {
-			return err
-		}
-
-		if !(d.Type().IsRegular() || d.Type()&fs.ModeSymlink != 0) {
-			return nil
-		}
-
-		fi, err := dir.Open(path)
-		if err != nil {
-			return err
-		}
-
-		_, err = io.Copy(hasher, fi)
-		if err != nil {
-			return err
-		}
-
-		return fi.Close()
-	})
-	if err != nil {
-		return "", err
-	}
-	return hex.EncodeToString(hasher.Sum(nil)), nil
-}
-
 func mustWriteToHash(hasher hash.Hash, data []byte) {
 	_, err := hasher.Write(data)
 	if err != nil {
@@ -132,11 +97,7 @@ func mustWriteToHash(hasher hash.Hash, data []byte) {
 
 // fileChecksum returns the hex checksum of a file
 func fileChecksum(filename string) (string, error) {
-	return fsFileChecksum(os.DirFS(filepath.Dir(filename)), filepath.Base(filename))
-}
-
-func fsFileChecksum(dir fs.FS, filename string) (string, error) {
-	fileBytes, err := fs.ReadFile(dir, filename)
+	fileBytes, err := os.ReadFile(filename)
 	if err != nil {
 		return "", err
 	}
@@ -164,31 +125,18 @@ func fileExistsWithChecksum(filename, checksum string) (bool, error) {
 	return checksum == got, nil
 }
 
-type copyFileOpts struct {
-	// srcFs is the filesystem to read from. If nil, os.DirFS(filepath.Dir(src)) is used.
-	srcFs fs.FS
-}
-
 // copyFile copies file from src to dst
 // modeTrans is a function for setting the destination FileMode. It accepts the source FileMode. If nil, the unmodified
 // source FileMode is used.
-func copyFile(src, dst string, opts *copyFileOpts) (errOut error) {
-	if opts == nil {
-		opts = &copyFileOpts{}
-	}
-	srcFs := opts.srcFs
-	if srcFs == nil {
-		srcFs = os.DirFS(filepath.Dir(src))
-		src = filepath.Base(src)
-	}
-	srcStat, err := fs.Stat(srcFs, src)
+func copyFile(src, dst string) (errOut error) {
+	srcStat, err := os.Stat(src)
 	if err != nil {
 		return err
 	}
 	if !srcStat.Mode().IsRegular() {
 		return fmt.Errorf("not a regular file")
 	}
-	rdr, err := srcFs.Open(src)
+	rdr, err := os.Open(src)
 	if err != nil {
 		return err
 	}

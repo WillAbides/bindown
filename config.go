@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"hash/fnv"
 	"io"
-	"io/fs"
 	"net/http"
 	"net/url"
 	"os"
@@ -310,7 +309,7 @@ func (c *Config) Validate(dependencies []string, systems []SystemInfo) (errOut e
 		return err
 	}
 	defer deferErr(&errOut, func() error {
-		cleanErr := filepath.WalkDir(tmpCacheDir, func(path string, d fs.DirEntry, err error) error {
+		cleanErr := filepath.WalkDir(tmpCacheDir, func(path string, d os.DirEntry, err error) error {
 			if err != nil {
 				return err
 			}
@@ -395,27 +394,32 @@ func cacheKey(hashMaterial string) string {
 }
 
 // DownloadDependency downloads a dependency
-func (c *Config) DownloadDependency(dependencyName string, sysInfo SystemInfo, opts *ConfigDownloadDependencyOpts) (_ string, errOut error) {
+func (c *Config) DownloadDependency(
+	name string,
+	sysInfo SystemInfo,
+	opts *ConfigDownloadDependencyOpts,
+) (_ string, errOut error) {
 	if opts == nil {
 		opts = &ConfigDownloadDependencyOpts{}
 	}
-	dep, err := c.buildDependency(dependencyName, sysInfo)
+	dep, err := c.buildDependency(name, sysInfo)
 	if err != nil {
 		return "", err
 	}
-	dlFile, key, dir, unlock, err := downloadDependency(dep, c.downloadsCache(), c.TrustCache, opts.AllowMissingChecksum, opts.Force)
+	dlFile, _, unlock, err := downloadDependency(dep, c.downloadsCache(), c.TrustCache, opts.AllowMissingChecksum, opts.Force)
 	if err != nil {
 		return "", err
 	}
 	defer deferErr(&errOut, unlock)
+	cachedFile := dlFile
 	if opts.TargetFile == "" {
-		return filepath.Join(c.downloadsCache().Root, key, dlFile), nil
+		return cachedFile, nil
 	}
 	err = os.MkdirAll(filepath.Dir(opts.TargetFile), 0o755)
 	if err != nil {
 		return "", err
 	}
-	err = copyFile(dlFile, opts.TargetFile, &copyFileOpts{srcFs: dir})
+	err = copyFile(dlFile, opts.TargetFile)
 	if err != nil {
 		return "", err
 	}
@@ -446,7 +450,7 @@ func (c *Config) ExtractDependency(dependencyName string, sysInfo SystemInfo, op
 	if err != nil {
 		return "", err
 	}
-	dlFile, key, _, dlUnlock, err := downloadDependency(
+	dlFile, key, dlUnlock, err := downloadDependency(
 		dep,
 		c.downloadsCache(),
 		c.TrustCache,
@@ -457,17 +461,16 @@ func (c *Config) ExtractDependency(dependencyName string, sysInfo SystemInfo, op
 		return "", err
 	}
 	defer deferErr(&errOut, dlUnlock)
-	downloadPath := filepath.Join(c.downloadsCache().Root, key, dlFile)
 
 	if opts.TargetDirectory != "" {
-		err = extract(downloadPath, opts.TargetDirectory)
+		err = extract(dlFile, opts.TargetDirectory)
 		if err != nil {
 			return "", err
 		}
 		return opts.TargetDirectory, nil
 	}
-	outDir, _, unlock, err := extractDependencyToCache(
-		downloadPath,
+	outDir, unlock, err := extractDependencyToCache(
+		dlFile,
 		c.Cache,
 		key,
 		c.extractsCache(),
@@ -500,7 +503,7 @@ func (c *Config) InstallDependency(dependencyName string, sysInfo SystemInfo, op
 	if err != nil {
 		return "", err
 	}
-	dlFile, key, _, dlUnlock, err := downloadDependency(
+	dlFile, key, dlUnlock, err := downloadDependency(
 		dep,
 		c.downloadsCache(),
 		c.TrustCache,
@@ -512,10 +515,8 @@ func (c *Config) InstallDependency(dependencyName string, sysInfo SystemInfo, op
 	}
 	defer deferErr(&errOut, dlUnlock)
 
-	downloadPath := filepath.Join(filepath.Join(c.downloadsCache().Root, key), dlFile)
-
-	extractDir, fsDir, exUnlock, err := extractDependencyToCache(
-		downloadPath,
+	extractDir, exUnlock, err := extractDependencyToCache(
+		dlFile,
 		c.Cache,
 		key,
 		c.extractsCache(),
@@ -535,7 +536,7 @@ func (c *Config) InstallDependency(dependencyName string, sysInfo SystemInfo, op
 		}
 		targetPath = filepath.Join(c.InstallDir, binName)
 	}
-	return install(dep, fsDir, targetPath, extractDir)
+	return install(dep, targetPath, extractDir)
 }
 
 // AddDependencyFromTemplateOpts options for AddDependencyFromTemplate

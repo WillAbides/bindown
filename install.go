@@ -1,12 +1,11 @@
 package bindown
 
 import (
-	"io/fs"
 	"os"
 	"path/filepath"
 )
 
-func install(dep *builtDependency, fsDir fs.FS, targetPath, extractDir string) (string, error) {
+func install(dep *builtDependency, targetPath, extractDir string) (string, error) {
 	var binName string
 	if dep.BinName != nil {
 		binName = *dep.BinName
@@ -18,8 +17,9 @@ func install(dep *builtDependency, fsDir fs.FS, targetPath, extractDir string) (
 	if dep.ArchivePath != nil {
 		archivePath = filepath.FromSlash(*dep.ArchivePath)
 	}
+	extractBin := filepath.Join(extractDir, archivePath)
 	if dep.Link != nil && *dep.Link {
-		return targetPath, linkBin(targetPath, extractDir, archivePath)
+		return targetPath, linkBin(targetPath, extractBin)
 	}
 	if fileExists(targetPath) {
 		err := os.RemoveAll(targetPath)
@@ -31,9 +31,7 @@ func install(dep *builtDependency, fsDir fs.FS, targetPath, extractDir string) (
 	if err != nil {
 		return "", err
 	}
-	err = copyFile(archivePath, targetPath, &copyFileOpts{
-		srcFs: fsDir,
-	})
+	err = copyFile(extractBin, targetPath)
 	if err != nil {
 		return "", err
 	}
