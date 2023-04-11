@@ -13,7 +13,7 @@ import (
 
 func TestCache_Dir(t *testing.T) {
 	t.Run("reads existing file", func(t *testing.T) {
-		cache := &Cache{Root: tmpDir(t)}
+		cache := testCache(t)
 		testFile := filepath.Join(cache.Root, "foo", "foo.txt")
 		mustWriteFile(t, testFile, "bar")
 		dir, unlock, err := cache.Dir("foo", fooValidator, nil)
@@ -23,7 +23,7 @@ func TestCache_Dir(t *testing.T) {
 	})
 
 	t.Run("reads existing file with no validator", func(t *testing.T) {
-		cache := &Cache{Root: tmpDir(t)}
+		cache := testCache(t)
 		testFile := filepath.Join(cache.Root, "foo", "foo.txt")
 		mustWriteFile(t, testFile, "bar")
 		dir, unlock, err := cache.Dir("foo", nil, nil)
@@ -33,7 +33,7 @@ func TestCache_Dir(t *testing.T) {
 	})
 
 	t.Run("populates cache", func(t *testing.T) {
-		cache := &Cache{Root: tmpDir(t)}
+		cache := testCache(t)
 		dir, unlock, err := cache.Dir("foo", fooValidator, fooPopulator)
 		require.NoError(t, err)
 		assertFsFile(t, dir, "foo.txt", "bar")
@@ -41,7 +41,7 @@ func TestCache_Dir(t *testing.T) {
 	})
 
 	t.Run("re-populates cache when invalid", func(t *testing.T) {
-		cache := &Cache{Root: tmpDir(t)}
+		cache := testCache(t)
 		testFile := filepath.Join(cache.Root, "foo", "foo.txt")
 		mustWriteFile(t, testFile, "invalid")
 		extraFile := filepath.Join(cache.Root, "foo", "extra.txt")
@@ -54,13 +54,13 @@ func TestCache_Dir(t *testing.T) {
 	})
 
 	t.Run("errors when populator is nil on new cache", func(t *testing.T) {
-		cache := &Cache{Root: tmpDir(t)}
+		cache := testCache(t)
 		_, _, err := cache.Dir("foo", fooValidator, nil)
 		require.EqualError(t, err, "entry does not exist")
 	})
 
 	t.Run("errors when populator is nil on invalid cache", func(t *testing.T) {
-		cache := &Cache{Root: tmpDir(t)}
+		cache := testCache(t)
 		testFile := filepath.Join(cache.Root, "foo", "foo.txt")
 		mustWriteFile(t, testFile, "invalid")
 		_, _, err := cache.Dir("foo", fooValidator, nil)
@@ -68,7 +68,7 @@ func TestCache_Dir(t *testing.T) {
 	})
 
 	t.Run("errors when populated content is invalid", func(t *testing.T) {
-		cache := &Cache{Root: tmpDir(t)}
+		cache := testCache(t)
 		_, _, err := cache.Dir("foo", fooValidator, func(dir string) error {
 			return nil
 		})
@@ -76,7 +76,7 @@ func TestCache_Dir(t *testing.T) {
 	})
 
 	t.Run("errors when populator returns error", func(t *testing.T) {
-		cache := &Cache{Root: tmpDir(t)}
+		cache := testCache(t)
 		_, _, err := cache.Dir("foo", fooValidator, func(dir string) error {
 			return assert.AnError
 		})
@@ -84,7 +84,7 @@ func TestCache_Dir(t *testing.T) {
 	})
 
 	t.Run("errors when dir is a file", func(t *testing.T) {
-		cache := &Cache{Root: tmpDir(t)}
+		cache := testCache(t)
 		testFile := filepath.Join(cache.Root, "foo.txt")
 		mustWriteFile(t, testFile, "bar")
 		_, _, err := cache.Dir("foo.txt", nil, nil)
@@ -92,7 +92,7 @@ func TestCache_Dir(t *testing.T) {
 	})
 
 	t.Run("multiple read locks", func(t *testing.T) {
-		cache := &Cache{Root: tmpDir(t)}
+		cache := testCache(t)
 		dir1, unlock1, err := cache.Dir("foo", fooValidator, fooPopulator)
 		require.NoError(t, err)
 		dir2, unlock2, err := cache.Dir("foo", fooValidator, fooPopulator)
@@ -104,7 +104,7 @@ func TestCache_Dir(t *testing.T) {
 	})
 
 	t.Run("release then re-acquire lock", func(t *testing.T) {
-		cache := &Cache{Root: tmpDir(t)}
+		cache := testCache(t)
 		dir1, unlock1, err := cache.Dir("foo", fooValidator, fooPopulator)
 		require.NoError(t, err)
 		assertFsFile(t, dir1, "foo.txt", "bar")
@@ -116,7 +116,7 @@ func TestCache_Dir(t *testing.T) {
 	})
 
 	t.Run("invalid keys", func(t *testing.T) {
-		cache := &Cache{Root: tmpDir(t)}
+		cache := testCache(t)
 		keys := []string{
 			"/foo",
 			"../foo",
@@ -134,7 +134,7 @@ func TestCache_Dir(t *testing.T) {
 	})
 
 	t.Run("directory is replaced by a file after read lock released", func(t *testing.T) {
-		cache := &Cache{Root: tmpDir(t)}
+		cache := testCache(t)
 
 		testDir := filepath.Join(cache.Root, "foo")
 		testFile := filepath.Join(testDir, "foo.txt")
@@ -150,7 +150,7 @@ func TestCache_Dir(t *testing.T) {
 	})
 
 	t.Run("entry becomes valid after read lock released", func(t *testing.T) {
-		cache := &Cache{Root: tmpDir(t)}
+		cache := testCache(t)
 		testFile := filepath.Join(cache.Root, "foo", "foo.txt")
 		mustWriteFile(t, testFile, "bar")
 		validateCallCount := 0
@@ -170,13 +170,13 @@ func TestCache_Dir(t *testing.T) {
 
 func TestCache_Evict(t *testing.T) {
 	t.Run("no-op for non-existent key", func(t *testing.T) {
-		cache := &Cache{Root: tmpDir(t)}
+		cache := testCache(t)
 		err := cache.Evict("foo")
 		require.NoError(t, err)
 	})
 
 	t.Run("evicts existing key", func(t *testing.T) {
-		cache := &Cache{Root: tmpDir(t)}
+		cache := testCache(t)
 		dir, unlock, err := cache.Dir("foo", fooValidator, fooPopulator)
 		require.NoError(t, err)
 		assertFsFile(t, dir, "foo.txt", "bar")
@@ -189,7 +189,7 @@ func TestCache_Evict(t *testing.T) {
 	})
 
 	t.Run("errors when key is a file", func(t *testing.T) {
-		cache := &Cache{Root: tmpDir(t)}
+		cache := testCache(t)
 		testFile := filepath.Join(cache.Root, "foo.txt")
 		mustWriteFile(t, testFile, "bar")
 		err := cache.Evict("foo.txt")
@@ -197,7 +197,7 @@ func TestCache_Evict(t *testing.T) {
 	})
 
 	t.Run("invalid keys", func(t *testing.T) {
-		cache := &Cache{Root: tmpDir(t)}
+		cache := testCache(t)
 		keys := []string{
 			"/foo",
 			"../foo",
@@ -266,10 +266,13 @@ func mustUnlock(t testing.TB, unlock func() error) {
 	require.NoError(t, unlock())
 }
 
-func tmpDir(t testing.TB) string {
+func testCache(t *testing.T) *Cache {
+	t.Helper()
 	dir := t.TempDir()
 	t.Cleanup(func() {
-		assert.NoError(t, unsealDir(dir))
+		assert.NoError(t, RemoveRoot(dir))
 	})
-	return dir
+	return &Cache{
+		Root: dir,
+	}
 }

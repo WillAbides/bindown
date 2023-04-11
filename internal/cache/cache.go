@@ -55,7 +55,7 @@ func (c *Cache) Dir(key string, validate validateFunc, populate populateFunc) (_
 	}
 	err = validateDir(dir, validate)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, errors.Join(err, lock.Close())
 	}
 	return fsDir, lock.Close, nil
 }
@@ -100,12 +100,20 @@ func (c *Cache) locksDir() string {
 	return filepath.Join(c.Root, ".locks")
 }
 
+func (c *Cache) rLockRoot() (io.Closer, error) {
+	return acquireRLock(c.lockfile(".root"))
+}
+
+func (c *Cache) lockRoot() (io.Closer, error) {
+	return acquireLock(c.lockfile(".root"))
+}
+
 func (c *Cache) lock(key string) (io.Closer, error) {
-	err := os.MkdirAll(c.locksDir(), 0o777)
+	rootLock, err := c.rLockRoot()
 	if err != nil {
 		return nil, err
 	}
-	file, err := lockedfile.OpenFile(c.lockfile(key), os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0o666)
+	file, err := lockedfile.Create(c.lockfile(key))
 	if err != nil {
 		return nil, err
 	}
@@ -115,35 +123,64 @@ func (c *Cache) lock(key string) (io.Closer, error) {
 		return nil, err
 	}
 	return &writeLock{
-		file: file,
-		dir:  dir,
+		rootLock: rootLock,
+		lock:     file,
+		dir:      dir,
 	}, nil
 }
 
-type writeLock struct {
-	file *lockedfile.File
-	dir  string
-}
-
-func (l *writeLock) Close() (errOut error) {
-	sealDir(l.dir)
-	return l.file.Close()
-}
-
 func (c *Cache) rLock(key string) (io.Closer, error) {
-	err := os.MkdirAll(c.locksDir(), 0o777)
+	rootLock, err := c.rLockRoot()
 	if err != nil {
 		return nil, err
 	}
-	lockfile := c.lockfile(key)
-	_, err = os.Stat(lockfile)
-	if os.IsNotExist(err) {
-		err = os.WriteFile(lockfile, nil, 0o666)
-	}
+	rLock, err := acquireRLock(c.lockfile(key))
 	if err != nil {
 		return nil, err
 	}
-	return lockedfile.OpenFile(lockfile, os.O_RDONLY, 0)
+	return &readLock{
+		rootLock: rootLock,
+		lock:     rLock,
+	}, nil
+}
+
+func acquireRLock(lockfile string) (io.Closer, error) {
+	var rLock io.Closer
+	for i := 0; i < 8; i++ {
+		err := os.MkdirAll(filepath.Dir(lockfile), 0o777)
+		if err != nil {
+			return nil, err
+		}
+		rLock, err = lockedfile.Open(lockfile)
+		if err == nil {
+			break
+		}
+		if !errors.Is(err, os.ErrNotExist) {
+			return nil, err
+		}
+		rLock = nil
+		var wl io.Closer
+		wl, err = lockedfile.Create(lockfile)
+		if err != nil {
+			return nil, err
+		}
+		err = wl.Close()
+		if err != nil {
+			return nil, err
+		}
+	}
+	if rLock == nil {
+		return nil, errors.New("failed to acquire lock")
+	}
+	return rLock, nil
+}
+
+func acquireLock(lockfile string) (io.Closer, error) {
+	err := os.MkdirAll(filepath.Dir(lockfile), 0o777)
+	if err != nil {
+		return nil, err
+	}
+	return lockedfile.Create(lockfile)
 }
 
 func (c *Cache) populate(key string, validate validateFunc, populate populateFunc) (errOut error) {
@@ -181,6 +218,46 @@ func (c *Cache) populate(key string, validate validateFunc, populate populateFun
 		return err
 	}
 	return populate(dir)
+}
+
+// RemoveRoot removes a cache root and all of its contents. This is the nuclear option.
+func RemoveRoot(root string) (errOut error) {
+	c := &Cache{Root: root}
+	rootLock, err := c.lockRoot()
+	if err != nil {
+		return err
+	}
+	defer func() {
+		closeErr := rootLock.Close()
+		if errOut == nil {
+			errOut = closeErr
+		}
+	}()
+	err = unsealDir(root)
+	if err != nil {
+		return err
+	}
+	return os.RemoveAll(root)
+}
+
+type writeLock struct {
+	rootLock io.Closer
+	lock     io.Closer
+	dir      string
+}
+
+func (l *writeLock) Close() (errOut error) {
+	sealDir(l.dir)
+	return errors.Join(l.lock.Close(), l.rootLock.Close())
+}
+
+type readLock struct {
+	rootLock io.Closer
+	lock     io.Closer
+}
+
+func (l *readLock) Close() (errOut error) {
+	return errors.Join(l.lock.Close(), l.rootLock.Close())
 }
 
 func validateDir(dir string, validate validateFunc) error {
