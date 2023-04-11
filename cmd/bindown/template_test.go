@@ -170,7 +170,7 @@ templates:
   tmpl2:
     url: bar
 `
-	srcFile := filepath.Join(tmpDir(t), "template-source.yaml")
+	srcFile := filepath.Join(t.TempDir(), "template-source.yaml")
 	err := os.WriteFile(srcFile, []byte(remoteConfig), 0o600)
 	require.NoError(t, err)
 
@@ -238,7 +238,7 @@ templates:
   tmpl2:
     url: bar
 `
-	srcFile := filepath.Join(tmpDir(t), "template-source.yaml")
+	srcFile := filepath.Join(t.TempDir(), "template-source.yaml")
 	err := os.WriteFile(srcFile, []byte(remoteConfig), 0o600)
 	require.NoError(t, err)
 	server := serveFile(t, srcFile, "/template-source.yaml", "")

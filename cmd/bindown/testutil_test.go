@@ -15,6 +15,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/willabides/bindown/v3"
+	"github.com/willabides/bindown/v3/internal/cache"
 )
 
 type cmdRunner struct {
@@ -25,15 +26,21 @@ type cmdRunner struct {
 	stdin      io.Reader
 }
 
-func newCmdRunner(t *testing.T) *cmdRunner {
-	tmpDir := tmpDir(t)
-	cache := filepath.Join(tmpDir, "cache")
-	configfile := filepath.Join(tmpDir, ".bindown.yaml")
+func newCmdRunner(t testing.TB) *cmdRunner {
+	t.Helper()
+	dir := t.TempDir()
+	cacheDir := filepath.Join(dir, "cache")
+	t.Cleanup(func() {
+		t.Helper()
+		assert.NoError(t, cache.RemoveRoot(filepath.Join(cacheDir, "downloads")))
+		assert.NoError(t, cache.RemoveRoot(filepath.Join(cacheDir, "extracts")))
+	})
+	configfile := filepath.Join(dir, ".bindown.yaml")
 	return &cmdRunner{
 		t:          t,
-		cache:      cache,
+		cache:      cacheDir,
 		configFile: configfile,
-		tmpDir:     tmpDir,
+		tmpDir:     dir,
 	}
 }
 
@@ -216,20 +223,6 @@ func testInDir(t testing.TB, dir string) {
 		assert.NoError(t, os.Chdir(orig))
 	})
 	assert.NoError(t, os.Chdir(dir))
-}
-
-func tmpDir(tb testing.TB) string {
-	dir := tb.TempDir()
-	tb.Cleanup(func() {
-		err := filepath.WalkDir(dir, func(path string, d fs.DirEntry, err error) error {
-			if err != nil {
-				return err
-			}
-			return os.Chmod(path, 0o777)
-		})
-		assert.NoError(tb, err)
-	})
-	return dir
 }
 
 func unsealDir(t testing.TB, dir string) {
