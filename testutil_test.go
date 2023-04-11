@@ -27,10 +27,10 @@ func serveFile(t *testing.T, file, path, query string) *httptest.Server {
 	return ts
 }
 
-func newSystemInfo(goOs, goArch string) SystemInfo {
+func newSystemInfo(os, arch string) SystemInfo {
 	return SystemInfo{
-		OS:   goOs,
-		Arch: goArch,
+		OS:   os,
+		Arch: arch,
 	}
 }
 
