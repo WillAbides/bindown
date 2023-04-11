@@ -8,6 +8,7 @@ import (
 	"hash"
 	"hash/fnv"
 	"io"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
@@ -87,27 +88,62 @@ func directoryChecksum(inputDir string) (string, error) {
 	return hex.EncodeToString(hasher.Sum(nil)), nil
 }
 
-// hexHash returns a hex representation of data's hash
-func hexHash(hasher hash.Hash, data ...[]byte) string {
-	hasher.Reset()
-	for _, datum := range data {
-		_, err := hasher.Write(datum)
+func fsDirectoryChecksum(dir fs.FS) (string, error) {
+	hasher := fnv.New64a()
+	err := fs.WalkDir(dir, ".", func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
-			// hash.Hash.Write() never returns an error
-			// https://github.com/golang/go/blob/go1.17/src/hash/hash.go#L27-L29
-			panic(err)
+			return err
 		}
+
+		_, err = hasher.Write([]byte(path))
+		if err != nil {
+			return err
+		}
+
+		if !(d.Type().IsRegular() || d.Type()&fs.ModeSymlink != 0) {
+			return nil
+		}
+
+		fi, err := dir.Open(path)
+		if err != nil {
+			return err
+		}
+
+		_, err = io.Copy(hasher, fi)
+		if err != nil {
+			return err
+		}
+
+		return fi.Close()
+	})
+	if err != nil {
+		return "", err
 	}
-	return hex.EncodeToString(hasher.Sum(nil))
+	return hex.EncodeToString(hasher.Sum(nil)), nil
+}
+
+func mustWriteToHash(hasher hash.Hash, data []byte) {
+	_, err := hasher.Write(data)
+	if err != nil {
+		// hash.Hash.Write() never returns an error
+		// https://github.com/golang/go/blob/go1.17/src/hash/hash.go#L27-L29
+		panic(err)
+	}
 }
 
 // fileChecksum returns the hex checksum of a file
 func fileChecksum(filename string) (string, error) {
-	fileBytes, err := os.ReadFile(filename)
+	return fsFileChecksum(os.DirFS(filepath.Dir(filename)), filepath.Base(filename))
+}
+
+func fsFileChecksum(dir fs.FS, filename string) (string, error) {
+	fileBytes, err := fs.ReadFile(dir, filename)
 	if err != nil {
 		return "", err
 	}
-	return hexHash(sha256.New(), fileBytes), nil
+	hasher := sha256.New()
+	mustWriteToHash(hasher, fileBytes)
+	return hex.EncodeToString(hasher.Sum(nil)), nil
 }
 
 // fileExists asserts that a file exist or symlink exists.
@@ -129,33 +165,51 @@ func fileExistsWithChecksum(filename, checksum string) (bool, error) {
 	return checksum == got, nil
 }
 
+type copyFileOpts struct {
+	// srcFs is the filesystem to read from. If nil, os.DirFS(filepath.Dir(src)) is used.
+	srcFs fs.FS
+}
+
 // copyFile copies file from src to dst
-func copyFile(src, dst string, closeCloser func(io.Closer)) error {
-	if closeCloser == nil {
-		closeCloser = func(_ io.Closer) {}
+// modeTrans is a function for setting the destination FileMode. It accepts the source FileMode. If nil, the unmodified
+// source FileMode is used.
+func copyFile(src, dst string, opts *copyFileOpts) (errOut error) {
+	if opts == nil {
+		opts = &copyFileOpts{}
 	}
-	srcStat, err := os.Stat(src)
+	srcFs := opts.srcFs
+	if srcFs == nil {
+		srcFs = os.DirFS(filepath.Dir(src))
+		src = filepath.Base(src)
+	}
+	srcStat, err := fs.Stat(srcFs, src)
 	if err != nil {
 		return err
 	}
 	if !srcStat.Mode().IsRegular() {
 		return fmt.Errorf("not a regular file")
 	}
-
-	rdr, err := os.Open(src)
+	rdr, err := srcFs.Open(src)
 	if err != nil {
 		return err
 	}
-	defer closeCloser(rdr)
 
-	writer, err := os.OpenFile(dst, os.O_RDWR|os.O_CREATE|os.O_TRUNC, srcStat.Mode())
+	dstMode := srcStat.Mode()
+	writer, err := os.OpenFile(dst, os.O_RDWR|os.O_CREATE|os.O_TRUNC, dstMode)
 	if err != nil {
 		return err
 	}
-	defer closeCloser(writer)
+	defer deferErr(&errOut, writer.Close)
 
 	_, err = io.Copy(writer, rdr)
 	return err
+}
+
+func deferErr(errOut *error, fn func() error) {
+	deferredErr := fn()
+	if *errOut == nil {
+		*errOut = deferredErr
+	}
 }
 
 func clonePointer[T comparable](p *T) *T {

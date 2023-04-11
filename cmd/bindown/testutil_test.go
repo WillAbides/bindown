@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"io"
+	"io/fs"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -25,7 +26,7 @@ type cmdRunner struct {
 }
 
 func newCmdRunner(t *testing.T) *cmdRunner {
-	tmpDir := t.TempDir()
+	tmpDir := tmpDir(t)
 	cache := filepath.Join(tmpDir, "cache")
 	configfile := filepath.Join(tmpDir, ".bindown.yaml")
 	return &cmdRunner{
@@ -110,6 +111,17 @@ func (r *runCmdResult) assertStdOut(want string) {
 func (r *runCmdResult) assertStdErr(want string) {
 	r.t.Helper()
 	assertEqualOrMatch(r.t, want, r.stdErr.String())
+}
+
+func (r *runCmdResult) getExtractDir() string {
+	r.t.Helper()
+	stdout := r.stdOut.String()
+	re := regexp.MustCompile(`(?m)^extracted .+ to (.*)$`)
+	matches := re.FindStringSubmatch(stdout)
+	if !assert.Len(r.t, matches, 2) {
+		return ""
+	}
+	return matches[1]
 }
 
 type resultState struct {
@@ -204,4 +216,37 @@ func testInDir(t testing.TB, dir string) {
 		assert.NoError(t, os.Chdir(orig))
 	})
 	assert.NoError(t, os.Chdir(dir))
+}
+
+func tmpDir(tb testing.TB) string {
+	dir := tb.TempDir()
+	tb.Cleanup(func() {
+		err := filepath.WalkDir(dir, func(path string, d fs.DirEntry, err error) error {
+			if err != nil {
+				return err
+			}
+			return os.Chmod(path, 0o777)
+		})
+		assert.NoError(tb, err)
+	})
+	return dir
+}
+
+func unsealDir(t testing.TB, dir string) {
+	_, err := os.Stat(dir)
+	if os.IsNotExist(err) {
+		return
+	}
+	assert.NoError(t, err)
+	err = filepath.WalkDir(dir, func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		info, err := d.Info()
+		if err != nil {
+			return err
+		}
+		return os.Chmod(path, info.Mode()|0o222)
+	})
+	assert.NoError(t, err)
 }

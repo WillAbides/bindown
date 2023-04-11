@@ -22,11 +22,20 @@ linters:
     - gofumpt
     - revive
 linters-settings:
+  gosec:
+    excludes:
+      - G204 # Subprocess launched with variable
+      - G301 # Expect directory permissions to be 0750 or less
+      - G302 # Expect file permissions to be 0600 or less
+      - G306 # Expect WriteFile permissions to be 0600 or less
   gocritic:
     enabled-tags:
       - style
       - diagnostic
       - performance
+    disabled-checks:
+      - rangeValCopy
+      - ptrToRefParam
   errcheck:
     # report about assignment of errors to blank identifier: `num, _ := strconv.Atoi(numStr)`;
     # default is false: such cases aren't reported by default.

@@ -201,7 +201,7 @@ func TestConfig_addTemplateFromSource(t *testing.T) {
 
 func TestConfig_InstallDependency(t *testing.T) {
 	t.Run("raw file", func(t *testing.T) {
-		dir := t.TempDir()
+		dir := tmpDir(t)
 		servePath := filepath.Join("testdata", "downloadables", filepath.FromSlash("rawfile/foo"))
 		ts := serveFile(t, servePath, "/foo/foo", "")
 		depURL := ts.URL + "/foo/foo"
@@ -232,7 +232,7 @@ func TestConfig_InstallDependency(t *testing.T) {
 	})
 
 	t.Run("bin in root", func(t *testing.T) {
-		dir := t.TempDir()
+		dir := tmpDir(t)
 		servePath := filepath.Join("testdata", "downloadables", "fooinroot.tar.gz")
 		ts := serveFile(t, servePath, "/foo/fooinroot.tar.gz", "")
 		depURL := ts.URL + "/foo/fooinroot.tar.gz"
@@ -263,7 +263,7 @@ func TestConfig_InstallDependency(t *testing.T) {
 	})
 
 	t.Run("wrong checksum", func(t *testing.T) {
-		dir := t.TempDir()
+		dir := tmpDir(t)
 		servePath := filepath.Join("testdata", "downloadables", "fooinroot.tar.gz")
 		ts := serveFile(t, servePath, "/foo/fooinroot.tar.gz", "")
 		depURL := ts.URL + "/foo/fooinroot.tar.gz"
@@ -303,23 +303,23 @@ func TestConfig_addChecksums(t *testing.T) {
 	cfg := &Config{
 		Dependencies: map[string]*Dependency{
 			"d1": {
-				URL: stringPtr(dl1),
+				URL: &dl1,
 				Overrides: []DependencyOverride{
 					{
-						Dependency:      Dependency{URL: stringPtr(dl2)},
+						Dependency:      Dependency{URL: &dl2},
 						OverrideMatcher: OverrideMatcher{"os": []string{"darwin"}},
 					},
 					{
-						Dependency:      Dependency{URL: stringPtr(dl5)},
+						Dependency:      Dependency{URL: &dl5},
 						OverrideMatcher: OverrideMatcher{"os": []string{"windows"}},
 					},
 				},
 			},
 			"d2": {
-				URL: stringPtr(dl3),
+				URL: &dl3,
 				Overrides: []DependencyOverride{
 					{
-						Dependency:      Dependency{URL: stringPtr(dl4)},
+						Dependency:      Dependency{URL: &dl4},
 						OverrideMatcher: OverrideMatcher{"os": []string{"darwin"}},
 					},
 				},
@@ -344,7 +344,7 @@ func TestConfig_BuildDependency(t *testing.T) {
 	cfg := &Config{
 		Dependencies: map[string]*Dependency{
 			"dut": {
-				URL: stringPtr("https://{{.os}}"),
+				URL: ptr("https://{{.os}}"),
 				Overrides: []DependencyOverride{
 					{
 						OverrideMatcher: OverrideMatcher{
@@ -352,7 +352,7 @@ func TestConfig_BuildDependency(t *testing.T) {
 							"os":   []string{"testOS"},
 						},
 						Dependency: Dependency{
-							URL: stringPtr("https://{{.os}}-{{.var1}}-{{.var2}}"),
+							URL: ptr("https://{{.os}}-{{.var1}}-{{.var2}}"),
 							Vars: map[string]string{
 								"var1": "overrideV1",
 								"var2": "overrideV2",
@@ -383,7 +383,7 @@ func TestConfig_addChecksum(t *testing.T) {
 	cfg := &Config{
 		Dependencies: map[string]*Dependency{
 			"dut": {
-				URL: stringPtr(dlURL),
+				URL: &dlURL,
 				Overrides: []DependencyOverride{
 					{
 						OverrideMatcher: OverrideMatcher{
@@ -391,7 +391,7 @@ func TestConfig_addChecksum(t *testing.T) {
 							"os":   []string{"testOS"},
 						},
 						Dependency: Dependency{
-							URL: stringPtr(dlURL2),
+							URL: &dlURL2,
 							Vars: map[string]string{
 								"var1": "overrideV1",
 								"var2": "overrideV2",
@@ -409,7 +409,7 @@ func TestConfig_addChecksum(t *testing.T) {
 	want := &Config{
 		Dependencies: map[string]*Dependency{
 			"dut": {
-				URL: stringPtr(dlURL),
+				URL: &dlURL,
 				Overrides: []DependencyOverride{
 					{
 						OverrideMatcher: OverrideMatcher{
@@ -417,7 +417,7 @@ func TestConfig_addChecksum(t *testing.T) {
 							"os":   []string{"testOS"},
 						},
 						Dependency: Dependency{
-							URL: stringPtr(dlURL2),
+							URL: &dlURL2,
 							Vars: map[string]string{
 								"var1": "overrideV1",
 								"var2": "overrideV2",

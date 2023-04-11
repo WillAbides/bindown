@@ -1,8 +1,6 @@
 package bindown
 
 import (
-	"crypto/sha256"
-	"hash/fnv"
 	"os"
 	"path/filepath"
 	"testing"
@@ -55,23 +53,6 @@ func Test_fileExistsWithChecksum(t *testing.T) {
 	})
 }
 
-func Test_fileChecksum(t *testing.T) {
-	t.Run("success", func(t *testing.T) {
-		file := filepath.Join(t.TempDir(), "myfile")
-		require.NoError(t, copyFile(filepath.Join("testdata", "downloadables", "foo.tar.gz"), file, nil))
-		got, err := fileChecksum(file)
-		require.NoError(t, err)
-		require.Equal(t, fooChecksum, got)
-	})
-
-	t.Run("doesn't exist", func(t *testing.T) {
-		file := filepath.Join(t.TempDir(), "myfile")
-		got, err := fileChecksum(file)
-		require.Error(t, err)
-		require.Empty(t, got)
-	})
-}
-
 func Test_directoryChecksum(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
 		got, err := directoryChecksum(filepath.Join("testdata", "directoryChecksum"))
@@ -79,14 +60,6 @@ func Test_directoryChecksum(t *testing.T) {
 		// This should only change when the contents of testdata/directoryChecksum change.
 		require.Equal(t, "0eb72a7b3c1e286a", got)
 	})
-}
-
-func Test_hexHash(t *testing.T) {
-	require.Equal(t, "dcb27518fed9d577", hexHash(fnv.New64a(), []byte("foo")))
-	require.Equal(t, "85944171f73967e8", hexHash(fnv.New64a(), []byte("foo"), []byte("bar")))
-	content, err := os.ReadFile(filepath.Join("testdata", "downloadables", "foo.tar.gz"))
-	require.NoError(t, err)
-	require.Equal(t, fooChecksum, hexHash(sha256.New(), content))
 }
 
 func Test_copyFile(t *testing.T) {

@@ -134,11 +134,27 @@ func Test_initCmd(t *testing.T) {
 }
 
 func Test_extractCmd(t *testing.T) {
+	servePath := filepath.FromSlash("../../testdata/downloadables/fooinroot.tar.gz")
+	successServer := serveFile(t, servePath, "/foo/fooinroot.tar.gz", "")
+	depURL := successServer.URL + "/foo/fooinroot.tar.gz"
+
+	assertExtractSuccess := func(t *testing.T, result *runCmdResult) {
+		t.Helper()
+		prefix := "extracted foo to "
+		result.assertState(resultState{
+			stdout: prefix,
+		})
+		extractDir := result.getExtractDir()
+		wantFile := filepath.Join(extractDir, "foo")
+		require.FileExists(t, wantFile)
+		// make sure there are no extra files
+		dirFiles, err := os.ReadDir(extractDir)
+		require.NoError(t, err)
+		require.Len(t, dirFiles, 1)
+	}
+
 	t.Run("success", func(t *testing.T) {
 		runner := newCmdRunner(t)
-		servePath := filepath.FromSlash("../../testdata/downloadables/fooinroot.tar.gz")
-		ts := serveFile(t, servePath, "/foo/fooinroot.tar.gz", "")
-		depURL := ts.URL + "/foo/fooinroot.tar.gz"
 		runner.writeConfig(&bindown.Config{
 			URLChecksums: map[string]string{
 				depURL: "27dcce60d1ed72920a84dd4bc01e0bbd013e5a841660e9ee2e964e53fb83c0b3",
@@ -150,17 +166,97 @@ func Test_extractCmd(t *testing.T) {
 			},
 		})
 		result := runner.run("extract", "foo")
-		require.Equal(t, 0, result.exitVal)
-		stdout := result.stdOut.String()
-		wantPrefix := "extracted foo to "
-		require.True(t, strings.HasPrefix(stdout, wantPrefix))
-		extractDir := strings.TrimSpace(strings.TrimPrefix(stdout, wantPrefix))
-		wantFile := filepath.Join(extractDir, "foo")
-		require.FileExists(t, wantFile)
+		assertExtractSuccess(t, result)
+	})
+
+	t.Run("invalid cache", func(t *testing.T) {
+		runner := newCmdRunner(t)
+		runner.writeConfig(&bindown.Config{
+			URLChecksums: map[string]string{
+				depURL: "27dcce60d1ed72920a84dd4bc01e0bbd013e5a841660e9ee2e964e53fb83c0b3",
+			},
+			Dependencies: map[string]*bindown.Dependency{
+				"foo": {
+					URL: &depURL,
+				},
+			},
+		})
+		result := runner.run("extract", "foo")
+		assertExtractSuccess(t, result)
+		extractDir := result.getExtractDir()
+		unsealDir(t, extractDir)
+		err := os.WriteFile(filepath.Join(extractDir, "foo"), []byte("foo"), 0o666)
+		require.NoError(t, err)
+		result = runner.run("extract", "foo")
+		assertExtractSuccess(t, result)
+	})
+
+	t.Run("--trust-cache with empty cache", func(t *testing.T) {
+		runner := newCmdRunner(t)
+		runner.writeConfig(&bindown.Config{
+			URLChecksums: map[string]string{
+				depURL: "27dcce60d1ed72920a84dd4bc01e0bbd013e5a841660e9ee2e964e53fb83c0b3",
+			},
+			Dependencies: map[string]*bindown.Dependency{
+				"foo": {
+					URL: &depURL,
+				},
+			},
+		})
+		result := runner.run("extract", "foo", "--trust-cache")
+		assertExtractSuccess(t, result)
+	})
+
+	t.Run("--trust-cache with valid cache", func(t *testing.T) {
+		runner := newCmdRunner(t)
+		runner.writeConfig(&bindown.Config{
+			URLChecksums: map[string]string{
+				depURL: "27dcce60d1ed72920a84dd4bc01e0bbd013e5a841660e9ee2e964e53fb83c0b3",
+			},
+			Dependencies: map[string]*bindown.Dependency{
+				"foo": {
+					URL: &depURL,
+				},
+			},
+		})
+		result := runner.run("extract", "foo")
+		assertExtractSuccess(t, result)
+		result = runner.run("extract", "foo", "--trust-cache")
+		assertExtractSuccess(t, result)
+	})
+
+	t.Run("--trust-cache does not overwrite invalid cache", func(t *testing.T) {
+		runner := newCmdRunner(t)
+		runner.writeConfig(&bindown.Config{
+			URLChecksums: map[string]string{
+				depURL: "27dcce60d1ed72920a84dd4bc01e0bbd013e5a841660e9ee2e964e53fb83c0b3",
+			},
+			Dependencies: map[string]*bindown.Dependency{
+				"foo": {
+					URL: &depURL,
+				},
+			},
+		})
+		result := runner.run("extract", "foo")
+		assertExtractSuccess(t, result)
+		extractDir := result.getExtractDir()
+		extractedFile := filepath.Join(extractDir, "foo")
+		unsealDir(t, extractDir)
+		err := os.WriteFile(extractedFile, []byte("foo"), 0o666)
+		require.NoError(t, err)
+		result = runner.run("extract", "foo", "--trust-cache")
+		result.assertState(resultState{
+			stdout: "extracted foo to ",
+		})
+		// make sure the file was not overwritten
+		got, err := os.ReadFile(extractedFile)
+		require.NoError(t, err)
+		assert.Equal(t, "foo", string(got))
 	})
 }
 
 func Test_downloadCmd(t *testing.T) {
+	t.Parallel()
 	servePath := filepath.FromSlash("../../testdata/downloadables/fooinroot.tar.gz")
 	successServer := serveFile(t, servePath, "/foo/fooinroot.tar.gz", "")
 	depURL := successServer.URL + "/foo/fooinroot.tar.gz"
@@ -198,6 +294,23 @@ func Test_downloadCmd(t *testing.T) {
 		assertDownloadSuccess(t, result)
 	})
 
+	t.Run("--output", func(t *testing.T) {
+		runner := newCmdRunner(t)
+		outFile := filepath.Join(runner.tmpDir, "out", "foo.tar.gz")
+		runner.writeConfig(&bindown.Config{
+			URLChecksums: map[string]string{
+				depURL: "27dcce60d1ed72920a84dd4bc01e0bbd013e5a841660e9ee2e964e53fb83c0b3",
+			},
+			Dependencies: map[string]*bindown.Dependency{
+				"foo": {
+					URL: &depURL,
+				},
+			},
+		})
+		result := runner.run("download", "foo", "--output", outFile)
+		assertDownloadSuccess(t, result)
+	})
+
 	t.Run("no url", func(t *testing.T) {
 		runner := newCmdRunner(t)
 		runner.writeConfig(&bindown.Config{
@@ -207,7 +320,7 @@ func Test_downloadCmd(t *testing.T) {
 		})
 		result := runner.run("download", "foo")
 		result.assertState(resultState{
-			stderr: `cmd: error: no URL configured`,
+			stderr: `cmd: error: dependency "foo" has no URL`,
 			exit:   1,
 		})
 	})
@@ -239,7 +352,7 @@ func Test_downloadCmd(t *testing.T) {
 		})
 		result := runner.run("download", "foo")
 		result.assertState(resultState{
-			stderr: `cmd: error: no checksum for the url`,
+			stderr: `cmd: error: no checksum configured for foo`,
 			exit:   1,
 		})
 	})
@@ -309,6 +422,23 @@ func Test_downloadCmd(t *testing.T) {
 		result = runner.run("download", "foo", "--allow-missing-checksum")
 		assertDownloadSuccess(t, result)
 	})
+
+	t.Run("already exists with --allow-missing-checksum --trust-cache", func(t *testing.T) {
+		runner := newCmdRunner(t)
+		runner.writeConfig(&bindown.Config{
+			Dependencies: map[string]*bindown.Dependency{
+				"foo": {
+					URL: &depURL,
+				},
+			},
+		})
+		// download to put it in the cache
+		result := runner.run("download", "foo", "--allow-missing-checksum", "--trust-cache")
+		assertDownloadSuccess(t, result)
+		// download again
+		result = runner.run("download", "foo", "--allow-missing-checksum", "--trust-cache")
+		assertDownloadSuccess(t, result)
+	})
 }
 
 func Test_installCmd(t *testing.T) {
@@ -334,6 +464,32 @@ func Test_installCmd(t *testing.T) {
 		stat, err := os.Stat(wantBin)
 		require.NoError(t, err)
 		require.EqualValues(t, os.FileMode(0o750), stat.Mode().Perm()&0o750)
+	})
+
+	t.Run("link raw file", func(t *testing.T) {
+		runner := newCmdRunner(t)
+		servePath := filepath.FromSlash("../../testdata/downloadables/rawfile/foo")
+		ts := serveFile(t, servePath, "/foo/foo", "")
+		depURL := ts.URL + "/foo/foo"
+		runner.writeConfig(&bindown.Config{
+			URLChecksums: map[string]string{
+				depURL: "f044ff8b6007c74bcc1b5a5c92776e5d49d6014f5ff2d551fab115c17f48ac41",
+			},
+			Dependencies: map[string]*bindown.Dependency{
+				"foo": {
+					URL:  &depURL,
+					Link: ptr(true),
+				},
+			},
+		})
+		result := runner.run("install", "foo")
+		require.Equal(t, 0, result.exitVal)
+		wantBin := filepath.Join(runner.tmpDir, "bin", "foo")
+		require.FileExists(t, wantBin)
+		stat, err := os.Lstat(wantBin)
+		require.NoError(t, err)
+		require.EqualValues(t, os.FileMode(0o750), stat.Mode().Perm()&0o750)
+		require.True(t, stat.Mode()&os.ModeSymlink != 0)
 	})
 
 	t.Run("bin in root", func(t *testing.T) {

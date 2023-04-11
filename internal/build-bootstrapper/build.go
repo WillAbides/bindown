@@ -17,14 +17,12 @@ var assets embed.FS
 
 func execBindown(repoRoot string, arg ...string) error {
 	bindownPath := filepath.FromSlash("bin/bootstrapped/bindown")
-	//nolint:gosec // subprocess launch with variable
 	makeCmd := exec.Command("make", bindownPath)
 	makeCmd.Dir = repoRoot
 	err := makeCmd.Run()
 	if err != nil {
 		return err
 	}
-	//nolint:gosec // subprocess launch with variable
 	bindownCmd := exec.Command(bindownPath, arg...)
 	bindownCmd.Dir = repoRoot
 	return bindownCmd.Run()
@@ -110,14 +108,12 @@ func build(tag, repoRoot string) (_ string, errOut error) {
 	if err != nil {
 		return "", err
 	}
-	//nolint:gosec // subprocess launch with variable
 	shfmtCmd := exec.Command(filepath.Join(repoRoot, "bin", "shfmt"), "-i", "2", "-ci", "-sr", "-")
 	shfmtCmd.Stdin = &tmplOut
 	formatted, err := shfmtCmd.Output()
 	if err != nil {
 		return "", err
 	}
-	//nolint:gosec // subprocess launch with variable
 	shellcheckCmd := exec.Command(filepath.Join(repoRoot, "bin", "shellcheck"), "--shell", "sh", "-")
 	shellcheckCmd.Stdin = bytes.NewReader(formatted)
 	err = shellcheckCmd.Run()

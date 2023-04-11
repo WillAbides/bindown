@@ -2,15 +2,10 @@ package bindown
 
 import (
 	"fmt"
-	"io"
-	"log"
-	"net/http"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/Masterminds/semver/v3"
-	"github.com/mholt/archiver/v3"
 	"golang.org/x/exp/maps"
 	"golang.org/x/exp/slices"
 )
@@ -80,6 +75,14 @@ func (o OverrideMatcher) clone() OverrideMatcher {
 	return clone
 }
 
+type builtDependency struct {
+	Dependency
+	name     string
+	checksum string
+	url      string
+	system   SystemInfo
+}
+
 // Dependency is something to download, extract and install
 type Dependency struct {
 	Template      *string                      `json:"template,omitempty" yaml:",omitempty"`
@@ -116,13 +119,6 @@ func varsWithSubstitutions(vars map[string]string, subs map[string]map[string]st
 	return vars
 }
 
-func (d *Dependency) url() (string, error) {
-	if d.URL == nil {
-		return "", fmt.Errorf("no URL configured")
-	}
-	return *d.URL, nil
-}
-
 func (d *Dependency) clone() *Dependency {
 	dep := Dependency{
 		Vars:          maps.Clone(d.Vars),
@@ -136,7 +132,6 @@ func (d *Dependency) clone() *Dependency {
 		Systems:       slices.Clone(d.Systems),
 		RequiredVars:  slices.Clone(d.RequiredVars),
 	}
-	//nolint:gocritic // rangeValCopy -- memory allocation is not a concern here
 	for i, override := range dep.Overrides {
 		dep.Overrides[i] = *override.clone()
 	}
@@ -230,33 +225,7 @@ func (d *Dependency) applyOverrides(info SystemInfo, depth int) {
 	d.Overrides = nil
 }
 
-func boolPtr(val bool) *bool {
-	return &val
-}
-
-func stringPtr(val string) *string {
-	return &val
-}
-
-func boolFromPtr(bPtr *bool) bool {
-	if bPtr == nil {
-		return false
-	}
-	return *bPtr
-}
-
-func strFromPtr(sPtr *string) string {
-	if sPtr == nil {
-		return ""
-	}
-	return *sPtr
-}
-
-func linkBin(link, extractDir, archivePath, binName string) error {
-	archivePath = filepath.FromSlash(archivePath)
-	if archivePath == "" {
-		archivePath = filepath.FromSlash(binName)
-	}
+func linkBin(link, extractDir, archivePath string) error {
 	absExtractDir, err := filepath.Abs(extractDir)
 	if err != nil {
 		return err
@@ -299,170 +268,4 @@ func linkBin(link, extractDir, archivePath, binName string) error {
 		return err
 	}
 	return os.Chmod(link, info.Mode().Perm()|0o750)
-}
-
-func copyBin(target, extractDir, archivePath, binName string) error {
-	archivePath = filepath.FromSlash(archivePath)
-	if archivePath == "" {
-		archivePath = filepath.FromSlash(binName)
-	}
-	var err error
-	if fileExists(target) {
-		err = os.RemoveAll(target)
-		if err != nil {
-			return err
-		}
-	}
-	extractDir, err = filepath.Abs(extractDir)
-	if err != nil {
-		return err
-	}
-	extractedBin := filepath.Join(extractDir, archivePath)
-	err = os.MkdirAll(filepath.Dir(target), 0o750)
-	if err != nil {
-		return err
-	}
-	err = copyFile(extractedBin, target, nil)
-	if err != nil {
-		return err
-	}
-	info, err := os.Stat(target)
-	if err != nil {
-		return err
-	}
-	return os.Chmod(target, info.Mode().Perm()|0o750)
-}
-
-func logCloseErr(closer io.Closer) {
-	err := closer.Close()
-	if err != nil {
-		log.Println(err)
-	}
-}
-
-// extract extracts an archive
-func extract(archivePath, extractDir string) error {
-	dlName := filepath.Base(archivePath)
-	downloadDir := filepath.Dir(archivePath)
-	extractSumFile := filepath.Join(downloadDir, ".extractsum")
-
-	if wantSum, sumErr := os.ReadFile(extractSumFile); sumErr == nil {
-		var exs string
-		exs, sumErr = directoryChecksum(extractDir)
-		if sumErr == nil && exs == strings.TrimSpace(string(wantSum)) {
-			return nil
-		}
-	}
-
-	err := os.RemoveAll(extractDir)
-	if err != nil {
-		return err
-	}
-	err = os.MkdirAll(extractDir, 0o750)
-	if err != nil {
-		return err
-	}
-	tarPath := filepath.Join(downloadDir, dlName)
-	_, err = archiver.ByExtension(dlName)
-	if err != nil {
-		return copyFile(tarPath, filepath.Join(extractDir, dlName), logCloseErr)
-	}
-	err = archiver.Unarchive(tarPath, extractDir)
-	if err != nil {
-		return err
-	}
-	extractSum, err := directoryChecksum(extractDir)
-	if err != nil {
-		return err
-	}
-
-	return os.WriteFile(extractSumFile, []byte(extractSum), 0o600)
-}
-
-// getURLChecksum returns the checksum of the file at dlURL. If tempFile is specified
-// it will be used as the temporary file to download the file to and it will be the caller's
-// responsibility to clean it up. Otherwise, a temporary file will be created and cleaned up
-// automatically.
-func getURLChecksum(dlURL, tempFile string) (_ string, errOut error) {
-	if tempFile == "" {
-		downloadDir, err := os.MkdirTemp("", "bindown")
-		if err != nil {
-			return "", err
-		}
-		tempFile = filepath.Join(downloadDir, "foo")
-		defer func() {
-			cleanupErr := os.RemoveAll(downloadDir)
-			if errOut == nil {
-				errOut = cleanupErr
-			}
-		}()
-	}
-	err := downloadFile(tempFile, dlURL)
-	if err != nil {
-		return "", err
-	}
-	return fileChecksum(tempFile)
-}
-
-func downloadFile(targetPath, url string) error {
-	err := os.MkdirAll(filepath.Dir(targetPath), 0o750)
-	if err != nil {
-		return err
-	}
-	resp, err := http.Get(url)
-	if err != nil {
-		return err
-	}
-	defer logCloseErr(resp.Body)
-	if resp.StatusCode >= 300 {
-		return fmt.Errorf("failed downloading %s", url)
-	}
-	out, err := os.Create(targetPath)
-	if err != nil {
-		return err
-	}
-	defer logCloseErr(out)
-	_, err = io.Copy(out, resp.Body)
-	return err
-}
-
-func download(dlURL, outputPath, checksum string, force bool) error {
-	var err error
-	if force {
-		err = os.RemoveAll(outputPath)
-		if err != nil {
-			return err
-		}
-	}
-	ok, err := fileExistsWithChecksum(outputPath, checksum)
-	if err != nil {
-		return err
-	}
-	if ok {
-		return nil
-	}
-	err = downloadFile(outputPath, dlURL)
-	if err != nil {
-		return err
-	}
-	return validateFileChecksum(outputPath, checksum)
-}
-
-func validateFileChecksum(filename, checksum string) error {
-	result, err := fileChecksum(filename)
-	if err != nil {
-		return err
-	}
-	if checksum != result {
-		defer func() {
-			delErr := os.RemoveAll(filename)
-			if delErr != nil {
-				log.Printf("Error deleting suspicious file at %q. Please delete it manually", filename)
-			}
-		}()
-		return fmt.Errorf(`checksum mismatch in downloaded file %q 
-wanted: %s
-got: %s`, filename, checksum, result)
-	}
-	return nil
 }

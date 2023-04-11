@@ -1,7 +1,6 @@
 package bindown
 
 import (
-	"os"
 	"path/filepath"
 	"testing"
 
@@ -20,97 +19,6 @@ func requireEqualDependency(t *testing.T, want, got *Dependency) {
 	require.Equal(t, want.Overrides, got.Overrides)
 }
 
-func Test_extract(t *testing.T) {
-	dir := t.TempDir()
-	downloadDir := filepath.Join(dir, "download")
-	extractDir := filepath.Join(dir, "extract")
-	require.NoError(t, os.MkdirAll(downloadDir, 0o750))
-	archivePath := filepath.Join(downloadDir, "foo.tar.gz")
-	err := copyFile(filepath.Join("testdata", "downloadables", "foo.tar.gz"), archivePath, nil)
-	require.NoError(t, err)
-	err = extract(archivePath, extractDir)
-	require.NoError(t, err)
-}
-
-func Test_copyBin(t *testing.T) {
-	dir := t.TempDir()
-	extractDir := filepath.Join(dir, ".bindown", "extracts", "deadbeef")
-	binName := "bleep"
-	require.NoError(t, os.MkdirAll(extractDir, 0o750))
-	err := copyFile(filepath.Join("testdata", "downloadables", filepath.FromSlash("rawfile/foo")), filepath.Join(extractDir, binName), nil)
-	require.NoError(t, err)
-	target := filepath.Join(dir, "bin", "foo")
-	err = copyBin(target, extractDir, "", binName)
-	require.NoError(t, err)
-	wantContent, err := os.ReadFile(filepath.Join(extractDir, binName))
-	require.NoError(t, err)
-	gotContent, err := os.ReadFile(target)
-	require.NoError(t, err)
-	require.Equal(t, string(wantContent), string(gotContent))
-}
-
-func Test_linkBin(t *testing.T) {
-	t.Run("nothing at target", func(t *testing.T) {
-		dir := t.TempDir()
-		target := filepath.Join(dir, "bin", "foo")
-		extractDir := filepath.Join(dir, ".bindown", "extracts", "deadbeef")
-		require.NoError(t, os.MkdirAll(extractDir, 0o750))
-		binName := "bleep"
-		rawFile := filepath.FromSlash("testdata/downloadables/rawfile/foo")
-		err := copyFile(rawFile, filepath.Join(extractDir, binName), nil)
-		require.NoError(t, err)
-		err = linkBin(target, extractDir, "", binName)
-		require.NoError(t, err)
-		wantContent, err := os.ReadFile(filepath.Join(extractDir, binName))
-		require.NoError(t, err)
-		gotContent, err := os.ReadFile(target)
-		require.NoError(t, err)
-		require.Equal(t, string(wantContent), string(gotContent))
-	})
-
-	t.Run("target has link to non-existent file", func(t *testing.T) {
-		dir := t.TempDir()
-		target := filepath.Join(dir, "bin", "foo")
-		require.NoError(t, os.MkdirAll(filepath.Dir(target), 0o750))
-		//	make target a link to a non-existent file
-		require.NoError(t, os.Symlink("non-existent", target))
-		extractDir := filepath.Join(dir, ".bindown", "extracts", "deadbeef")
-		require.NoError(t, os.MkdirAll(extractDir, 0o750))
-		binName := "bleep"
-		rawFile := filepath.FromSlash("testdata/downloadables/rawfile/foo")
-		err := copyFile(rawFile, filepath.Join(extractDir, binName), nil)
-		require.NoError(t, err)
-		err = linkBin(target, extractDir, "", binName)
-		require.NoError(t, err)
-		wantContent, err := os.ReadFile(filepath.Join(extractDir, binName))
-		require.NoError(t, err)
-		gotContent, err := os.ReadFile(target)
-		require.NoError(t, err)
-		require.Equal(t, string(wantContent), string(gotContent))
-	})
-}
-
-func Test_downloadFile(t *testing.T) {
-	t.Run("success", func(t *testing.T) {
-		dir := t.TempDir()
-		ts := serveFile(t, filepath.Join("testdata", "downloadables", "foo.tar.gz"), "/foo/foo.tar.gz", "")
-		err := downloadFile(filepath.Join(dir, "bar.tar.gz"), ts.URL+"/foo/foo.tar.gz")
-		require.NoError(t, err)
-		wantContent, err := os.ReadFile(filepath.Join("testdata", "downloadables", "foo.tar.gz"))
-		require.NoError(t, err)
-		gotContent, err := os.ReadFile(filepath.Join(dir, "bar.tar.gz"))
-		require.NoError(t, err)
-		require.Equal(t, string(wantContent), string(gotContent))
-	})
-
-	t.Run("404", func(t *testing.T) {
-		dir := t.TempDir()
-		ts := serveFile(t, filepath.Join("testdata", "downloadables", "foo.tar.gz"), "/foo/foo.tar.gz", "")
-		err := downloadFile(filepath.Join(dir, "bar.tar.gz"), ts.URL+"/wrongpath")
-		require.Error(t, err)
-	})
-}
-
 func TestGetURLChecksum(t *testing.T) {
 	ts := serveFile(t, filepath.Join("testdata", "downloadables", "foo.tar.gz"), "/foo/foo.tar.gz", "")
 	got, err := getURLChecksum(ts.URL+"/foo/foo.tar.gz", "")
@@ -121,10 +29,10 @@ func TestGetURLChecksum(t *testing.T) {
 func TestDependency_applyTemplate(t *testing.T) {
 	t.Run("no template", func(t *testing.T) {
 		dep := &Dependency{
-			URL: stringPtr("foo"),
+			URL: ptr("foo"),
 		}
 		want := &Dependency{
-			URL: stringPtr("foo"),
+			URL: ptr("foo"),
 		}
 		err := dep.applyTemplate(nil, 0)
 		require.NoError(t, err)
@@ -133,11 +41,11 @@ func TestDependency_applyTemplate(t *testing.T) {
 
 	t.Run("missing grandparent template", func(t *testing.T) {
 		dep := &Dependency{
-			Template: stringPtr("foo"),
+			Template: ptr("foo"),
 		}
 		templates := map[string]*Dependency{
 			"foo": {
-				Template: stringPtr("bar"),
+				Template: ptr("bar"),
 			},
 		}
 		err := dep.applyTemplate(templates, 0)
@@ -146,7 +54,7 @@ func TestDependency_applyTemplate(t *testing.T) {
 
 	t.Run("missing template", func(t *testing.T) {
 		dep := &Dependency{
-			Template: stringPtr("bar"),
+			Template: ptr("bar"),
 		}
 		err := dep.applyTemplate(nil, 0)
 		require.Error(t, err)
@@ -215,7 +123,7 @@ dependencies:
 func Test_Dependency_applyOverrides(t *testing.T) {
 	t.Run("nil overrides", func(t *testing.T) {
 		want := Dependency{
-			ArchivePath: stringPtr("archivePath"),
+			ArchivePath: ptr("archivePath"),
 			Link:        nil,
 			Vars: map[string]string{
 				"foo": "bar",
@@ -228,7 +136,7 @@ func Test_Dependency_applyOverrides(t *testing.T) {
 
 	t.Run("simple override", func(t *testing.T) {
 		dep := &Dependency{
-			ArchivePath: stringPtr("archivePath"),
+			ArchivePath: ptr("archivePath"),
 			Vars: map[string]string{
 				"foo":     "bar",
 				"baz":     "qux",
@@ -242,7 +150,7 @@ func Test_Dependency_applyOverrides(t *testing.T) {
 						"version": {"asdf", "1.2.4", "1.x"},
 					},
 					Dependency: Dependency{
-						Link: boolPtr(true),
+						Link: ptr(true),
 						Vars: map[string]string{
 							"foo": "not bar",
 							"bar": "moo",
@@ -253,7 +161,7 @@ func Test_Dependency_applyOverrides(t *testing.T) {
 									"arch": []string{"amd64"},
 								},
 								Dependency: Dependency{
-									ArchivePath: stringPtr("it's amd64"),
+									ArchivePath: ptr("it's amd64"),
 								},
 							},
 							{
@@ -261,7 +169,7 @@ func Test_Dependency_applyOverrides(t *testing.T) {
 									"arch": []string{"x86"},
 								},
 								Dependency: Dependency{
-									ArchivePath: stringPtr("it's x86"),
+									ArchivePath: ptr("it's x86"),
 								},
 							},
 						},
@@ -270,8 +178,8 @@ func Test_Dependency_applyOverrides(t *testing.T) {
 			},
 		}
 		want := Dependency{
-			ArchivePath: stringPtr("it's amd64"),
-			Link:        boolPtr(true),
+			ArchivePath: ptr("it's amd64"),
+			Link:        ptr(true),
 			Vars: map[string]string{
 				"foo":     "not bar",
 				"baz":     "qux",
