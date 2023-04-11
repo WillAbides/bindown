@@ -256,7 +256,6 @@ func Test_extractCmd(t *testing.T) {
 }
 
 func Test_downloadCmd(t *testing.T) {
-	t.Parallel()
 	servePath := filepath.FromSlash("../../testdata/downloadables/fooinroot.tar.gz")
 	successServer := serveFile(t, servePath, "/foo/fooinroot.tar.gz", "")
 	depURL := successServer.URL + "/foo/fooinroot.tar.gz"
