@@ -311,23 +311,6 @@ func Test_downloadCmd(t *testing.T) {
 		assertDownloadSuccess(t, result)
 	})
 
-	t.Run("--output", func(t *testing.T) {
-		runner := newCmdRunner(t)
-		outFile := filepath.Join(runner.tmpDir, "out", "foo.tar.gz")
-		runner.writeConfig(&bindown.Config{
-			URLChecksums: map[string]string{
-				depURL: "27dcce60d1ed72920a84dd4bc01e0bbd013e5a841660e9ee2e964e53fb83c0b3",
-			},
-			Dependencies: map[string]*bindown.Dependency{
-				"foo": {
-					URL: &depURL,
-				},
-			},
-		})
-		result := runner.run("download", "foo", "--output", outFile)
-		assertDownloadSuccess(t, result)
-	})
-
 	t.Run("no url", func(t *testing.T) {
 		runner := newCmdRunner(t)
 		runner.writeConfig(&bindown.Config{

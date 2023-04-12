@@ -349,7 +349,6 @@ func (c *Config) ClearCache() error {
 
 // ConfigDownloadDependencyOpts options for Config.DownloadDependency
 type ConfigDownloadDependencyOpts struct {
-	TargetFile           string
 	Force                bool
 	AllowMissingChecksum bool
 }
@@ -389,20 +388,11 @@ func (c *Config) DownloadDependency(
 	if err != nil {
 		return "", err
 	}
-	defer deferErr(&errOut, unlock)
-	cachedFile := dlFile
-	if opts.TargetFile == "" {
-		return cachedFile, nil
-	}
-	err = os.MkdirAll(filepath.Dir(opts.TargetFile), 0o755)
+	err = unlock()
 	if err != nil {
 		return "", err
 	}
-	err = copyFile(dlFile, opts.TargetFile)
-	if err != nil {
-		return "", err
-	}
-	return opts.TargetFile, nil
+	return dlFile, nil
 }
 
 func urlFilename(dlURL string) (string, error) {

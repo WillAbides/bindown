@@ -276,7 +276,6 @@ type downloadCmd struct {
 	Force                bool               `kong:"help=${download_force_help}"`
 	System               bindown.SystemInfo `kong:"name=system,default=${system_default},help=${system_help},predictor=allSystems"`
 	Dependency           string             `kong:"required=true,arg,help=${download_dependency_help},predictor=bin"`
-	TargetFile           string             `kong:"name=output,help=${download_target_file_help}"`
 	AllowMissingChecksum bool               `kong:"name=allow-missing-checksum,help=${allow_missing_checksum}"`
 }
 
@@ -286,7 +285,6 @@ func (d *downloadCmd) Run(ctx *runContext) error {
 		return err
 	}
 	pth, err := config.DownloadDependency(d.Dependency, d.System, &bindown.ConfigDownloadDependencyOpts{
-		TargetFile:           d.TargetFile,
 		Force:                d.Force,
 		AllowMissingChecksum: d.AllowMissingChecksum,
 	})
