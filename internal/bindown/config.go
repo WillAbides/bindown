@@ -176,17 +176,6 @@ func (c *Config) buildDependency(depName string, info SystemInfo) (*builtDepende
 	}, nil
 }
 
-func (c *Config) allDependencyNames() []string {
-	if len(c.Dependencies) == 0 {
-		return []string{}
-	}
-	result := make([]string, 0, len(c.Dependencies))
-	for dl := range c.Dependencies {
-		result = append(result, dl)
-	}
-	return result
-}
-
 // DefaultSystems returns c.Systems if it isn't empty. Otherwise returns the runtime system.
 func (c *Config) DefaultSystems() []SystemInfo {
 	if len(c.Systems) > 0 {
@@ -278,42 +267,33 @@ func (c *Config) addChecksum(dependencyName string, sysInfo SystemInfo) error {
 }
 
 // Validate installs the downloader to a temporary directory and returns an error if it was unsuccessful.
-func (c *Config) Validate(dependencies []string, systems []SystemInfo) (errOut error) {
-	runtime.Version()
-	if len(dependencies) == 0 {
-		dependencies = c.allDependencyNames()
-	}
-	tmpCacheDir, err := os.MkdirTemp("", "bindown-cache")
-	if err != nil {
-		return err
-	}
-	deferErr(&errOut, func() error {
-		return os.RemoveAll(tmpCacheDir)
-	})
-	tmpBinDir, err := os.MkdirTemp("", "bindown-bin")
+func (c *Config) Validate(depName string, systems []SystemInfo) (errOut error) {
+	tmpDir, err := os.MkdirTemp("", "bindown-validate")
 	if err != nil {
 		return err
 	}
 	defer deferErr(&errOut, func() error {
-		return os.RemoveAll(tmpBinDir)
+		return os.RemoveAll(tmpDir)
 	})
-	c.InstallDir = tmpBinDir
-	c.Cache = tmpCacheDir
-	for _, depName := range dependencies {
-		depSystems := systems
-		if len(depSystems) == 0 {
-			depSystems, err = c.DependencySystems(depName)
-			if err != nil {
-				return err
-			}
+	installDir, cacheDir := c.InstallDir, c.Cache
+	c.InstallDir = filepath.Join(tmpDir, "bin")
+	c.Cache = filepath.Join(tmpDir, "cache")
+	defer func() {
+		c.InstallDir, c.Cache = installDir, cacheDir
+	}()
+	depSystems := systems
+	if len(depSystems) == 0 {
+		depSystems, err = c.DependencySystems(depName)
+		if err != nil {
+			return err
 		}
-		for _, system := range depSystems {
-			_, err = c.InstallDependency(depName, system, &ConfigInstallDependencyOpts{
-				Force: true,
-			})
-			if err != nil {
-				return err
-			}
+	}
+	for _, system := range depSystems {
+		_, err = c.InstallDependency(depName, system, &ConfigInstallDependencyOpts{
+			Force: true,
+		})
+		if err != nil {
+			return err
 		}
 	}
 	return nil

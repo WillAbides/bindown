@@ -223,5 +223,5 @@ func (d dependencyValidateCmd) Run(ctx *runContext) error {
 	if err != nil {
 		return err
 	}
-	return config.Validate([]string{d.Dependency}, d.Systems)
+	return config.Validate(d.Dependency, d.Systems)
 }
