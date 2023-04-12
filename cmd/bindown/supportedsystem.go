@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 
-	"github.com/willabides/bindown/v3"
+	"github.com/willabides/bindown/v3/internal/bindown"
 	"golang.org/x/exp/slices"
 )
 

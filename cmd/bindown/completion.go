@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	_ "embed"
 	"os"
 	"runtime"
 	"sort"
@@ -10,13 +9,8 @@ import (
 
 	"github.com/alecthomas/kong"
 	"github.com/posener/complete"
-	"github.com/willabides/bindown/v3"
+	"github.com/willabides/bindown/v3/internal/bindown"
 )
-
-//go:generate sh -c "go tool dist list > go_dist_list.txt"
-
-//go:embed go_dist_list.txt
-var goDists string
 
 func findConfigFileForCompletion(args []string) string {
 	for i, arg := range args {

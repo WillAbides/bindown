@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/willabides/bindown/v3"
+	"github.com/willabides/bindown/v3/internal/bindown"
 	"gopkg.in/yaml.v2"
 )
 

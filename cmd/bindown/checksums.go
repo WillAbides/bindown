@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/willabides/bindown/v3"
+	"github.com/willabides/bindown/v3/internal/bindown"
 )
 
 type checksumsCmd struct {

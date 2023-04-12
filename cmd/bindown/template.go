@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/willabides/bindown/v3"
+	"github.com/willabides/bindown/v3/internal/bindown"
 )
 
 type templateCmd struct {
