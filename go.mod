@@ -1,6 +1,6 @@
 module github.com/willabides/bindown/v3
 
-go 1.18
+go 1.20
 
 require (
 	github.com/Masterminds/semver/v3 v3.1.1
@@ -9,6 +9,7 @@ require (
 	github.com/mholt/archiver/v3 v3.5.1
 	github.com/posener/complete v1.2.3
 	github.com/qri-io/jsonschema v0.2.1
+	github.com/rogpeppe/go-internal v1.10.0
 	github.com/stretchr/testify v1.7.0
 	github.com/willabides/kongplete v0.3.0
 	golang.org/x/exp v0.0.0-20230321023759-10a507213a29

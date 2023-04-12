@@ -33,3 +33,7 @@ func newSystemInfo(os, arch string) SystemInfo {
 		Arch: arch,
 	}
 }
+
+func ptr[T any](val T) *T {
+	return &val
+}

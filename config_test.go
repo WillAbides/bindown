@@ -2,7 +2,6 @@ package bindown
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -220,6 +219,7 @@ func TestConfig_InstallDependency(t *testing.T) {
 				},
 			},
 		}
+		t.Cleanup(func() { require.NoError(t, config.ClearCache()) })
 		wantBin := filepath.Join(binDir, "foo")
 		gotPath, err := config.InstallDependency("foo", newSystemInfo("darwin", "amd64"), &ConfigInstallDependencyOpts{})
 		require.NoError(t, err)
@@ -251,6 +251,7 @@ func TestConfig_InstallDependency(t *testing.T) {
 				},
 			},
 		}
+		t.Cleanup(func() { require.NoError(t, config.ClearCache()) })
 		wantBin := filepath.Join(binDir, "foo")
 		gotPath, err := config.InstallDependency("foo", newSystemInfo("darwin", "amd64"), &ConfigInstallDependencyOpts{})
 		require.NoError(t, err)
@@ -282,6 +283,7 @@ func TestConfig_InstallDependency(t *testing.T) {
 				},
 			},
 		}
+		t.Cleanup(func() { require.NoError(t, config.ClearCache()) })
 		wantBin := filepath.Join(binDir, "foo")
 		_, err := config.InstallDependency("foo", newSystemInfo("darwin", "amd64"), &ConfigInstallDependencyOpts{})
 		require.Error(t, err)
@@ -303,23 +305,23 @@ func TestConfig_addChecksums(t *testing.T) {
 	cfg := &Config{
 		Dependencies: map[string]*Dependency{
 			"d1": {
-				URL: stringPtr(dl1),
+				URL: &dl1,
 				Overrides: []DependencyOverride{
 					{
-						Dependency:      Dependency{URL: stringPtr(dl2)},
+						Dependency:      Dependency{URL: &dl2},
 						OverrideMatcher: OverrideMatcher{"os": []string{"darwin"}},
 					},
 					{
-						Dependency:      Dependency{URL: stringPtr(dl5)},
+						Dependency:      Dependency{URL: &dl5},
 						OverrideMatcher: OverrideMatcher{"os": []string{"windows"}},
 					},
 				},
 			},
 			"d2": {
-				URL: stringPtr(dl3),
+				URL: &dl3,
 				Overrides: []DependencyOverride{
 					{
-						Dependency:      Dependency{URL: stringPtr(dl4)},
+						Dependency:      Dependency{URL: &dl4},
 						OverrideMatcher: OverrideMatcher{"os": []string{"darwin"}},
 					},
 				},
@@ -344,7 +346,7 @@ func TestConfig_BuildDependency(t *testing.T) {
 	cfg := &Config{
 		Dependencies: map[string]*Dependency{
 			"dut": {
-				URL: stringPtr("https://{{.os}}"),
+				URL: ptr("https://{{.os}}"),
 				Overrides: []DependencyOverride{
 					{
 						OverrideMatcher: OverrideMatcher{
@@ -352,7 +354,7 @@ func TestConfig_BuildDependency(t *testing.T) {
 							"os":   []string{"testOS"},
 						},
 						Dependency: Dependency{
-							URL: stringPtr("https://{{.os}}-{{.var1}}-{{.var2}}"),
+							URL: ptr("https://{{.os}}-{{.var1}}-{{.var2}}"),
 							Vars: map[string]string{
 								"var1": "overrideV1",
 								"var2": "overrideV2",
@@ -383,7 +385,7 @@ func TestConfig_addChecksum(t *testing.T) {
 	cfg := &Config{
 		Dependencies: map[string]*Dependency{
 			"dut": {
-				URL: stringPtr(dlURL),
+				URL: &dlURL,
 				Overrides: []DependencyOverride{
 					{
 						OverrideMatcher: OverrideMatcher{
@@ -391,7 +393,7 @@ func TestConfig_addChecksum(t *testing.T) {
 							"os":   []string{"testOS"},
 						},
 						Dependency: Dependency{
-							URL: stringPtr(dlURL2),
+							URL: &dlURL2,
 							Vars: map[string]string{
 								"var1": "overrideV1",
 								"var2": "overrideV2",
@@ -409,7 +411,7 @@ func TestConfig_addChecksum(t *testing.T) {
 	want := &Config{
 		Dependencies: map[string]*Dependency{
 			"dut": {
-				URL: stringPtr(dlURL),
+				URL: &dlURL,
 				Overrides: []DependencyOverride{
 					{
 						OverrideMatcher: OverrideMatcher{
@@ -417,7 +419,7 @@ func TestConfig_addChecksum(t *testing.T) {
 							"os":   []string{"testOS"},
 						},
 						Dependency: Dependency{
-							URL: stringPtr(dlURL2),
+							URL: &dlURL2,
 							Vars: map[string]string{
 								"var1": "overrideV1",
 								"var2": "overrideV2",
@@ -440,9 +442,5 @@ func TestConfig_addChecksum(t *testing.T) {
 	require.NoError(t, err)
 	err = cfg.addChecksum("dut", newSystemInfo("testOS2", "foo"))
 	require.NoError(t, err)
-
-	b, err := yaml.Marshal(cfg)
-	require.NoError(t, err)
-	fmt.Println(string(b))
 	require.Equal(t, want, cfg)
 }

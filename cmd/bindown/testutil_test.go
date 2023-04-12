@@ -24,16 +24,22 @@ type cmdRunner struct {
 	stdin      io.Reader
 }
 
-func newCmdRunner(t *testing.T) *cmdRunner {
-	tmpDir := t.TempDir()
-	cache := filepath.Join(tmpDir, "cache")
-	configfile := filepath.Join(tmpDir, ".bindown.yaml")
-	return &cmdRunner{
+func newCmdRunner(t testing.TB) *cmdRunner {
+	t.Helper()
+	dir := t.TempDir()
+	cacheDir := filepath.Join(dir, "cache")
+	configfile := filepath.Join(dir, ".bindown.yaml")
+	runner := &cmdRunner{
 		t:          t,
-		cache:      cache,
+		cache:      cacheDir,
 		configFile: configfile,
-		tmpDir:     tmpDir,
+		tmpDir:     dir,
 	}
+	t.Cleanup(func() {
+		// ignore errors because it fails on test with missing or invalid config files
+		runner.run("cache", "clear")
+	})
+	return runner
 }
 
 func (c *cmdRunner) run(commandLine ...string) *runCmdResult {
@@ -110,6 +116,17 @@ func (r *runCmdResult) assertStdOut(want string) {
 func (r *runCmdResult) assertStdErr(want string) {
 	r.t.Helper()
 	assertEqualOrMatch(r.t, want, r.stdErr.String())
+}
+
+func (r *runCmdResult) getExtractDir() string {
+	r.t.Helper()
+	stdout := r.stdOut.String()
+	re := regexp.MustCompile(`(?m)^extracted .+ to (.*)$`)
+	matches := re.FindStringSubmatch(stdout)
+	if !assert.Len(r.t, matches, 2) {
+		return ""
+	}
+	return matches[1]
 }
 
 type resultState struct {

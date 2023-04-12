@@ -25,7 +25,6 @@ func executeTemplate(tmplString, goos, arch string, vars map[string]string) (str
 	maps.Copy(tmplData, vars)
 	tmpl, err := template.New("").Option("missingkey=error").Parse(tmplString)
 	if err != nil {
-		fmt.Println(err.Error())
 		return "", fmt.Errorf("%q is not a valid template", tmplString)
 	}
 	var buf bytes.Buffer
@@ -87,18 +86,13 @@ func directoryChecksum(inputDir string) (string, error) {
 	return hex.EncodeToString(hasher.Sum(nil)), nil
 }
 
-// hexHash returns a hex representation of data's hash
-func hexHash(hasher hash.Hash, data ...[]byte) string {
-	hasher.Reset()
-	for _, datum := range data {
-		_, err := hasher.Write(datum)
-		if err != nil {
-			// hash.Hash.Write() never returns an error
-			// https://github.com/golang/go/blob/go1.17/src/hash/hash.go#L27-L29
-			panic(err)
-		}
+func mustWriteToHash(hasher hash.Hash, data []byte) {
+	_, err := hasher.Write(data)
+	if err != nil {
+		// hash.Hash.Write() never returns an error
+		// https://github.com/golang/go/blob/go1.17/src/hash/hash.go#L27-L29
+		panic(err)
 	}
-	return hex.EncodeToString(hasher.Sum(nil))
 }
 
 // fileChecksum returns the hex checksum of a file
@@ -107,7 +101,9 @@ func fileChecksum(filename string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return hexHash(sha256.New(), fileBytes), nil
+	hasher := sha256.New()
+	mustWriteToHash(hasher, fileBytes)
+	return hex.EncodeToString(hasher.Sum(nil)), nil
 }
 
 // fileExists asserts that a file exist or symlink exists.
@@ -130,10 +126,9 @@ func fileExistsWithChecksum(filename, checksum string) (bool, error) {
 }
 
 // copyFile copies file from src to dst
-func copyFile(src, dst string, closeCloser func(io.Closer)) error {
-	if closeCloser == nil {
-		closeCloser = func(_ io.Closer) {}
-	}
+// modeTrans is a function for setting the destination FileMode. It accepts the source FileMode. If nil, the unmodified
+// source FileMode is used.
+func copyFile(src, dst string) (errOut error) {
 	srcStat, err := os.Stat(src)
 	if err != nil {
 		return err
@@ -141,21 +136,27 @@ func copyFile(src, dst string, closeCloser func(io.Closer)) error {
 	if !srcStat.Mode().IsRegular() {
 		return fmt.Errorf("not a regular file")
 	}
-
 	rdr, err := os.Open(src)
 	if err != nil {
 		return err
 	}
-	defer closeCloser(rdr)
 
-	writer, err := os.OpenFile(dst, os.O_RDWR|os.O_CREATE|os.O_TRUNC, srcStat.Mode())
+	dstMode := srcStat.Mode()
+	writer, err := os.OpenFile(dst, os.O_RDWR|os.O_CREATE|os.O_TRUNC, dstMode)
 	if err != nil {
 		return err
 	}
-	defer closeCloser(writer)
+	defer deferErr(&errOut, writer.Close)
 
 	_, err = io.Copy(writer, rdr)
 	return err
+}
+
+func deferErr(errOut *error, fn func() error) {
+	deferredErr := fn()
+	if *errOut == nil {
+		*errOut = deferredErr
+	}
 }
 
 func clonePointer[T comparable](p *T) *T {
