@@ -9,7 +9,7 @@ import (
 )
 
 func Test_cacheClearCmd(t *testing.T) {
-	servePath := filepath.FromSlash("../../testdata/downloadables/fooinroot.tar.gz")
+	servePath := testdataPath("downloadables/fooinroot.tar.gz")
 	successServer := serveFile(t, servePath, "/foo/fooinroot.tar.gz", "")
 	depURL := successServer.URL + "/foo/fooinroot.tar.gz"
 

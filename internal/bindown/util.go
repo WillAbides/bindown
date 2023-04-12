@@ -174,3 +174,25 @@ func overrideValue[T comparable](p, override *T) *T {
 	}
 	return clonePointer(override)
 }
+
+func TransformSlice[T, V any](s []T, fn func(T) V) []V {
+	if s == nil {
+		return nil
+	}
+	out := make([]V, len(s))
+	for i, v := range s {
+		out[i] = fn(v)
+	}
+	return out
+}
+
+func TransformMap[K comparable, V, W any](m map[K]V, fn func(V) W) map[K]W {
+	if m == nil {
+		return nil
+	}
+	out := make(map[K]W, len(m))
+	for k, v := range m {
+		out[k] = fn(v)
+	}
+	return out
+}

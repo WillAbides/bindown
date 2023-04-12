@@ -222,3 +222,10 @@ func testInDir(t testing.TB, dir string) {
 	})
 	assert.NoError(t, os.Chdir(dir))
 }
+
+func testdataPath(f string) string {
+	return filepath.Join(
+		filepath.FromSlash("../../internal/bindown/testdata"),
+		filepath.FromSlash(f),
+	)
+}

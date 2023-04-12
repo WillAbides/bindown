@@ -110,7 +110,7 @@ func (c *Config) MissingDependencyVars(depName string) ([]string, error) {
 		return nil, fmt.Errorf("no dependency configured with the name %q", depName)
 	}
 	var result []string
-	dep = dep.clone()
+	dep = dep.Clone()
 	err := dep.applyTemplate(c.Templates, 0)
 	if err != nil {
 		return nil, err
@@ -140,7 +140,7 @@ func (c *Config) buildDependency(depName string, info SystemInfo) (*builtDepende
 	if dep == nil {
 		return nil, fmt.Errorf("no dependency configured with the name %q", depName)
 	}
-	dep = dep.clone()
+	dep = dep.Clone()
 	err := dep.applyTemplate(c.Templates, 0)
 	if err != nil {
 		return nil, err
@@ -185,17 +185,6 @@ func (c *Config) allDependencyNames() []string {
 		result = append(result, dl)
 	}
 	return result
-}
-
-// ConfigAddChecksumsOptions contains options for Config.AddChecksums
-type ConfigAddChecksumsOptions struct {
-	// Only add checksums for these dependencies. When Dependencies is empty, AddChecksums adds checksums for all
-	// configured dependencies.
-	Dependencies []string
-
-	// Only add checksums for these system targets. When Systems is empty, AddChecksums adds checksums for all known
-	// builds configured for each dependency.
-	Systems []SystemInfo
 }
 
 // DefaultSystems returns c.Systems if it isn't empty. Otherwise returns the runtime system.
@@ -286,16 +275,6 @@ func (c *Config) addChecksum(dependencyName string, sysInfo SystemInfo) error {
 	}
 	c.URLChecksums[dep.url] = sum
 	return nil
-}
-
-// ConfigValidateOptions contains options for Config.Validate
-type ConfigValidateOptions struct {
-	// Only validates these dependencies. When Dependencies is empty, Validate validates all configured dependencies.
-	Dependencies []string
-
-	// Only validates system targets. When Systems is empty, AddChecksums validates all known builds configured for each
-	// dependency.
-	Systems []SystemInfo
 }
 
 // Validate installs the downloader to a temporary directory and returns an error if it was unsuccessful.
@@ -663,7 +642,7 @@ func (c *Config) DependencySystems(depName string) ([]SystemInfo, error) {
 	}
 	dep := c.Dependencies[depName]
 
-	dep = dep.clone()
+	dep = dep.Clone()
 	err := dep.applyTemplate(c.Templates, 0)
 	if err != nil {
 		return nil, err

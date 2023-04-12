@@ -133,7 +133,7 @@ func Test_initCmd(t *testing.T) {
 }
 
 func Test_extractCmd(t *testing.T) {
-	servePath := filepath.FromSlash("../../testdata/downloadables/fooinroot.tar.gz")
+	servePath := testdataPath("downloadables/fooinroot.tar.gz")
 	successServer := serveFile(t, servePath, "/foo/fooinroot.tar.gz", "")
 	depURL := successServer.URL + "/foo/fooinroot.tar.gz"
 
@@ -274,7 +274,7 @@ func Test_extractCmd(t *testing.T) {
 }
 
 func Test_downloadCmd(t *testing.T) {
-	servePath := filepath.FromSlash("../../testdata/downloadables/fooinroot.tar.gz")
+	servePath := testdataPath("downloadables/fooinroot.tar.gz")
 	successServer := serveFile(t, servePath, "/foo/fooinroot.tar.gz", "")
 	depURL := successServer.URL + "/foo/fooinroot.tar.gz"
 
@@ -461,7 +461,7 @@ func Test_downloadCmd(t *testing.T) {
 func Test_installCmd(t *testing.T) {
 	t.Run("raw file", func(t *testing.T) {
 		runner := newCmdRunner(t)
-		servePath := filepath.FromSlash("../../testdata/downloadables/rawfile/foo")
+		servePath := testdataPath("downloadables/rawfile/foo")
 		ts := serveFile(t, servePath, "/foo/foo", "")
 		depURL := ts.URL + "/foo/foo"
 		runner.writeConfig(&bindown.Config{
@@ -485,7 +485,7 @@ func Test_installCmd(t *testing.T) {
 
 	t.Run("link raw file", func(t *testing.T) {
 		runner := newCmdRunner(t)
-		servePath := filepath.FromSlash("../../testdata/downloadables/rawfile/foo")
+		servePath := testdataPath("downloadables/rawfile/foo")
 		ts := serveFile(t, servePath, "/foo/foo", "")
 		depURL := ts.URL + "/foo/foo"
 		runner.writeConfig(&bindown.Config{
@@ -511,7 +511,7 @@ func Test_installCmd(t *testing.T) {
 
 	t.Run("bin in root", func(t *testing.T) {
 		runner := newCmdRunner(t)
-		servePath := filepath.FromSlash("../../testdata/downloadables/fooinroot.tar.gz")
+		servePath := testdataPath("downloadables/fooinroot.tar.gz")
 		ts := serveFile(t, servePath, "/foo/fooinroot.tar.gz", "")
 		depURL := ts.URL + "/foo/fooinroot.tar.gz"
 		runner.writeConfig(&bindown.Config{
@@ -535,7 +535,7 @@ func Test_installCmd(t *testing.T) {
 
 	t.Run("wrong checksum", func(t *testing.T) {
 		runner := newCmdRunner(t)
-		servePath := filepath.FromSlash("../../testdata/downloadables/fooinroot.tar.gz")
+		servePath := testdataPath("downloadables/fooinroot.tar.gz")
 		ts := serveFile(t, servePath, "/foo/fooinroot.tar.gz", "")
 		depURL := ts.URL + "/foo/fooinroot.tar.gz"
 		runner.writeConfig(&bindown.Config{

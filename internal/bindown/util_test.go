@@ -58,7 +58,7 @@ func Test_directoryChecksum(t *testing.T) {
 		got, err := directoryChecksum(filepath.Join("testdata", "directoryChecksum"))
 		require.NoError(t, err)
 		// This should only change when the contents of testdata/directoryChecksum change.
-		require.Equal(t, "0eb72a7b3c1e286a", got)
+		require.Equal(t, "8c607f2f6d3e7358", got)
 	})
 }
 
