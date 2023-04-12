@@ -62,9 +62,6 @@ type rootCmd struct {
 
 	Version            versionCmd                   `kong:"cmd,help='show bindown version'"`
 	InstallCompletions kongplete.InstallCompletions `kong:"cmd,help=${config_install_completions_help}"`
-
-	AddChecksums addChecksumsCmd `kong:"cmd,hidden"`
-	Validate     validateCmd     `kong:"cmd,hidden"`
 }
 
 var defaultConfigFilenames = []string{
@@ -235,16 +232,6 @@ func (c fmtCmd) Run(ctx *runContext, cli *rootCmd) error {
 		return err
 	}
 	return config.Write(ctx.rootCmd.JSONConfig)
-}
-
-// validateCmd is a deprecated synonym for dependencyValidateCmd
-type validateCmd struct {
-	Dependency string               `kong:"required=true,arg,predictor=bin"`
-	Systems    []bindown.SystemInfo `kong:"name=system,predictor=allSystems"`
-}
-
-func (d validateCmd) Run(ctx *runContext) error {
-	return dependencyValidateCmd(d).Run(ctx)
 }
 
 type installCmd struct {

@@ -287,23 +287,7 @@ func (c *Config) Validate(dependencies []string, systems []SystemInfo) (errOut e
 	if err != nil {
 		return err
 	}
-	defer deferErr(&errOut, func() error {
-		cleanErr := filepath.WalkDir(tmpCacheDir, func(path string, d os.DirEntry, err error) error {
-			if err != nil {
-				return err
-			}
-			err = os.Chmod(path, 0o777)
-			if err != nil {
-				return err
-			}
-			if d.IsDir() {
-				return nil
-			}
-			return os.Remove(path)
-		})
-		if cleanErr != nil {
-			return cleanErr
-		}
+	deferErr(&errOut, func() error {
 		return os.RemoveAll(tmpCacheDir)
 	})
 	tmpBinDir, err := os.MkdirTemp("", "bindown-bin")
