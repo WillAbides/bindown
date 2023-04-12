@@ -16,10 +16,10 @@ type DependencyOverride struct {
 	Dependency      Dependency      `json:"dependency" yaml:",omitempty"`
 }
 
-func (o *DependencyOverride) clone() *DependencyOverride {
+func (o *DependencyOverride) Clone() *DependencyOverride {
 	return &DependencyOverride{
-		Dependency:      *(o.Dependency.clone()),
-		OverrideMatcher: o.OverrideMatcher.clone(),
+		Dependency:      *(o.Dependency.Clone()),
+		OverrideMatcher: o.OverrideMatcher.Clone(),
 	}
 }
 
@@ -67,7 +67,7 @@ func (o OverrideMatcher) matches(info SystemInfo, vars map[string]string) bool {
 	return true
 }
 
-func (o OverrideMatcher) clone() OverrideMatcher {
+func (o OverrideMatcher) Clone() OverrideMatcher {
 	clone := maps.Clone(o)
 	for i := range clone {
 		clone[i] = slices.Clone(clone[i])
@@ -119,7 +119,7 @@ func varsWithSubstitutions(vars map[string]string, subs map[string]map[string]st
 	return vars
 }
 
-func (d *Dependency) clone() *Dependency {
+func (d *Dependency) Clone() *Dependency {
 	dep := Dependency{
 		Vars:          maps.Clone(d.Vars),
 		URL:           clonePointer(d.URL),
@@ -133,7 +133,7 @@ func (d *Dependency) clone() *Dependency {
 		RequiredVars:  slices.Clone(d.RequiredVars),
 	}
 	for i, override := range dep.Overrides {
-		dep.Overrides[i] = *override.clone()
+		dep.Overrides[i] = *override.Clone()
 	}
 	return &dep
 }
@@ -170,7 +170,7 @@ func (d *Dependency) applyTemplate(templates map[string]*Dependency, depth int) 
 	if !ok {
 		return fmt.Errorf("no template named %s", *templateName)
 	}
-	newDL := tmpl.clone()
+	newDL := tmpl.Clone()
 	err := newDL.applyTemplate(templates, depth+1)
 	if err != nil {
 		return err
@@ -201,7 +201,7 @@ func (d *Dependency) addOverrides(overrides []DependencyOverride) {
 		d.Overrides = make([]DependencyOverride, 0, len(overrides))
 	}
 	for i := range overrides {
-		d.Overrides = append(d.Overrides, *overrides[i].clone())
+		d.Overrides = append(d.Overrides, *overrides[i].Clone())
 	}
 }
 

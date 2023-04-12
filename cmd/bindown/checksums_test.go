@@ -2,7 +2,6 @@ package main
 
 import (
 	"net/http/httptest"
-	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -14,7 +13,7 @@ func Test_addChecksumsCmd(t *testing.T) {
 		var servers [5]*httptest.Server
 		var urls [5]string
 		for i := range servers {
-			servers[i] = serveFile(t, filepath.FromSlash("../../testdata/downloadables/foo.tar.gz"), "/foo/foo.tar.gz", "")
+			servers[i] = serveFile(t, testdataPath("downloadables/foo.tar.gz"), "/foo/foo.tar.gz", "")
 			urls[i] = servers[i].URL + "/foo/foo.tar.gz"
 		}
 		runner := newCmdRunner(t)

@@ -129,7 +129,7 @@ func Test_Dependency_applyOverrides(t *testing.T) {
 				"foo": "bar",
 			},
 		}
-		dep := want.clone()
+		dep := want.Clone()
 		dep.applyOverrides(newSystemInfo("windows", "amd64"), 0)
 		requireEqualDependency(t, &want, dep)
 	})

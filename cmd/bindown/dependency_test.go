@@ -590,7 +590,7 @@ url_checksums:
 	})
 
 	t.Run("with http server", func(t *testing.T) {
-		downloadablesDir := filepath.FromSlash("../../testdata/downloadables")
+		downloadablesDir := testdataPath("downloadables")
 		tar := filepath.Join(downloadablesDir, "runnable.tar.gz")
 		zip := filepath.Join(downloadablesDir, "runnable_windows.zip")
 
@@ -601,7 +601,7 @@ url_checksums:
 			"/foo/v1.2.3/foo-windows-amd64.zip":   zip,
 		})
 
-		srcPath := filepath.FromSlash("../../testdata/configs/dep-add-source.yaml")
+		srcPath := testdataPath("configs/dep-add-source.yaml")
 		runner := newCmdRunner(t)
 		runner.writeConfig(&bindown.Config{
 			Systems: []bindown.SystemInfo{
@@ -641,7 +641,7 @@ url_checksums:
 
 func Test_dependencyValidateCmd(t *testing.T) {
 	t.Run("valid", func(t *testing.T) {
-		downloadablesDir := filepath.FromSlash("../../testdata/downloadables")
+		downloadablesDir := testdataPath("downloadables")
 		tar := filepath.Join(downloadablesDir, "runnable.tar.gz")
 		zip := filepath.Join(downloadablesDir, "runnable_windows.zip")
 

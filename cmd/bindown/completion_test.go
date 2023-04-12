@@ -111,7 +111,7 @@ func setConfigFileEnvVar(t *testing.T, file string) {
 
 func createConfigFile(t *testing.T, sourceFile string) string {
 	t.Helper()
-	sourceFile = filepath.Join("..", "..", "testdata", "configs", sourceFile)
+	sourceFile = testdataPath("configs/" + sourceFile)
 	dir := t.TempDir()
 	dest := filepath.Join(dir, "bindown.config")
 	copyFile(t, sourceFile, dest)
