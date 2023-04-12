@@ -17,6 +17,9 @@ type (
 
 type Cache struct {
 	Root string
+	// Set to true to make the content read-only on disk.
+	// TODO: find a way to use this without the annoying side effect of requiring sudo to rm -rf the cache.
+	ReadOnly bool
 }
 
 // Dir returns a fs.FS for the given key, populating the cache if necessary.
@@ -116,14 +119,17 @@ func (c *Cache) lock(key string) (io.Closer, error) {
 		return nil, err
 	}
 	dir := filepath.Join(c.Root, key)
-	err = unsealDir(dir)
-	if err != nil {
-		return nil, err
+	if c.ReadOnly {
+		err = unsealDir(dir)
+		if err != nil {
+			return nil, err
+		}
 	}
 	return &writeLock{
 		rootLock: rootLock,
 		lock:     file,
 		dir:      dir,
+		readOnly: c.ReadOnly,
 	}, nil
 }
 
@@ -231,9 +237,11 @@ func RemoveRoot(root string) (errOut error) {
 			errOut = closeErr
 		}
 	}()
-	err = unsealDir(root)
-	if err != nil {
-		return err
+	if c.ReadOnly {
+		err = unsealDir(root)
+		if err != nil {
+			return err
+		}
 	}
 	return os.RemoveAll(root)
 }
@@ -242,10 +250,13 @@ type writeLock struct {
 	rootLock io.Closer
 	lock     io.Closer
 	dir      string
+	readOnly bool
 }
 
 func (l *writeLock) Close() (errOut error) {
-	sealDir(l.dir)
+	if l.readOnly {
+		sealDir(l.dir)
+	}
 	return errors.Join(l.lock.Close(), l.rootLock.Close())
 }
 
