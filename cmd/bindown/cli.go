@@ -298,7 +298,6 @@ func (d *downloadCmd) Run(ctx *runContext) error {
 type extractCmd struct {
 	System               bindown.SystemInfo `kong:"name=system,default=${system_default},help=${system_help},predictor=allSystems"`
 	Dependency           string             `kong:"required=true,arg,help=${extract_dependency_help},predictor=bin"`
-	TargetDir            string             `kong:"name=output,help=${extract_target_dir_help}"`
 	AllowMissingChecksum bool               `kong:"name=allow-missing-checksum,help=${allow_missing_checksum}"`
 }
 
@@ -308,7 +307,6 @@ func (d *extractCmd) Run(ctx *runContext) error {
 		return err
 	}
 	pth, err := config.ExtractDependency(d.Dependency, d.System, &bindown.ConfigExtractDependencyOpts{
-		TargetDirectory:      d.TargetDir,
 		Force:                false,
 		AllowMissingChecksum: d.AllowMissingChecksum,
 	})

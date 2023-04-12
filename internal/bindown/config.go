@@ -405,7 +405,6 @@ func urlFilename(dlURL string) (string, error) {
 
 // ConfigExtractDependencyOpts options for Config.ExtractDependency
 type ConfigExtractDependencyOpts struct {
-	TargetDirectory      string
 	Force                bool
 	AllowMissingChecksum bool
 }
@@ -419,37 +418,20 @@ func (c *Config) ExtractDependency(dependencyName string, sysInfo SystemInfo, op
 	if err != nil {
 		return "", err
 	}
-	dlFile, key, dlUnlock, err := downloadDependency(
-		dep,
-		c.downloadsCache(),
-		c.TrustCache,
-		opts.AllowMissingChecksum,
-		opts.Force,
-	)
+	dlFile, key, dlUnlock, err := downloadDependency(dep, c.downloadsCache(), c.TrustCache, opts.AllowMissingChecksum, opts.Force)
 	if err != nil {
 		return "", err
 	}
 	defer deferErr(&errOut, dlUnlock)
 
-	if opts.TargetDirectory != "" {
-		err = extract(dlFile, opts.TargetDirectory)
-		if err != nil {
-			return "", err
-		}
-		return opts.TargetDirectory, nil
-	}
-	outDir, unlock, err := extractDependencyToCache(
-		dlFile,
-		c.Cache,
-		key,
-		c.extractsCache(),
-		c.TrustCache,
-		opts.Force,
-	)
+	outDir, unlock, err := extractDependencyToCache(dlFile, c.Cache, key, c.extractsCache(), c.TrustCache, opts.Force)
 	if err != nil {
 		return "", err
 	}
-	defer deferErr(&errOut, unlock)
+	err = unlock()
+	if err != nil {
+		return "", err
+	}
 	return outDir, nil
 }
 
@@ -472,26 +454,13 @@ func (c *Config) InstallDependency(dependencyName string, sysInfo SystemInfo, op
 	if err != nil {
 		return "", err
 	}
-	dlFile, key, dlUnlock, err := downloadDependency(
-		dep,
-		c.downloadsCache(),
-		c.TrustCache,
-		opts.AllowMissingChecksum,
-		opts.Force,
-	)
+	dlFile, key, dlUnlock, err := downloadDependency(dep, c.downloadsCache(), c.TrustCache, opts.AllowMissingChecksum, opts.Force)
 	if err != nil {
 		return "", err
 	}
 	defer deferErr(&errOut, dlUnlock)
 
-	extractDir, exUnlock, err := extractDependencyToCache(
-		dlFile,
-		c.Cache,
-		key,
-		c.extractsCache(),
-		c.TrustCache,
-		opts.Force,
-	)
+	extractDir, exUnlock, err := extractDependencyToCache(dlFile, c.Cache, key, c.extractsCache(), c.TrustCache, opts.Force)
 	if err != nil {
 		return "", err
 	}
