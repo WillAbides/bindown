@@ -7,7 +7,7 @@ type cacheCmd struct {
 type cacheClearCmd struct{}
 
 func (c *cacheClearCmd) Run(ctx *runContext) error {
-	config, err := loadConfigFile(ctx, true)
+	config, err := loadConfigFile(ctx, false)
 	if err != nil {
 		return err
 	}
