@@ -60,7 +60,7 @@ func TestDependency_applyTemplate(t *testing.T) {
 	})
 
 	t.Run("basic", func(t *testing.T) {
-		cfg := configFromYaml(t, `---
+		cfg := mustConfigFromYAML(t, `---
 templates:
   parentTemplate:
     url: parentTemplateURL

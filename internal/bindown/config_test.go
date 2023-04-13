@@ -4,25 +4,14 @@ import (
 	"context"
 	"os"
 	"path/filepath"
-	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"gopkg.in/yaml.v3"
 )
-
-func configFromYaml(t *testing.T, yml string) *Config {
-	t.Helper()
-	got := new(Config)
-	decoder := yaml.NewDecoder(strings.NewReader(yml))
-	decoder.KnownFields(true)
-	require.NoError(t, decoder.Decode(got))
-	return got
-}
 
 func TestConfig_UnsetDependencyVars(t *testing.T) {
 	t.Run("deletes", func(t *testing.T) {
-		cfg := configFromYaml(t, `
+		cfg := mustConfigFromYAML(t, `
 dependencies:
   foo:
     vars:
@@ -38,7 +27,7 @@ dependencies:
 	})
 
 	t.Run("nil vars", func(t *testing.T) {
-		cfg := configFromYaml(t, `
+		cfg := mustConfigFromYAML(t, `
 dependencies:
   foo: {}
 `)
@@ -50,7 +39,7 @@ dependencies:
 
 func TestConfig_UnsetTemplateVars(t *testing.T) {
 	t.Run("deletes", func(t *testing.T) {
-		cfg := configFromYaml(t, `
+		cfg := mustConfigFromYAML(t, `
 templates:
   foo:
     vars:
@@ -66,7 +55,7 @@ templates:
 	})
 
 	t.Run("nil vars", func(t *testing.T) {
-		cfg := configFromYaml(t, `
+		cfg := mustConfigFromYAML(t, `
 templates:
   foo: {}
 `)
@@ -78,7 +67,7 @@ templates:
 
 func TestConfig_SetDependencyVars(t *testing.T) {
 	t.Run("replaces and adds", func(t *testing.T) {
-		cfg := configFromYaml(t, `
+		cfg := mustConfigFromYAML(t, `
 dependencies:
   foo:
     vars:
@@ -99,7 +88,7 @@ dependencies:
 	})
 
 	t.Run("nil vars", func(t *testing.T) {
-		cfg := configFromYaml(t, `
+		cfg := mustConfigFromYAML(t, `
 dependencies:
   foo: {}
 `)
@@ -118,7 +107,7 @@ dependencies:
 
 func TestConfig_SetTemplateVars(t *testing.T) {
 	t.Run("replaces and adds", func(t *testing.T) {
-		cfg := configFromYaml(t, `
+		cfg := mustConfigFromYAML(t, `
 templates:
   foo:
     vars:
@@ -139,7 +128,7 @@ templates:
 	})
 
 	t.Run("nil vars", func(t *testing.T) {
-		cfg := configFromYaml(t, `
+		cfg := mustConfigFromYAML(t, `
 templates:
   foo: {}
 `)
