@@ -24,11 +24,11 @@ func Test_addChecksumsCmd(t *testing.T) {
 					Overrides: []bindown.DependencyOverride{
 						{
 							Dependency:      bindown.Dependency{URL: &urls[1]},
-							OverrideMatcher: bindown.OverrideMatcher{"os": []string{"darwin"}},
+							OverrideMatcher: map[string][]string{"os": {"darwin"}},
 						},
 						{
 							Dependency:      bindown.Dependency{URL: &urls[4]},
-							OverrideMatcher: bindown.OverrideMatcher{"os": []string{"windows"}},
+							OverrideMatcher: map[string][]string{"os": {"windows"}},
 						},
 					},
 				},
@@ -37,7 +37,7 @@ func Test_addChecksumsCmd(t *testing.T) {
 					Overrides: []bindown.DependencyOverride{
 						{
 							Dependency:      bindown.Dependency{URL: &urls[3]},
-							OverrideMatcher: bindown.OverrideMatcher{"os": []string{"darwin"}},
+							OverrideMatcher: map[string][]string{"os": {"darwin"}},
 						},
 					},
 				},

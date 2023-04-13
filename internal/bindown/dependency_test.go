@@ -135,7 +135,7 @@ func Test_Dependency_applyOverrides(t *testing.T) {
 			},
 			Overrides: []DependencyOverride{
 				{
-					OverrideMatcher: OverrideMatcher{
+					OverrideMatcher: map[string][]string{
 						"os":      {"linux"},
 						"foo":     {"bar"},
 						"version": {"asdf", "1.2.4", "1.x"},
@@ -148,16 +148,16 @@ func Test_Dependency_applyOverrides(t *testing.T) {
 						},
 						Overrides: []DependencyOverride{
 							{
-								OverrideMatcher: OverrideMatcher{
-									"arch": []string{"amd64"},
+								OverrideMatcher: map[string][]string{
+									"arch": {"amd64"},
 								},
 								Dependency: Dependency{
 									ArchivePath: ptr("it's amd64"),
 								},
 							},
 							{
-								OverrideMatcher: OverrideMatcher{
-									"arch": []string{"x86"},
+								OverrideMatcher: map[string][]string{
+									"arch": {"x86"},
 								},
 								Dependency: Dependency{
 									ArchivePath: ptr("it's x86"),

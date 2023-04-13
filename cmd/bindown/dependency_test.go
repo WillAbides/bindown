@@ -284,8 +284,8 @@ func Test_dependencyInfoCmd(t *testing.T) {
 				Systems:     []bindown.System{"darwin/amd64", "linux/386", "windows/386"},
 				Overrides: []bindown.DependencyOverride{
 					{
-						OverrideMatcher: bindown.OverrideMatcher{
-							"os": []string{"darwin"},
+						OverrideMatcher: map[string][]string{
+							"os": {"darwin"},
 						},
 						Dependency: bindown.Dependency{
 							Link: ptr(false),
@@ -654,8 +654,8 @@ func Test_dependencyValidateCmd(t *testing.T) {
 					},
 					Overrides: []bindown.DependencyOverride{
 						{
-							OverrideMatcher: bindown.OverrideMatcher{
-								"os": []string{"windows"},
+							OverrideMatcher: map[string][]string{
+								"os": {"windows"},
 							},
 							Dependency: bindown.Dependency{
 								Vars: map[string]string{

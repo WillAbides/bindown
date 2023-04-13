@@ -298,11 +298,11 @@ func TestConfig_addChecksums(t *testing.T) {
 				Overrides: []DependencyOverride{
 					{
 						Dependency:      Dependency{URL: &dl2},
-						OverrideMatcher: OverrideMatcher{"os": []string{"darwin"}},
+						OverrideMatcher: map[string][]string{"os": {"darwin"}},
 					},
 					{
 						Dependency:      Dependency{URL: &dl5},
-						OverrideMatcher: OverrideMatcher{"os": []string{"windows"}},
+						OverrideMatcher: map[string][]string{"os": {"windows"}},
 					},
 				},
 			},
@@ -311,7 +311,7 @@ func TestConfig_addChecksums(t *testing.T) {
 				Overrides: []DependencyOverride{
 					{
 						Dependency:      Dependency{URL: &dl4},
-						OverrideMatcher: OverrideMatcher{"os": []string{"darwin"}},
+						OverrideMatcher: map[string][]string{"os": {"darwin"}},
 					},
 				},
 			},
@@ -335,9 +335,9 @@ func TestConfig_BuildDependency(t *testing.T) {
 				URL: ptr("https://{{.os}}"),
 				Overrides: []DependencyOverride{
 					{
-						OverrideMatcher: OverrideMatcher{
-							"arch": []string{"testArch"},
-							"os":   []string{"testOS"},
+						OverrideMatcher: map[string][]string{
+							"arch": {"testArch"},
+							"os":   {"testOS"},
 						},
 						Dependency: Dependency{
 							URL: ptr("https://{{.os}}-{{.var1}}-{{.var2}}"),
@@ -374,9 +374,9 @@ func TestConfig_addChecksum(t *testing.T) {
 				URL: &dlURL,
 				Overrides: []DependencyOverride{
 					{
-						OverrideMatcher: OverrideMatcher{
-							"arch": []string{"testArch"},
-							"os":   []string{"testOS"},
+						OverrideMatcher: map[string][]string{
+							"arch": {"testArch"},
+							"os":   {"testOS"},
 						},
 						Dependency: Dependency{
 							URL: &dlURL2,
@@ -400,9 +400,9 @@ func TestConfig_addChecksum(t *testing.T) {
 				URL: &dlURL,
 				Overrides: []DependencyOverride{
 					{
-						OverrideMatcher: OverrideMatcher{
-							"arch": []string{"testArch"},
-							"os":   []string{"testOS"},
+						OverrideMatcher: map[string][]string{
+							"arch": {"testArch"},
+							"os":   {"testOS"},
 						},
 						Dependency: Dependency{
 							URL: &dlURL2,

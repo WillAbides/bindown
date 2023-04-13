@@ -12,12 +12,10 @@ import (
 
 // DependencyOverride overrides a dependency's configuration
 type DependencyOverride struct {
-	OverrideMatcher OverrideMatcher `json:"matcher" yaml:"matcher,omitempty"`
-	Dependency      Dependency      `json:"dependency" yaml:",omitempty"`
+	// OverrideMatcher is a map of variable name to a list of values that will match.
+	OverrideMatcher map[string][]string `json:"matcher" yaml:"matcher,omitempty"`
+	Dependency      Dependency          `json:"dependency" yaml:",omitempty"`
 }
-
-// OverrideMatcher is a map of variable name to a list of values that will match.
-type OverrideMatcher map[string][]string
 
 // Dependency is something to download, extract and install
 type Dependency struct {
