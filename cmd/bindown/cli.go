@@ -44,7 +44,6 @@ type rootCmd struct {
 	JSONConfig bool   `kong:"name=json,help='treat config file as json instead of yaml'"`
 	Configfile string `kong:"type=path,help=${configfile_help},env='BINDOWN_CONFIG_FILE'"`
 	CacheDir   string `kong:"name=cache,type=path,help=${cache_help},env='BINDOWN_CACHE'"`
-	TrustCache *bool  `kong:"help=${trust_cache_help},env='BINDOWN_TRUST_CACHE'"`
 	Quiet      bool   `kong:"short='q',help='suppress output to stdout'"`
 
 	Download        downloadCmd        `kong:"cmd,help=${download_help}"`
@@ -89,9 +88,6 @@ func loadConfigFile(ctx *runContext, noDefaultDirs bool) (*bindown.Config, error
 	}
 	if ctx.rootCmd.CacheDir != "" {
 		configFile.Cache = ctx.rootCmd.CacheDir
-	}
-	if ctx.rootCmd.TrustCache != nil {
-		configFile.TrustCache = *ctx.rootCmd.TrustCache
 	}
 	return configFile, nil
 }

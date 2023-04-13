@@ -200,23 +200,7 @@ func Test_extractCmd(t *testing.T) {
 		assertExtractSuccess(t, result)
 	})
 
-	t.Run("--trust-cache with empty cache", func(t *testing.T) {
-		runner := newCmdRunner(t)
-		runner.writeConfig(&bindown.Config{
-			URLChecksums: map[string]string{
-				depURL: "27dcce60d1ed72920a84dd4bc01e0bbd013e5a841660e9ee2e964e53fb83c0b3",
-			},
-			Dependencies: map[string]*bindown.Dependency{
-				"foo": {
-					URL: &depURL,
-				},
-			},
-		})
-		result := runner.run("extract", "foo", "--trust-cache")
-		assertExtractSuccess(t, result)
-	})
-
-	t.Run("--trust-cache with valid cache", func(t *testing.T) {
+	t.Run("empty cache", func(t *testing.T) {
 		runner := newCmdRunner(t)
 		runner.writeConfig(&bindown.Config{
 			URLChecksums: map[string]string{
@@ -230,11 +214,27 @@ func Test_extractCmd(t *testing.T) {
 		})
 		result := runner.run("extract", "foo")
 		assertExtractSuccess(t, result)
-		result = runner.run("extract", "foo", "--trust-cache")
+	})
+
+	t.Run("valid cache", func(t *testing.T) {
+		runner := newCmdRunner(t)
+		runner.writeConfig(&bindown.Config{
+			URLChecksums: map[string]string{
+				depURL: "27dcce60d1ed72920a84dd4bc01e0bbd013e5a841660e9ee2e964e53fb83c0b3",
+			},
+			Dependencies: map[string]*bindown.Dependency{
+				"foo": {
+					URL: &depURL,
+				},
+			},
+		})
+		result := runner.run("extract", "foo")
+		assertExtractSuccess(t, result)
+		result = runner.run("extract", "foo")
 		assertExtractSuccess(t, result)
 	})
 
-	t.Run("--trust-cache does not overwrite invalid cache", func(t *testing.T) {
+	t.Run("does not overwrite invalid cache", func(t *testing.T) {
 		runner := newCmdRunner(t)
 		runner.writeConfig(&bindown.Config{
 			URLChecksums: map[string]string{
@@ -262,7 +262,7 @@ func Test_extractCmd(t *testing.T) {
 		require.NoError(t, err)
 		require.NoError(t, unlock())
 
-		result = runner.run("extract", "foo", "--trust-cache")
+		result = runner.run("extract", "foo")
 		result.assertState(resultState{
 			stdout: "extracted foo to ",
 		})
@@ -420,23 +420,6 @@ func Test_downloadCmd(t *testing.T) {
 		assertDownloadSuccess(t, result)
 		// download again
 		result = runner.run("download", "foo", "--allow-missing-checksum")
-		assertDownloadSuccess(t, result)
-	})
-
-	t.Run("already exists with --allow-missing-checksum --trust-cache", func(t *testing.T) {
-		runner := newCmdRunner(t)
-		runner.writeConfig(&bindown.Config{
-			Dependencies: map[string]*bindown.Dependency{
-				"foo": {
-					URL: &depURL,
-				},
-			},
-		})
-		// download to put it in the cache
-		result := runner.run("download", "foo", "--allow-missing-checksum", "--trust-cache")
-		assertDownloadSuccess(t, result)
-		// download again
-		result = runner.run("download", "foo", "--allow-missing-checksum", "--trust-cache")
 		assertDownloadSuccess(t, result)
 	})
 }

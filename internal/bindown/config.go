@@ -22,7 +22,6 @@ import (
 // Config is our main config
 type Config struct {
 	Cache           string                 `json:"cache,omitempty" yaml:"cache,omitempty"`
-	TrustCache      bool                   `json:"trust_cache,omitempty" yaml:"trust_cache,omitempty"`
 	InstallDir      string                 `json:"install_dir,omitempty" yaml:"install_dir,omitempty"`
 	Systems         []System               `json:"systems,omitempty" yaml:"systems,omitempty"`
 	Dependencies    map[string]*Dependency `json:"dependencies,omitempty" yaml:",omitempty"`
@@ -336,7 +335,7 @@ func (c *Config) DownloadDependency(
 	if err != nil {
 		return "", err
 	}
-	dlFile, _, unlock, err := downloadDependency(dep, c.downloadsCache(), c.TrustCache, opts.AllowMissingChecksum, opts.Force)
+	dlFile, _, unlock, err := downloadDependency(dep, c.downloadsCache(), opts.AllowMissingChecksum, opts.Force)
 	if err != nil {
 		return "", err
 	}
@@ -370,13 +369,13 @@ func (c *Config) ExtractDependency(dependencyName string, system System, opts *C
 	if err != nil {
 		return "", err
 	}
-	dlFile, key, dlUnlock, err := downloadDependency(dep, c.downloadsCache(), c.TrustCache, opts.AllowMissingChecksum, opts.Force)
+	dlFile, key, dlUnlock, err := downloadDependency(dep, c.downloadsCache(), opts.AllowMissingChecksum, opts.Force)
 	if err != nil {
 		return "", err
 	}
 	defer deferErr(&errOut, dlUnlock)
 
-	outDir, unlock, err := extractDependencyToCache(dlFile, c.Cache, key, c.extractsCache(), c.TrustCache, opts.Force)
+	outDir, unlock, err := extractDependencyToCache(dlFile, c.Cache, key, c.extractsCache(), opts.Force)
 	if err != nil {
 		return "", err
 	}
@@ -406,13 +405,13 @@ func (c *Config) InstallDependency(dependencyName string, system System, opts *C
 	if err != nil {
 		return "", err
 	}
-	dlFile, key, dlUnlock, err := downloadDependency(dep, c.downloadsCache(), c.TrustCache, opts.AllowMissingChecksum, opts.Force)
+	dlFile, key, dlUnlock, err := downloadDependency(dep, c.downloadsCache(), opts.AllowMissingChecksum, opts.Force)
 	if err != nil {
 		return "", err
 	}
 	defer deferErr(&errOut, dlUnlock)
 
-	extractDir, exUnlock, err := extractDependencyToCache(dlFile, c.Cache, key, c.extractsCache(), c.TrustCache, opts.Force)
+	extractDir, exUnlock, err := extractDependencyToCache(dlFile, c.Cache, key, c.extractsCache(), opts.Force)
 	if err != nil {
 		return "", err
 	}

@@ -15,7 +15,7 @@ import (
 func downloadDependency(
 	dep *Dependency,
 	dlCache *cache.Cache,
-	trustCache, allowMissingChecksum, force bool,
+	allowMissingChecksum, force bool,
 ) (cachedFile, key string, unlock func() error, errOut error) {
 	if !dep.built {
 		panic("downloadDependency called on non-built dependency")
@@ -83,9 +83,6 @@ got: %s`, cachedFile, checksum, gotSum)
 			return fmt.Errorf("expected checksum %s, got %s", checksum, got)
 		}
 		return nil
-	}
-	if trustCache && !force {
-		validator = nil
 	}
 
 	dir, unlock, err := dlCache.Dir(key, validator, downloader)
