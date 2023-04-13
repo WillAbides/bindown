@@ -169,8 +169,8 @@ func (c *Config) BuildDependency(depName string, system System) (*Dependency, er
 	return dep, nil
 }
 
-// DefaultSystems returns c.Systems if it isn't empty. Otherwise returns the runtime system.
-func (c *Config) DefaultSystems() []System {
+// defaultSystems returns c.Systems if it isn't empty. Otherwise returns the runtime system.
+func (c *Config) defaultSystems() []System {
 	if len(c.Systems) > 0 {
 		return c.Systems
 	}
@@ -560,7 +560,7 @@ func (c *Config) DependencySystems(depName string) ([]System, error) {
 	}
 
 	if len(dep.Systems) == 0 {
-		return c.DefaultSystems(), nil
+		return c.defaultSystems(), nil
 	}
 	if len(c.Systems) == 0 {
 		return dep.Systems, nil
