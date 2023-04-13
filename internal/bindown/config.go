@@ -112,7 +112,7 @@ func (c *Config) MissingDependencyVars(depName string) ([]string, error) {
 		return nil, fmt.Errorf("no dependency configured with the name %q", depName)
 	}
 	var result []string
-	dep = dep.Clone()
+	dep = dep.clone()
 	err := dep.applyTemplate(c.Templates, 0)
 	if err != nil {
 		return nil, err
@@ -134,7 +134,7 @@ func (c *Config) BuildDependency(depName string, system System) (*Dependency, er
 	if dep == nil {
 		return nil, fmt.Errorf("no dependency configured with the name %q", depName)
 	}
-	dep = dep.Clone()
+	dep = dep.clone()
 	err := dep.applyTemplate(c.Templates, 0)
 	if err != nil {
 		return nil, err
@@ -553,7 +553,7 @@ func (c *Config) DependencySystems(depName string) ([]System, error) {
 	}
 	dep := c.Dependencies[depName]
 
-	dep = dep.Clone()
+	dep = dep.clone()
 	err := dep.applyTemplate(c.Templates, 0)
 	if err != nil {
 		return nil, err

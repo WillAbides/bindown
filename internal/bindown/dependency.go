@@ -16,64 +16,8 @@ type DependencyOverride struct {
 	Dependency      Dependency      `json:"dependency" yaml:",omitempty"`
 }
 
-func (o *DependencyOverride) Clone() *DependencyOverride {
-	return &DependencyOverride{
-		Dependency:      *(o.Dependency.Clone()),
-		OverrideMatcher: o.OverrideMatcher.Clone(),
-	}
-}
-
-// OverrideMatcher contains a list or oses and arches to match an override. If either os or arch is empty, all oses and arches match.
+// OverrideMatcher is a map of variable name to a list of values that will match.
 type OverrideMatcher map[string][]string
-
-func (o OverrideMatcher) matches(system System, vars map[string]string) bool {
-	if vars == nil {
-		vars = map[string]string{}
-	}
-	for varName, patterns := range o {
-		val, ok := vars[varName]
-		if !ok {
-			if varName == "os" {
-				val = system.OS()
-			}
-			if varName == "arch" {
-				val = system.Arch()
-			}
-		}
-		match := false
-		for _, pattern := range patterns {
-			if pattern == val {
-				match = true
-				break
-			}
-			// If pattern can be parsed as a semver constraint and val can be parsed as a semver version, check if val meets the constraint
-			constraint, err := semver.NewConstraint(pattern)
-			if err != nil {
-				continue
-			}
-			version, err := semver.NewVersion(val)
-			if err != nil {
-				continue
-			}
-			if constraint.Check(version) {
-				match = true
-				break
-			}
-		}
-		if !match {
-			return false
-		}
-	}
-	return true
-}
-
-func (o OverrideMatcher) Clone() OverrideMatcher {
-	clone := maps.Clone(o)
-	for i := range clone {
-		clone[i] = slices.Clone(clone[i])
-	}
-	return clone
-}
 
 // Dependency is something to download, extract and install
 type Dependency struct {
@@ -117,8 +61,19 @@ func varsWithSubstitutions(vars map[string]string, subs map[string]map[string]st
 	return vars
 }
 
-func (d *Dependency) Clone() *Dependency {
-	dep := Dependency{
+func (d *Dependency) clone() *Dependency {
+	overrides := slices.Clone(d.Overrides)
+	for i, override := range overrides {
+		matcher := maps.Clone(override.OverrideMatcher)
+		for k, v := range matcher {
+			matcher[k] = slices.Clone(v)
+		}
+		overrides[i] = DependencyOverride{
+			OverrideMatcher: matcher,
+			Dependency:      *(override.Dependency.clone()),
+		}
+	}
+	return &Dependency{
 		Vars:          maps.Clone(d.Vars),
 		URL:           clonePointer(d.URL),
 		ArchivePath:   clonePointer(d.ArchivePath),
@@ -130,10 +85,6 @@ func (d *Dependency) Clone() *Dependency {
 		Systems:       slices.Clone(d.Systems),
 		RequiredVars:  slices.Clone(d.RequiredVars),
 	}
-	for i, override := range dep.Overrides {
-		dep.Overrides[i] = *override.Clone()
-	}
-	return &dep
 }
 
 // interpolateVars executes go templates in values
@@ -168,7 +119,7 @@ func (d *Dependency) applyTemplate(templates map[string]*Dependency, depth int) 
 	if !ok {
 		return fmt.Errorf("no template named %s", *templateName)
 	}
-	newDL := tmpl.Clone()
+	newDL := tmpl.clone()
 	err := newDL.applyTemplate(templates, depth+1)
 	if err != nil {
 		return err
@@ -186,28 +137,52 @@ func (d *Dependency) applyTemplate(templates map[string]*Dependency, depth int) 
 		newDL.RequiredVars = append(newDL.RequiredVars, d.RequiredVars...)
 	}
 	newDL.Systems = slices.Clone(d.Systems)
-	newDL.addOverrides(d.Overrides)
+
+	if len(d.Overrides) > 0 {
+		newDL.Overrides = append(newDL.Overrides, d.Overrides...)
+	}
+
 	*d = *newDL
 	return nil
-}
-
-func (d *Dependency) addOverrides(overrides []DependencyOverride) {
-	if len(overrides) == 0 {
-		return
-	}
-	if d.Overrides == nil {
-		d.Overrides = make([]DependencyOverride, 0, len(overrides))
-	}
-	for i := range overrides {
-		d.Overrides = append(d.Overrides, *overrides[i].Clone())
-	}
 }
 
 const maxOverrideDepth = 2
 
 func (d *Dependency) applyOverrides(system System, depth int) {
 	for i := range d.Overrides {
-		if !d.Overrides[i].OverrideMatcher.matches(system, d.Vars) {
+		systemVars := maps.Clone(d.Vars)
+		if systemVars == nil {
+			systemVars = make(map[string]string)
+		}
+		if _, ok := systemVars["os"]; !ok {
+			systemVars["os"] = system.OS()
+		}
+		if _, ok := systemVars["arch"]; !ok {
+			systemVars["arch"] = system.Arch()
+		}
+		match := !slices.ContainsFunc(maps.Keys(d.Overrides[i].OverrideMatcher), func(varName string) bool {
+			overridePatterns := d.Overrides[i].OverrideMatcher[varName]
+			val := systemVars[varName]
+			// A match is found if the value is an exact match for a pattern or if the
+			// pattern is a valid semver constraint and the value is a valid semver that
+			// satisfies the constraint.
+			matcher := func(pattern string) bool {
+				if pattern == val {
+					return true
+				}
+				constraint, err := semver.NewConstraint(pattern)
+				if err != nil {
+					return false
+				}
+				version, err := semver.NewVersion(val)
+				if err != nil {
+					return false
+				}
+				return constraint.Check(version)
+			}
+			return !slices.ContainsFunc(overridePatterns, matcher)
+		})
+		if !match {
 			continue
 		}
 		dependency := &d.Overrides[i].Dependency
