@@ -1,11 +1,10 @@
 package bindown
 
 import (
+	"encoding/json"
 	"path/filepath"
 	"testing"
 
-	"github.com/google/go-cmp/cmp"
-	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/stretchr/testify/require"
 )
 
@@ -116,7 +115,7 @@ dependencies:
 		dep := cfg.Dependencies["myDependency"]
 		err := dep.applyTemplate(cfg.Templates, 0)
 		require.NoError(t, err)
-		require.Empty(t, cmp.Diff(cfg.Dependencies["want"], dep, cmpopts.EquateEmpty()))
+		assertDependencyEqual(t, cfg.Dependencies["want"], dep)
 	})
 }
 
@@ -188,7 +187,7 @@ func Test_Dependency_applyOverrides(t *testing.T) {
 			},
 		}
 		dep.applyOverrides(newSystemInfo("linux", "amd64"), 0)
-		require.Empty(t, cmp.Diff(&want, dep))
+		assertDependencyEqual(t, &want, dep)
 	})
 }
 
@@ -297,4 +296,13 @@ func TestOverrideMatcher_matches(t *testing.T) {
 			require.Equal(t, td.want, td.matcher.matches(td.info, td.vars))
 		})
 	}
+}
+
+func assertDependencyEqual(t testing.TB, want, got *Dependency) {
+	t.Helper()
+	wantJson, err := json.Marshal(want)
+	require.NoError(t, err)
+	gotJson, err := json.Marshal(got)
+	require.NoError(t, err)
+	require.JSONEq(t, string(wantJson), string(gotJson))
 }

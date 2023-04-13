@@ -75,14 +75,6 @@ func (o OverrideMatcher) Clone() OverrideMatcher {
 	return clone
 }
 
-type builtDependency struct {
-	Dependency
-	name     string
-	checksum string
-	url      string
-	system   SystemInfo
-}
-
 // Dependency is something to download, extract and install
 type Dependency struct {
 	Template      *string                      `json:"template,omitempty" yaml:",omitempty"`
@@ -95,6 +87,12 @@ type Dependency struct {
 	Overrides     []DependencyOverride         `json:"overrides,omitempty" yaml:",omitempty"`
 	Substitutions map[string]map[string]string `json:"substitutions,omitempty" yaml:",omitempty"`
 	Systems       []SystemInfo                 `json:"systems,omitempty" yaml:"systems,omitempty"`
+
+	built    bool
+	name     string
+	checksum string
+	url      string
+	system   SystemInfo
 }
 
 func cloneSubstitutions(subs map[string]map[string]string) map[string]map[string]string {

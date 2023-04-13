@@ -96,7 +96,7 @@ func (c *Config) SetTemplateVars(tmplName string, vars map[string]string) error 
 
 // BinName returns the bin name for a downloader on a given system
 func (c *Config) BinName(depName string, system SystemInfo) (string, error) {
-	dep, err := c.buildDependency(depName, system)
+	dep, err := c.BuildDependency(depName, system)
 	if err != nil {
 		return "", err
 	}
@@ -131,14 +131,6 @@ func (c *Config) MissingDependencyVars(depName string) ([]string, error) {
 
 // BuildDependency returns a dependency with templates and overrides applied and variables interpolated for the given system.
 func (c *Config) BuildDependency(depName string, info SystemInfo) (*Dependency, error) {
-	dep, err := c.buildDependency(depName, info)
-	if err != nil {
-		return nil, err
-	}
-	return &dep.Dependency, nil
-}
-
-func (c *Config) buildDependency(depName string, info SystemInfo) (*builtDependency, error) {
 	dep := c.Dependencies[depName]
 	if dep == nil {
 		return nil, fmt.Errorf("no dependency configured with the name %q", depName)
@@ -170,13 +162,12 @@ func (c *Config) buildDependency(depName string, info SystemInfo) (*builtDepende
 	if c.URLChecksums != nil && dep.URL != nil {
 		checksum = c.URLChecksums[*dep.URL]
 	}
-	return &builtDependency{
-		Dependency: *dep,
-		name:       depName,
-		system:     info,
-		checksum:   checksum,
-		url:        *dep.URL,
-	}, nil
+	dep.built = true
+	dep.name = depName
+	dep.system = info
+	dep.checksum = checksum
+	dep.url = *dep.URL
+	return dep, nil
 }
 
 // DefaultSystems returns c.Systems if it isn't empty. Otherwise returns the runtime system.
@@ -233,8 +224,8 @@ func (c *Config) PruneChecksums() error {
 			return err
 		}
 		for _, system := range systems {
-			var dep *builtDependency
-			dep, err = c.buildDependency(depName, system)
+			var dep *Dependency
+			dep, err = c.BuildDependency(depName, system)
 			if err != nil {
 				return err
 			}
@@ -250,7 +241,7 @@ func (c *Config) PruneChecksums() error {
 }
 
 func (c *Config) addChecksum(dependencyName string, sysInfo SystemInfo) error {
-	dep, err := c.buildDependency(dependencyName, sysInfo)
+	dep, err := c.BuildDependency(dependencyName, sysInfo)
 	if err != nil {
 		return err
 	}
@@ -347,7 +338,7 @@ func (c *Config) DownloadDependency(
 	if opts == nil {
 		opts = &ConfigDownloadDependencyOpts{}
 	}
-	dep, err := c.buildDependency(name, sysInfo)
+	dep, err := c.BuildDependency(name, sysInfo)
 	if err != nil {
 		return "", err
 	}
@@ -381,7 +372,7 @@ func (c *Config) ExtractDependency(dependencyName string, sysInfo SystemInfo, op
 	if opts == nil {
 		opts = &ConfigExtractDependencyOpts{}
 	}
-	dep, err := c.buildDependency(dependencyName, sysInfo)
+	dep, err := c.BuildDependency(dependencyName, sysInfo)
 	if err != nil {
 		return "", err
 	}
@@ -417,7 +408,7 @@ func (c *Config) InstallDependency(dependencyName string, sysInfo SystemInfo, op
 	if opts == nil {
 		opts = &ConfigInstallDependencyOpts{}
 	}
-	dep, err := c.buildDependency(dependencyName, sysInfo)
+	dep, err := c.BuildDependency(dependencyName, sysInfo)
 	if err != nil {
 		return "", err
 	}
