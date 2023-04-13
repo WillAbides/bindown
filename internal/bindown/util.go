@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+	"gopkg.in/yaml.v3"
 	"hash"
 	"hash/fnv"
 	"io"
@@ -173,4 +174,11 @@ func overrideValue[T comparable](p, override *T) *T {
 		return p
 	}
 	return clonePointer(override)
+}
+
+func EncodeYaml(w io.Writer, v any) (errOut error) {
+	encoder := yaml.NewEncoder(w)
+	defer deferErr(&errOut, encoder.Close)
+	encoder.SetIndent(2)
+	return encoder.Encode(v)
 }

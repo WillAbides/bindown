@@ -13,7 +13,9 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/willabides/bindown/v3/internal/bindown"
+	"gopkg.in/yaml.v3"
 )
 
 type cmdRunner struct {
@@ -94,7 +96,18 @@ func (c *cmdRunner) assertConfigYaml(want string) {
 	if !assert.NoError(c.t, err) {
 		return
 	}
-	assert.Equal(c.t, strings.TrimSpace(want), strings.TrimSpace(string(got)))
+	assert.Equal(c.t, normalizeYaml(c.t, want), normalizeYaml(c.t, string(got)))
+}
+
+func normalizeYaml(t testing.TB, val string) string {
+	t.Helper()
+	var data any
+	err := yaml.Unmarshal([]byte(val), &data)
+	require.NoError(t, err)
+	var out bytes.Buffer
+	err = bindown.EncodeYaml(&out, data)
+	require.NoError(t, err)
+	return out.String()
 }
 
 type runCmdResult struct {

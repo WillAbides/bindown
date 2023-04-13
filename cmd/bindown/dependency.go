@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"github.com/willabides/bindown/v3/internal/bindown"
-	"gopkg.in/yaml.v2"
 )
 
 type dependencyCmd struct {
@@ -74,7 +73,7 @@ func (c *dependencyShowConfigCmd) Run(ctx *runContext) error {
 		encoder.SetIndent("", "  ")
 		return encoder.Encode(cfg.Dependencies[c.Dependency])
 	}
-	return yaml.NewEncoder(ctx.stdout).Encode(cfg.Dependencies[c.Dependency])
+	return bindown.EncodeYaml(ctx.stdout, cfg.Dependencies[c.Dependency])
 }
 
 type dependencyInfoCmd struct {
@@ -119,7 +118,7 @@ func (c *dependencyInfoCmd) Run(ctx *runContext) error {
 		encoder.SetIndent("", "  ")
 		return encoder.Encode(result)
 	}
-	return yaml.NewEncoder(ctx.stdout).Encode(result)
+	return bindown.EncodeYaml(ctx.stdout, result)
 }
 
 type dependencyListCmd struct{}

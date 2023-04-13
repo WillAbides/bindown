@@ -16,7 +16,7 @@ import (
 	"strings"
 
 	"github.com/willabides/bindown/v3/internal/cache"
-	"gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v3"
 )
 
 // Config is our main config
@@ -599,7 +599,7 @@ func (c *Config) WriteFile(outputJSON bool) (errOut error) {
 		encoder.SetIndent("", "  ")
 		return encoder.Encode(c)
 	}
-	return yaml.NewEncoder(file).Encode(&c)
+	return EncodeYaml(file, &c)
 }
 
 // NewConfig loads a config from a URL
