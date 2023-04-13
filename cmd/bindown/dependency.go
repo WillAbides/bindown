@@ -54,7 +54,7 @@ func (c *dependencyUpdateVarsCmd) Run(ctx *runContext) error {
 			return err
 		}
 	}
-	return config.Write(ctx.rootCmd.JSONConfig)
+	return config.WriteFile(ctx.rootCmd.JSONConfig)
 }
 
 type dependencyShowConfigCmd struct {
@@ -147,7 +147,7 @@ func (c *dependencyRemoveCmd) Run(ctx *runContext) error {
 		return fmt.Errorf("no dependency named %q", c.Dependency)
 	}
 	delete(cfg.Dependencies, c.Dependency)
-	return cfg.Write(ctx.rootCmd.JSONConfig)
+	return cfg.WriteFile(ctx.rootCmd.JSONConfig)
 }
 
 type dependencyAddCmd struct {
@@ -210,7 +210,7 @@ func (c *dependencyAddCmd) Run(ctx *runContext) error {
 			return err
 		}
 	}
-	return config.Write(ctx.rootCmd.JSONConfig)
+	return config.WriteFile(ctx.rootCmd.JSONConfig)
 }
 
 type dependencyValidateCmd struct {

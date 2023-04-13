@@ -23,7 +23,7 @@ func (d *addChecksumsCmd) Run(ctx *runContext) error {
 	if err != nil {
 		return err
 	}
-	return config.Write(ctx.rootCmd.JSONConfig)
+	return config.WriteFile(ctx.rootCmd.JSONConfig)
 }
 
 type pruneChecksumsCmd struct{}
@@ -37,5 +37,5 @@ func (d *pruneChecksumsCmd) Run(ctx *runContext) error {
 	if err != nil {
 		return err
 	}
-	return config.Write(ctx.rootCmd.JSONConfig)
+	return config.WriteFile(ctx.rootCmd.JSONConfig)
 }

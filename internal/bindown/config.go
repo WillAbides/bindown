@@ -3,6 +3,7 @@ package bindown
 import (
 	"context"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"hash/fnv"
 	"io"
@@ -29,6 +30,8 @@ type Config struct {
 	Templates       map[string]*Dependency `json:"templates,omitempty" yaml:",omitempty"`
 	TemplateSources map[string]string      `json:"template_sources,omitempty" yaml:"template_sources,omitempty"`
 	URLChecksums    map[string]string      `json:"url_checksums,omitempty" yaml:"url_checksums,omitempty"`
+
+	Filename string `json:"-" yaml:"-"`
 }
 
 // UnsetDependencyVars removes a dependency var. Noop if the var doesn't exist.
@@ -514,7 +517,7 @@ func (c *Config) CopyTemplateFromSource(ctx context.Context, src, srcTemplate, d
 
 // addTemplateFromSource copies a template from another config file
 func (c *Config) addTemplateFromSource(ctx context.Context, src, srcTemplate, destName string) error {
-	srcCfg, err := ConfigFromURL(ctx, src)
+	srcCfg, err := NewConfig(ctx, src, true)
 	if err != nil {
 		return err
 	}
@@ -554,7 +557,7 @@ func (c *Config) templateSourceConfig(ctx context.Context, name string) (*Config
 	if c.TemplateSources == nil || c.TemplateSources[name] == "" {
 		return nil, fmt.Errorf("no template source named %q", name)
 	}
-	return ConfigFromURL(ctx, c.TemplateSources[name])
+	return NewConfig(ctx, c.TemplateSources[name], true)
 }
 
 // DependencySystems returns the supported systems of either the config or the dependency if one is not empty
@@ -590,24 +593,63 @@ func (c *Config) DependencySystems(depName string) ([]SystemInfo, error) {
 	return result, nil
 }
 
-// ConfigFromURL loads a config from a URL
-func ConfigFromURL(ctx context.Context, cfgSrc string) (*Config, error) {
+func (c *Config) WriteFile(outputJSON bool) (errOut error) {
+	if c.Filename == "" {
+		return fmt.Errorf("no filename specified")
+	}
+	if filepath.Ext(c.Filename) == ".json" {
+		outputJSON = true
+	}
+	file, err := os.Create(c.Filename)
+	if err != nil {
+		return err
+	}
+	defer deferErr(&errOut, file.Close)
+	if len(c.Systems) > 0 {
+		sort.Slice(c.Systems, func(i, j int) bool {
+			return c.Systems[i].String() < c.Systems[j].String()
+		})
+	}
+	if outputJSON {
+		encoder := json.NewEncoder(file)
+		encoder.SetIndent("", "  ")
+		return encoder.Encode(c)
+	}
+	return yaml.NewEncoder(file).Encode(&c)
+}
+
+// NewConfig loads a config from a URL
+func NewConfig(ctx context.Context, cfgSrc string, noDefaultDirs bool) (*Config, error) {
 	cfgURL, err := url.Parse(cfgSrc)
 	if err != nil {
 		return nil, err
 	}
 	switch cfgURL.Scheme {
-	case "", "file":
-		cfg, err := LoadConfigFile(ctx, cfgURL.Path, true)
-		if err != nil {
-			return nil, err
-		}
-		return &cfg.Config, nil
+	case "":
 	case "http", "https":
 		return configFromHTTP(ctx, cfgSrc)
 	default:
 		return nil, fmt.Errorf("invalid src: %s", cfgSrc)
 	}
+	data, err := os.ReadFile(cfgSrc)
+	if err != nil {
+		return nil, err
+	}
+	cfg, err := configFromYAML(ctx, data)
+	if err != nil {
+		return nil, err
+	}
+	cfg.Filename = cfgSrc
+	if noDefaultDirs {
+		return cfg, nil
+	}
+	if cfg.Cache == "" {
+		cfg.Cache = filepath.Join(filepath.Dir(cfgSrc), ".cache")
+	}
+	if cfg.InstallDir == "" {
+		cfg.InstallDir = filepath.Join(filepath.Dir(cfgSrc), "bin")
+	}
+	return cfg, nil
 }
 
 func configFromHTTP(ctx context.Context, src string) (*Config, error) {

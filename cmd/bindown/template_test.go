@@ -201,19 +201,6 @@ templates:
 		})
 	})
 
-	t.Run("remote with file url", func(t *testing.T) {
-		runner := newCmdRunner(t)
-		runner.writeConfig(&bindown.Config{
-			TemplateSources: map[string]string{
-				"source1": "file://" + srcFile,
-			},
-		})
-		result := runner.run("template", "list", "--source", "source1")
-		result.assertState(resultState{
-			stdout: "tmpl1\ntmpl2\n",
-		})
-	})
-
 	t.Run("remote with http url", func(t *testing.T) {
 		server := serveFile(t, srcFile, "/template-source.yaml", "")
 		runner := newCmdRunner(t)

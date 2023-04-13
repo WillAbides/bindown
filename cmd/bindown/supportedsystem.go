@@ -45,7 +45,7 @@ func (c *supportedSystemsRemoveCmd) Run(ctx *runContext) error {
 		}
 	}
 	cfg.Systems = newSystems
-	return cfg.Write(ctx.rootCmd.JSONConfig)
+	return cfg.WriteFile(ctx.rootCmd.JSONConfig)
 }
 
 type supportedSystemAddCmd struct {
@@ -83,5 +83,5 @@ func (c *supportedSystemAddCmd) Run(ctx *runContext) error {
 			}
 		}
 	}
-	return cfg.Write(ctx.rootCmd.JSONConfig)
+	return cfg.WriteFile(ctx.rootCmd.JSONConfig)
 }

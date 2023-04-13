@@ -60,19 +60,19 @@ func prepCompletionConfigFile(path string) string {
 	return path
 }
 
-func completionConfig(ctx context.Context, args []string) *bindown.ConfigFile {
+func completionConfig(ctx context.Context, args []string) *bindown.Config {
 	path := findConfigFileForCompletion(args)
 	if path == "" {
 		return nil
 	}
-	configFile, err := bindown.LoadConfigFile(ctx, path, true)
+	configFile, err := bindown.NewConfig(ctx, path, true)
 	if err != nil {
 		return nil
 	}
 	return configFile
 }
 
-func allDependencies(cfg *bindown.ConfigFile) []string {
+func allDependencies(cfg *bindown.Config) []string {
 	if cfg == nil {
 		return []string{}
 	}
@@ -121,7 +121,7 @@ func templateCompleter(ctx context.Context) complete.PredictFunc {
 		if !ok {
 			return []string{}
 		}
-		srcCfg, err := bindown.ConfigFromURL(ctx, srcURL)
+		srcCfg, err := bindown.NewConfig(ctx, srcURL, true)
 		if err != nil {
 			return []string{}
 		}

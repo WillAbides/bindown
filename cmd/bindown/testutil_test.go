@@ -77,16 +77,13 @@ func (c *cmdRunner) writeConfigYaml(content string) {
 
 func (c *cmdRunner) writeConfig(config *bindown.Config) {
 	c.t.Helper()
-	cfgFile := &bindown.ConfigFile{
-		Filename: c.configFile,
-		Config:   *config,
-	}
-	assert.NoError(c.t, cfgFile.Write(false))
+	config.Filename = c.configFile
+	assert.NoError(c.t, config.WriteFile(false))
 }
 
-func (c *cmdRunner) getConfigFile() *bindown.ConfigFile {
+func (c *cmdRunner) getConfigFile() *bindown.Config {
 	c.t.Helper()
-	cfgFile, err := bindown.LoadConfigFile(context.Background(), c.configFile, false)
+	cfgFile, err := bindown.NewConfig(context.Background(), c.configFile, false)
 	assert.NoError(c.t, err)
 	return cfgFile
 }

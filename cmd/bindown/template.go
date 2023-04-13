@@ -37,7 +37,7 @@ func (c *templateUpdateVarCmd) Run(ctx *runContext) error {
 			return err
 		}
 	}
-	return config.Write(ctx.rootCmd.JSONConfig)
+	return config.WriteFile(ctx.rootCmd.JSONConfig)
 }
 
 type templateUpdateFromSourceCmd struct {
@@ -69,7 +69,7 @@ func (c *templateUpdateFromSourceCmd) Run(ctx *runContext) error {
 	if err != nil {
 		return err
 	}
-	return cfg.Write(ctx.rootCmd.JSONConfig)
+	return cfg.WriteFile(ctx.rootCmd.JSONConfig)
 }
 
 type templateListCmd struct {
@@ -107,5 +107,5 @@ func (c *templateRemoveCmd) Run(ctx *runContext) error {
 		return fmt.Errorf("no template named %q", c.Template)
 	}
 	delete(cfg.Templates, c.Template)
-	return cfg.Write(ctx.rootCmd.JSONConfig)
+	return cfg.WriteFile(ctx.rootCmd.JSONConfig)
 }

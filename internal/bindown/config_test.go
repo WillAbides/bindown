@@ -162,7 +162,7 @@ func TestConfig_addTemplateFromSource(t *testing.T) {
 		t.Run("success", func(t *testing.T) {
 			cfg := new(Config)
 			src := filepath.Join("testdata", "configs", "ex1.yaml")
-			srcCfg, err := LoadConfigFile(ctx, src, true)
+			srcCfg, err := NewConfig(ctx, src, true)
 			require.NoError(t, err)
 			err = cfg.addTemplateFromSource(ctx, src, "goreleaser", "mygoreleaser")
 			require.NoError(t, err)
@@ -190,7 +190,7 @@ func TestConfig_addTemplateFromSource(t *testing.T) {
 		ts := serveFile(t, srcFile, "/ex1.yaml", "")
 		cfg := new(Config)
 		src := ts.URL + "/ex1.yaml"
-		srcCfg, err := LoadConfigFile(ctx, srcFile, true)
+		srcCfg, err := NewConfig(ctx, srcFile, true)
 		require.NoError(t, err)
 		err = cfg.addTemplateFromSource(ctx, src, "goreleaser", "mygoreleaser")
 		require.NoError(t, err)

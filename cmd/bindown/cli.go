@@ -73,7 +73,7 @@ var defaultConfigFilenames = []string{
 	".bindown.json",
 }
 
-func loadConfigFile(ctx *runContext, noDefaultDirs bool) (*bindown.ConfigFile, error) {
+func loadConfigFile(ctx *runContext, noDefaultDirs bool) (*bindown.Config, error) {
 	filename := ctx.rootCmd.Configfile
 	if filename == "" {
 		for _, configFilename := range defaultConfigFilenames {
@@ -84,7 +84,7 @@ func loadConfigFile(ctx *runContext, noDefaultDirs bool) (*bindown.ConfigFile, e
 			}
 		}
 	}
-	configFile, err := bindown.LoadConfigFile(ctx, filename, noDefaultDirs)
+	configFile, err := bindown.NewConfig(ctx, filename, noDefaultDirs)
 	if err != nil {
 		return nil, err
 	}
@@ -217,10 +217,10 @@ func (c *initCmd) Run(ctx *runContext) error {
 	if err != nil {
 		return err
 	}
-	cfg := &bindown.ConfigFile{
+	cfg := &bindown.Config{
 		Filename: file.Name(),
 	}
-	return cfg.Write(ctx.rootCmd.JSONConfig)
+	return cfg.WriteFile(ctx.rootCmd.JSONConfig)
 }
 
 type fmtCmd struct{}
@@ -231,7 +231,7 @@ func (c fmtCmd) Run(ctx *runContext, cli *rootCmd) error {
 	if err != nil {
 		return err
 	}
-	return config.Write(ctx.rootCmd.JSONConfig)
+	return config.WriteFile(ctx.rootCmd.JSONConfig)
 }
 
 type installCmd struct {
