@@ -281,11 +281,7 @@ func Test_dependencyInfoCmd(t *testing.T) {
 					"version": "1.2.3",
 				},
 				ArchivePath: ptr("{{ .version }}-{{ .os }}-{{ .arch }}/bin/foo"),
-				Systems: []bindown.SystemInfo{
-					{OS: "darwin", Arch: "amd64"},
-					{OS: "linux", Arch: "386"},
-					{OS: "windows", Arch: "386"},
-				},
+				Systems:     []bindown.System{"darwin/amd64", "linux/386", "windows/386"},
 				Overrides: []bindown.DependencyOverride{
 					{
 						OverrideMatcher: bindown.OverrideMatcher{

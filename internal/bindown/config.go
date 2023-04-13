@@ -563,14 +563,14 @@ func (c *Config) DependencySystems(depName string) ([]System, error) {
 		return c.DefaultSystems(), nil
 	}
 	if len(c.Systems) == 0 {
-		return infosToSystems(dep.Systems), nil
+		return dep.Systems, nil
 	}
 	mp := make(map[System]bool, len(c.Systems))
 	for _, system := range c.Systems {
 		mp[system] = true
 	}
 	result := make([]System, 0, len(dep.Systems))
-	for _, system := range infosToSystems(dep.Systems) {
+	for _, system := range dep.Systems {
 		if mp[system] {
 			result = append(result, system)
 		}

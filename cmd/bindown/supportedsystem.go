@@ -22,7 +22,7 @@ func (c *supportedSystemListCmd) Run(ctx *runContext) error {
 	}
 
 	for _, system := range cfg.Systems {
-		fmt.Fprintln(ctx.stdout, system.String())
+		fmt.Fprintln(ctx.stdout, system)
 	}
 	return nil
 }
@@ -60,7 +60,7 @@ func (c *supportedSystemAddCmd) Run(ctx *runContext) error {
 	}
 
 	for _, system := range cfg.Systems {
-		if system.String() == c.System.String() {
+		if system == c.System {
 			return nil
 		}
 	}

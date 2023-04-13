@@ -22,7 +22,7 @@ func Test_supportedSystemListCmd(t *testing.T) {
 					// this demonstrates that a dependency's systems are not used
 					"dep1": {
 						URL:     ptr("foo"),
-						Systems: []bindown.SystemInfo{{OS: "linux", Arch: "amd64"}},
+						Systems: []bindown.System{"linux/amd64"},
 					},
 				},
 			},
@@ -56,7 +56,7 @@ func Test_supportedSystemsRemoveCmd(t *testing.T) {
 		config      bindown.Config
 		args        []string
 		state       resultState
-		wantSystems []string
+		wantSystems []bindown.System
 	}{
 		{
 			name: "removes system",
@@ -64,7 +64,7 @@ func Test_supportedSystemsRemoveCmd(t *testing.T) {
 				Systems: []bindown.System{"darwin/amd64", "linux/amd64", "windows/amd64"},
 			},
 			args:        []string{"linux/amd64"},
-			wantSystems: []string{"darwin/amd64", "windows/amd64"},
+			wantSystems: []bindown.System{"darwin/amd64", "windows/amd64"},
 		},
 		{
 			name: "no-op if system not found",
@@ -72,7 +72,7 @@ func Test_supportedSystemsRemoveCmd(t *testing.T) {
 				Systems: []bindown.System{"darwin/amd64", "linux/amd64", "windows/amd64"},
 			},
 			args:        []string{"linux/386"},
-			wantSystems: []string{"darwin/amd64", "linux/amd64", "windows/amd64"},
+			wantSystems: []bindown.System{"darwin/amd64", "linux/amd64", "windows/amd64"},
 		},
 		{
 			name: "no systems",
@@ -85,15 +85,7 @@ func Test_supportedSystemsRemoveCmd(t *testing.T) {
 			result := runner.run(append([]string{"supported-system", "remove"}, td.args...)...)
 			result.assertState(td.state)
 			cfg := runner.getConfigFile()
-			gotSystems := make([]string, len(cfg.Systems))
-			for i, system := range cfg.Systems {
-				gotSystems[i] = system.String()
-			}
-			wantSystems := td.wantSystems
-			if wantSystems == nil {
-				wantSystems = []string{}
-			}
-			require.Equal(t, wantSystems, gotSystems)
+			require.Equal(t, td.wantSystems, cfg.Systems)
 		})
 	}
 }
@@ -157,11 +149,7 @@ func Test_supportedSystemAddCmd(t *testing.T) {
 			result := runner.run(append([]string{"supported-system", "add"}, td.args...)...)
 			result.assertState(td.state)
 			cfg := runner.getConfigFile()
-			wantSystems := td.wantSystems
-			if wantSystems == nil {
-				wantSystems = []bindown.System{}
-			}
-			require.Equal(t, wantSystems, cfg.Systems)
+			require.Equal(t, td.wantSystems, cfg.Systems)
 		})
 	}
 }

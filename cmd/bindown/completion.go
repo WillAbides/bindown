@@ -173,7 +173,7 @@ func systemCompleter(ctx context.Context) complete.PredictFunc {
 		cfg := completionConfig(ctx, a.Completed)
 		opts := make([]string, 0, len(cfg.Systems))
 		for _, system := range cfg.Systems {
-			opts = append(opts, system.String())
+			opts = append(opts, string(system))
 		}
 		return complete.PredictSet(opts...).Predict(a)
 	}

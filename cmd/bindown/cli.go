@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"runtime"
 	"time"
 
 	"github.com/alecthomas/kong"
@@ -17,7 +16,7 @@ var kongVars = kong.Vars{
 	"configfile_help":                 `file with bindown config. default is the first one of bindown.yml, bindown.yaml, bindown.json, .bindown.yml, .bindown.yaml or .bindown.json`,
 	"cache_help":                      `directory downloads will be cached`,
 	"install_help":                    `download, extract and install a dependency`,
-	"system_default":                  fmt.Sprintf("%s/%s", runtime.GOOS, runtime.GOARCH),
+	"system_default":                  string(bindown.CurrentSystem),
 	"system_help":                     `target system in the format of <os>/<architecture>`,
 	"systems_help":                    `target systems in the format of <os>/<architecture>`,
 	"add_checksums_help":              `add checksums to the config file`,

@@ -86,7 +86,7 @@ type Dependency struct {
 	RequiredVars  []string                     `json:"required_vars,omitempty" yaml:"required_vars,omitempty"`
 	Overrides     []DependencyOverride         `json:"overrides,omitempty" yaml:",omitempty"`
 	Substitutions map[string]map[string]string `json:"substitutions,omitempty" yaml:",omitempty"`
-	Systems       []SystemInfo                 `json:"systems,omitempty" yaml:"systems,omitempty"`
+	Systems       []System                     `json:"systems,omitempty" yaml:"systems,omitempty"`
 
 	built    bool
 	name     string
