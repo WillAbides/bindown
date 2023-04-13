@@ -10,8 +10,8 @@ type checksumsCmd struct {
 }
 
 type addChecksumsCmd struct {
-	Dependency []string             `kong:"help=${checksums_dep_help},predictor=bin"`
-	Systems    []bindown.SystemInfo `kong:"name=system,help=${systems_help},predictor=allSystems"`
+	Dependency []string         `kong:"help=${checksums_dep_help},predictor=bin"`
+	Systems    []bindown.System `kong:"name=system,help=${systems_help},predictor=allSystems"`
 }
 
 func (d *addChecksumsCmd) Run(ctx *runContext) error {

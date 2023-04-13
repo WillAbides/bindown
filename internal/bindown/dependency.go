@@ -92,7 +92,7 @@ type Dependency struct {
 	name     string
 	checksum string
 	url      string
-	system   SystemInfo
+	system   System
 }
 
 func cloneSubstitutions(subs map[string]map[string]string) map[string]map[string]string {

@@ -221,7 +221,7 @@ func TestConfig_InstallDependency(t *testing.T) {
 		}
 		t.Cleanup(func() { require.NoError(t, config.ClearCache()) })
 		wantBin := filepath.Join(binDir, "foo")
-		gotPath, err := config.InstallDependency("foo", newSystemInfo("darwin", "amd64"), &ConfigInstallDependencyOpts{})
+		gotPath, err := config.InstallDependency("foo", "darwin/amd64", &ConfigInstallDependencyOpts{})
 		require.NoError(t, err)
 		require.Equal(t, wantBin, gotPath)
 		require.True(t, fileExists(wantBin))
@@ -253,7 +253,7 @@ func TestConfig_InstallDependency(t *testing.T) {
 		}
 		t.Cleanup(func() { require.NoError(t, config.ClearCache()) })
 		wantBin := filepath.Join(binDir, "foo")
-		gotPath, err := config.InstallDependency("foo", newSystemInfo("darwin", "amd64"), &ConfigInstallDependencyOpts{})
+		gotPath, err := config.InstallDependency("foo", "darwin/amd64", &ConfigInstallDependencyOpts{})
 		require.NoError(t, err)
 		require.Equal(t, wantBin, gotPath)
 		require.True(t, fileExists(wantBin))
@@ -285,7 +285,7 @@ func TestConfig_InstallDependency(t *testing.T) {
 		}
 		t.Cleanup(func() { require.NoError(t, config.ClearCache()) })
 		wantBin := filepath.Join(binDir, "foo")
-		_, err := config.InstallDependency("foo", newSystemInfo("darwin", "amd64"), &ConfigInstallDependencyOpts{})
+		_, err := config.InstallDependency("foo", "darwin/amd64", &ConfigInstallDependencyOpts{})
 		require.Error(t, err)
 		require.False(t, fileExists(wantBin))
 	})
@@ -328,10 +328,7 @@ func TestConfig_addChecksums(t *testing.T) {
 			},
 		},
 	}
-	err := cfg.AddChecksums(nil, []SystemInfo{
-		newSystemInfo("darwin", "amd64"),
-		newSystemInfo("linux", "amd64"),
-	})
+	err := cfg.AddChecksums(nil, []System{"darwin/amd64", "linux/amd64"})
 	require.NoError(t, err)
 	require.Len(t, cfg.URLChecksums, 4)
 	require.Equal(t, map[string]string{
@@ -438,9 +435,9 @@ func TestConfig_addChecksum(t *testing.T) {
 			overrideCheckedURL: fooChecksum,
 		},
 	}
-	err := cfg.addChecksum("dut", newSystemInfo("testOS", "testArch"))
+	err := cfg.addChecksum("dut", "testOS/testArch")
 	require.NoError(t, err)
-	err = cfg.addChecksum("dut", newSystemInfo("testOS2", "foo"))
+	err = cfg.addChecksum("dut", "testOS2/foo")
 	require.NoError(t, err)
 	require.Equal(t, want, cfg)
 }

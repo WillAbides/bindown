@@ -77,7 +77,7 @@ func (c *supportedSystemAddCmd) Run(ctx *runContext) error {
 			}
 		}
 		if len(depsForSystem) > 0 {
-			err = cfg.AddChecksums(depsForSystem, []bindown.SystemInfo{c.System.SystemInfo()})
+			err = cfg.AddChecksums(depsForSystem, []bindown.System{c.System})
 			if err != nil {
 				return err
 			}

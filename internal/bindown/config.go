@@ -94,8 +94,8 @@ func (c *Config) SetTemplateVars(tmplName string, vars map[string]string) error 
 }
 
 // BinName returns the bin name for a downloader on a given system
-func (c *Config) BinName(depName string, system SystemInfo) (string, error) {
-	dep, err := c.BuildDependency(depName, system.System())
+func (c *Config) BinName(depName string, system System) (string, error) {
+	dep, err := c.BuildDependency(depName, system)
 	if err != nil {
 		return "", err
 	}
@@ -163,7 +163,7 @@ func (c *Config) BuildDependency(depName string, system System) (*Dependency, er
 	}
 	dep.built = true
 	dep.name = depName
-	dep.system = system.SystemInfo()
+	dep.system = system
 	dep.checksum = checksum
 	dep.url = *dep.URL
 	return dep, nil
@@ -179,7 +179,7 @@ func (c *Config) DefaultSystems() []System {
 
 // AddChecksums downloads, calculates checksums and adds them to the config's URLChecksums. AddChecksums skips urls that
 // already exist in URLChecksums.
-func (c *Config) AddChecksums(dependencies []string, systems []SystemInfo) error {
+func (c *Config) AddChecksums(dependencies []string, systems []System) error {
 	if len(dependencies) == 0 && c.Dependencies != nil {
 		dependencies = make([]string, 0, len(c.Dependencies))
 		for dlName := range c.Dependencies {
@@ -188,7 +188,7 @@ func (c *Config) AddChecksums(dependencies []string, systems []SystemInfo) error
 	}
 	var err error
 	for _, depName := range dependencies {
-		depSystems := infosToSystems(systems)
+		depSystems := systems
 		if len(depSystems) == 0 {
 			depSystems, err = c.DependencySystems(depName)
 			if err != nil {
@@ -200,7 +200,7 @@ func (c *Config) AddChecksums(dependencies []string, systems []SystemInfo) error
 			return fmt.Errorf("no dependency configured with the name %q", depName)
 		}
 		for _, system := range depSystems {
-			err = c.addChecksum(depName, system.SystemInfo())
+			err = c.addChecksum(depName, system)
 			if err != nil {
 				return err
 			}
@@ -234,8 +234,8 @@ func (c *Config) PruneChecksums() error {
 	return nil
 }
 
-func (c *Config) addChecksum(dependencyName string, sysInfo SystemInfo) error {
-	dep, err := c.BuildDependency(dependencyName, sysInfo.System())
+func (c *Config) addChecksum(dependencyName string, system System) error {
+	dep, err := c.BuildDependency(dependencyName, system)
 	if err != nil {
 		return err
 	}
@@ -255,7 +255,7 @@ func (c *Config) addChecksum(dependencyName string, sysInfo SystemInfo) error {
 }
 
 // Validate installs the downloader to a temporary directory and returns an error if it was unsuccessful.
-func (c *Config) Validate(depName string, systems []SystemInfo) (errOut error) {
+func (c *Config) Validate(depName string, systems []System) (errOut error) {
 	tmpDir, err := os.MkdirTemp("", "bindown-validate")
 	if err != nil {
 		return err
@@ -269,7 +269,7 @@ func (c *Config) Validate(depName string, systems []SystemInfo) (errOut error) {
 	defer func() {
 		c.InstallDir, c.Cache = installDir, cacheDir
 	}()
-	depSystems := infosToSystems(systems)
+	depSystems := systems
 	if len(depSystems) == 0 {
 		depSystems, err = c.DependencySystems(depName)
 		if err != nil {
@@ -277,7 +277,7 @@ func (c *Config) Validate(depName string, systems []SystemInfo) (errOut error) {
 		}
 	}
 	for _, system := range depSystems {
-		_, err = c.InstallDependency(depName, system.SystemInfo(), &ConfigInstallDependencyOpts{
+		_, err = c.InstallDependency(depName, system, &ConfigInstallDependencyOpts{
 			Force: true,
 		})
 		if err != nil {
@@ -326,13 +326,13 @@ func cacheKey(hashMaterial string) string {
 // DownloadDependency downloads a dependency
 func (c *Config) DownloadDependency(
 	name string,
-	sysInfo SystemInfo,
+	system System,
 	opts *ConfigDownloadDependencyOpts,
 ) (_ string, errOut error) {
 	if opts == nil {
 		opts = &ConfigDownloadDependencyOpts{}
 	}
-	dep, err := c.BuildDependency(name, sysInfo.System())
+	dep, err := c.BuildDependency(name, system)
 	if err != nil {
 		return "", err
 	}
@@ -362,11 +362,11 @@ type ConfigExtractDependencyOpts struct {
 }
 
 // ExtractDependency downloads and extracts a dependency
-func (c *Config) ExtractDependency(dependencyName string, sysInfo SystemInfo, opts *ConfigExtractDependencyOpts) (_ string, errOut error) {
+func (c *Config) ExtractDependency(dependencyName string, system System, opts *ConfigExtractDependencyOpts) (_ string, errOut error) {
 	if opts == nil {
 		opts = &ConfigExtractDependencyOpts{}
 	}
-	dep, err := c.BuildDependency(dependencyName, sysInfo.System())
+	dep, err := c.BuildDependency(dependencyName, system)
 	if err != nil {
 		return "", err
 	}
@@ -398,11 +398,11 @@ type ConfigInstallDependencyOpts struct {
 }
 
 // InstallDependency downloads, extracts and installs a dependency
-func (c *Config) InstallDependency(dependencyName string, sysInfo SystemInfo, opts *ConfigInstallDependencyOpts) (_ string, errOut error) {
+func (c *Config) InstallDependency(dependencyName string, system System, opts *ConfigInstallDependencyOpts) (_ string, errOut error) {
 	if opts == nil {
 		opts = &ConfigInstallDependencyOpts{}
 	}
-	dep, err := c.BuildDependency(dependencyName, sysInfo.System())
+	dep, err := c.BuildDependency(dependencyName, system)
 	if err != nil {
 		return "", err
 	}
@@ -420,7 +420,7 @@ func (c *Config) InstallDependency(dependencyName string, sysInfo SystemInfo, op
 	targetPath := opts.TargetPath
 	if targetPath == "" {
 		var binName string
-		binName, err = c.BinName(dependencyName, sysInfo)
+		binName, err = c.BinName(dependencyName, system)
 		if err != nil {
 			return "", err
 		}

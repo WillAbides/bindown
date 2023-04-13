@@ -27,13 +27,6 @@ func serveFile(t *testing.T, file, path, query string) *httptest.Server {
 	return ts
 }
 
-func newSystemInfo(os, arch string) SystemInfo {
-	return SystemInfo{
-		OS:   os,
-		Arch: arch,
-	}
-}
-
 func ptr[T any](val T) *T {
 	return &val
 }

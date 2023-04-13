@@ -195,7 +195,7 @@ func TestOverrideMatcher_matches(t *testing.T) {
 	for _, td := range []struct {
 		name    string
 		matcher OverrideMatcher
-		info    SystemInfo
+		system  System
 		vars    map[string]string
 		want    bool
 	}{
@@ -208,32 +208,32 @@ func TestOverrideMatcher_matches(t *testing.T) {
 			matcher: OverrideMatcher{
 				"os": {"windows", "darwin"},
 			},
-			info: newSystemInfo("darwin", "amd64"),
-			want: true,
+			system: "darwin/amd64",
+			want:   true,
 		},
 		{
 			name: "os mismatch",
 			matcher: OverrideMatcher{
 				"os": {"windows", "darwin"},
 			},
-			info: newSystemInfo("linux", "amd64"),
-			want: false,
+			system: "linux/amd64",
+			want:   false,
 		},
 		{
 			name: "arch match",
 			matcher: OverrideMatcher{
 				"arch": {"amd64", "arm64"},
 			},
-			info: newSystemInfo("linux", "amd64"),
-			want: true,
+			system: "linux/amd64",
+			want:   true,
 		},
 		{
 			name: "arch mismatch",
 			matcher: OverrideMatcher{
 				"arch": {"amd64", "arm64"},
 			},
-			info: newSystemInfo("linux", "386"),
-			want: false,
+			system: "linux/386",
+			want:   false,
 		},
 		{
 			name: "var match",
@@ -282,18 +282,18 @@ func TestOverrideMatcher_matches(t *testing.T) {
 			want: true,
 		},
 		{
-			name: "empty os var overrides system info",
+			name: "empty os var overrides system",
 			matcher: OverrideMatcher{
 				"os": {"windows", "darwin"},
 			},
 			vars: map[string]string{
 				"os": "",
 			},
-			info: newSystemInfo("linux", "amd64"),
+			system: "linux/amd64",
 		},
 	} {
 		t.Run(td.name, func(t *testing.T) {
-			require.Equal(t, td.want, td.matcher.matches(td.info.System(), td.vars))
+			require.Equal(t, td.want, td.matcher.matches(td.system, td.vars))
 		})
 	}
 }

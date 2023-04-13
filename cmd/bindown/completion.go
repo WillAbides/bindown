@@ -78,7 +78,7 @@ func allDependencies(cfg *bindown.Config) []string {
 	system := bindown.CurrentSystem
 	dependencies := make([]string, 0, len(cfg.Dependencies))
 	for depName := range cfg.Dependencies {
-		bn, err := cfg.BinName(depName, system.SystemInfo())
+		bn, err := cfg.BinName(depName, system)
 		if err != nil {
 			return []string{}
 		}

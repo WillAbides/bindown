@@ -38,7 +38,7 @@ func (s SystemInfo) MarshalText() (text []byte, err error) {
 	return []byte(s.String()), nil
 }
 
-func (s SystemInfo) System() System {
+func (s SystemInfo) system() System {
 	system := System(fmt.Sprintf("%s/%s", s.OS, s.Arch))
 	system.validate()
 	return system
@@ -69,33 +69,13 @@ func (s System) String() string {
 	return string(s)
 }
 
-func (s System) SystemInfo() SystemInfo {
-	s.validate()
-	return SystemInfo{
-		OS:   s.OS(),
-		Arch: s.Arch(),
-	}
-}
-
-//nolint:unused // transitioning
-func systemsToInfos(systems []System) []SystemInfo {
-	if systems == nil {
-		return nil
-	}
-	infos := make([]SystemInfo, len(systems))
-	for i, system := range systems {
-		infos[i] = system.SystemInfo()
-	}
-	return infos
-}
-
 func infosToSystems(infos []SystemInfo) []System {
 	if infos == nil {
 		return nil
 	}
 	systems := make([]System, len(infos))
 	for i, info := range infos {
-		systems[i] = info.System()
+		systems[i] = info.system()
 	}
 	return systems
 }

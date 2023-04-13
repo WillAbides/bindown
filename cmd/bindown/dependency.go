@@ -78,9 +78,9 @@ func (c *dependencyShowConfigCmd) Run(ctx *runContext) error {
 }
 
 type dependencyInfoCmd struct {
-	Dependency string               `kong:"arg,predictor=bin"`
-	Systems    []bindown.SystemInfo `kong:"name=system,help=${systems_help},predictor=allSystems"`
-	Vars       bool                 `kong:"help='include vars'"`
+	Dependency string           `kong:"arg,predictor=bin"`
+	Systems    []bindown.System `kong:"name=system,help=${systems_help},predictor=allSystems"`
+	Vars       bool             `kong:"help='include vars'"`
 }
 
 func (c *dependencyInfoCmd) Run(ctx *runContext) error {
@@ -88,10 +88,8 @@ func (c *dependencyInfoCmd) Run(ctx *runContext) error {
 	if err != nil {
 		return err
 	}
-	systems := make([]bindown.System, len(c.Systems))
-	for i, system := range c.Systems {
-		systems[i] = system.System()
-	}
+	var systems []bindown.System
+	systems = append(systems, c.Systems...)
 	if len(systems) == 0 {
 		systems, err = cfg.DependencySystems(c.Dependency)
 		if err != nil {
@@ -218,8 +216,8 @@ func (c *dependencyAddCmd) Run(ctx *runContext) error {
 }
 
 type dependencyValidateCmd struct {
-	Dependency string               `kong:"arg,predictor=bin"`
-	Systems    []bindown.SystemInfo `kong:"name=system,predictor=allSystems"`
+	Dependency string           `kong:"arg,predictor=bin"`
+	Systems    []bindown.System `kong:"name=system,predictor=allSystems"`
 }
 
 func (d dependencyValidateCmd) Run(ctx *runContext) error {

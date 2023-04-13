@@ -235,11 +235,11 @@ func (c fmtCmd) Run(ctx *runContext, cli *rootCmd) error {
 }
 
 type installCmd struct {
-	Force                bool               `kong:"help=${install_force_help}"`
-	Dependency           string             `kong:"required=true,arg,help=${download_dependency_help},predictor=bin"`
-	TargetFile           string             `kong:"type=path,name=output,type=file,help=${install_target_file_help}"`
-	System               bindown.SystemInfo `kong:"name=system,default=${system_default},help=${system_help},predictor=allSystems"`
-	AllowMissingChecksum bool               `kong:"name=allow-missing-checksum,help=${allow_missing_checksum}"`
+	Force                bool           `kong:"help=${install_force_help}"`
+	Dependency           string         `kong:"required=true,arg,help=${download_dependency_help},predictor=bin"`
+	TargetFile           string         `kong:"type=path,name=output,type=file,help=${install_target_file_help}"`
+	System               bindown.System `kong:"name=system,default=${system_default},help=${system_help},predictor=allSystems"`
+	AllowMissingChecksum bool           `kong:"name=allow-missing-checksum,help=${allow_missing_checksum}"`
 }
 
 func (d *installCmd) Run(ctx *runContext) error {
@@ -260,10 +260,10 @@ func (d *installCmd) Run(ctx *runContext) error {
 }
 
 type downloadCmd struct {
-	Force                bool               `kong:"help=${download_force_help}"`
-	System               bindown.SystemInfo `kong:"name=system,default=${system_default},help=${system_help},predictor=allSystems"`
-	Dependency           string             `kong:"required=true,arg,help=${download_dependency_help},predictor=bin"`
-	AllowMissingChecksum bool               `kong:"name=allow-missing-checksum,help=${allow_missing_checksum}"`
+	Force                bool           `kong:"help=${download_force_help}"`
+	System               bindown.System `kong:"name=system,default=${system_default},help=${system_help},predictor=allSystems"`
+	Dependency           string         `kong:"required=true,arg,help=${download_dependency_help},predictor=bin"`
+	AllowMissingChecksum bool           `kong:"name=allow-missing-checksum,help=${allow_missing_checksum}"`
 }
 
 func (d *downloadCmd) Run(ctx *runContext) error {
@@ -283,9 +283,9 @@ func (d *downloadCmd) Run(ctx *runContext) error {
 }
 
 type extractCmd struct {
-	System               bindown.SystemInfo `kong:"name=system,default=${system_default},help=${system_help},predictor=allSystems"`
-	Dependency           string             `kong:"required=true,arg,help=${extract_dependency_help},predictor=bin"`
-	AllowMissingChecksum bool               `kong:"name=allow-missing-checksum,help=${allow_missing_checksum}"`
+	System               bindown.System `kong:"name=system,default=${system_default},help=${system_help},predictor=allSystems"`
+	Dependency           string         `kong:"required=true,arg,help=${extract_dependency_help},predictor=bin"`
+	AllowMissingChecksum bool           `kong:"name=allow-missing-checksum,help=${allow_missing_checksum}"`
 }
 
 func (d *extractCmd) Run(ctx *runContext) error {
