@@ -270,11 +270,7 @@ vars:
 
 func Test_dependencyInfoCmd(t *testing.T) {
 	baseCfg := bindown.Config{
-		Systems: []bindown.SystemInfo{
-			{OS: "darwin", Arch: "amd64"},
-			{OS: "linux", Arch: "386"},
-			{OS: "linux", Arch: "arm64"},
-		},
+		Systems: []bindown.System{"darwin/amd64", "linux/386", "linux/arm64"},
 		Dependencies: map[string]*bindown.Dependency{
 			"dep1": {
 				Link: ptr(true),
@@ -604,12 +600,7 @@ url_checksums:
 		srcPath := testdataPath("configs/dep-add-source.yaml")
 		runner := newCmdRunner(t)
 		runner.writeConfig(&bindown.Config{
-			Systems: []bindown.SystemInfo{
-				{OS: "darwin", Arch: "amd64"},
-				{OS: "darwin", Arch: "arm64"},
-				{OS: "linux", Arch: "amd64"},
-				{OS: "windows", Arch: "amd64"},
-			},
+			Systems: []bindown.System{"darwin/amd64", "darwin/arm64", "linux/amd64", "windows/amd64"},
 			TemplateSources: map[string]string{
 				"origin": srcPath,
 			},
@@ -654,12 +645,7 @@ func Test_dependencyValidateCmd(t *testing.T) {
 
 		runner := newCmdRunner(t)
 		runner.writeConfig(&bindown.Config{
-			Systems: []bindown.SystemInfo{
-				{OS: "darwin", Arch: "amd64"},
-				{OS: "darwin", Arch: "arm64"},
-				{OS: "linux", Arch: "amd64"},
-				{OS: "windows", Arch: "amd64"},
-			},
+			Systems: []bindown.System{"darwin/amd64", "darwin/arm64", "linux/amd64", "windows/amd64"},
 			Dependencies: map[string]*bindown.Dependency{
 				"foo": {
 					URL:         ptr("{{ .addr }}/foo/v{{ .version }}/foo-{{ .os }}-{{ .arch }}{{ .urlsuffix }}"),

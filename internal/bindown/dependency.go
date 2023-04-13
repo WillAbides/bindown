@@ -26,7 +26,7 @@ func (o *DependencyOverride) Clone() *DependencyOverride {
 // OverrideMatcher contains a list or oses and arches to match an override. If either os or arch is empty, all oses and arches match.
 type OverrideMatcher map[string][]string
 
-func (o OverrideMatcher) matches(info SystemInfo, vars map[string]string) bool {
+func (o OverrideMatcher) matches(system System, vars map[string]string) bool {
 	if vars == nil {
 		vars = map[string]string{}
 	}
@@ -34,10 +34,10 @@ func (o OverrideMatcher) matches(info SystemInfo, vars map[string]string) bool {
 		val, ok := vars[varName]
 		if !ok {
 			if varName == "os" {
-				val = info.OS
+				val = system.OS()
 			}
 			if varName == "arch" {
-				val = info.Arch
+				val = system.Arch()
 			}
 		}
 		match := false
@@ -137,13 +137,13 @@ func (d *Dependency) Clone() *Dependency {
 }
 
 // interpolateVars executes go templates in values
-func (d *Dependency) interpolateVars(system SystemInfo) error {
+func (d *Dependency) interpolateVars(system System) error {
 	for _, p := range []*string{d.URL, d.ArchivePath, d.BinName} {
 		if p == nil {
 			continue
 		}
 		var err error
-		*p, err = executeTemplate(*p, system.OS, system.Arch, d.Vars)
+		*p, err = executeTemplate(*p, system.OS(), system.Arch(), d.Vars)
 		if err != nil {
 			return err
 		}
@@ -205,14 +205,14 @@ func (d *Dependency) addOverrides(overrides []DependencyOverride) {
 
 const maxOverrideDepth = 2
 
-func (d *Dependency) applyOverrides(info SystemInfo, depth int) {
+func (d *Dependency) applyOverrides(system System, depth int) {
 	for i := range d.Overrides {
-		if !d.Overrides[i].OverrideMatcher.matches(info, d.Vars) {
+		if !d.Overrides[i].OverrideMatcher.matches(system, d.Vars) {
 			continue
 		}
 		dependency := &d.Overrides[i].Dependency
 		if depth <= maxOverrideDepth {
-			dependency.applyOverrides(info, depth+1)
+			dependency.applyOverrides(system, depth+1)
 		}
 		d.Link = overrideValue(d.Link, dependency.Link)
 		d.ArchivePath = overrideValue(d.ArchivePath, dependency.ArchivePath)

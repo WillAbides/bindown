@@ -12,7 +12,6 @@ import (
 	"os"
 	"path"
 	"path/filepath"
-	"runtime"
 	"sort"
 	"strings"
 
@@ -25,7 +24,7 @@ type Config struct {
 	Cache           string                 `json:"cache,omitempty" yaml:"cache,omitempty"`
 	TrustCache      bool                   `json:"trust_cache,omitempty" yaml:"trust_cache,omitempty"`
 	InstallDir      string                 `json:"install_dir,omitempty" yaml:"install_dir,omitempty"`
-	Systems         []SystemInfo           `json:"systems,omitempty" yaml:"systems,omitempty"`
+	Systems         []System               `json:"systems,omitempty" yaml:"systems,omitempty"`
 	Dependencies    map[string]*Dependency `json:"dependencies,omitempty" yaml:",omitempty"`
 	Templates       map[string]*Dependency `json:"templates,omitempty" yaml:",omitempty"`
 	TemplateSources map[string]string      `json:"template_sources,omitempty" yaml:"template_sources,omitempty"`
@@ -96,7 +95,7 @@ func (c *Config) SetTemplateVars(tmplName string, vars map[string]string) error 
 
 // BinName returns the bin name for a downloader on a given system
 func (c *Config) BinName(depName string, system SystemInfo) (string, error) {
-	dep, err := c.BuildDependency(depName, system)
+	dep, err := c.BuildDependency(depName, system.System())
 	if err != nil {
 		return "", err
 	}
@@ -130,7 +129,7 @@ func (c *Config) MissingDependencyVars(depName string) ([]string, error) {
 }
 
 // BuildDependency returns a dependency with templates and overrides applied and variables interpolated for the given system.
-func (c *Config) BuildDependency(depName string, info SystemInfo) (*Dependency, error) {
+func (c *Config) BuildDependency(depName string, system System) (*Dependency, error) {
 	dep := c.Dependencies[depName]
 	if dep == nil {
 		return nil, fmt.Errorf("no dependency configured with the name %q", depName)
@@ -140,18 +139,18 @@ func (c *Config) BuildDependency(depName string, info SystemInfo) (*Dependency, 
 	if err != nil {
 		return nil, err
 	}
-	dep.applyOverrides(info, 0)
+	dep.applyOverrides(system, 0)
 	if dep.Vars == nil {
 		dep.Vars = map[string]string{}
 	}
 	if _, ok := dep.Vars["os"]; !ok {
-		dep.Vars["os"] = info.OS
+		dep.Vars["os"] = system.OS()
 	}
 	if _, ok := dep.Vars["arch"]; !ok {
-		dep.Vars["arch"] = info.Arch
+		dep.Vars["arch"] = system.Arch()
 	}
 	dep.Vars = varsWithSubstitutions(dep.Vars, dep.Substitutions)
-	err = dep.interpolateVars(info)
+	err = dep.interpolateVars(system)
 	if err != nil {
 		return nil, err
 	}
@@ -164,23 +163,18 @@ func (c *Config) BuildDependency(depName string, info SystemInfo) (*Dependency, 
 	}
 	dep.built = true
 	dep.name = depName
-	dep.system = info
+	dep.system = system.SystemInfo()
 	dep.checksum = checksum
 	dep.url = *dep.URL
 	return dep, nil
 }
 
 // DefaultSystems returns c.Systems if it isn't empty. Otherwise returns the runtime system.
-func (c *Config) DefaultSystems() []SystemInfo {
+func (c *Config) DefaultSystems() []System {
 	if len(c.Systems) > 0 {
 		return c.Systems
 	}
-	return []SystemInfo{
-		{
-			OS:   runtime.GOOS,
-			Arch: runtime.GOARCH,
-		},
-	}
+	return []System{CurrentSystem}
 }
 
 // AddChecksums downloads, calculates checksums and adds them to the config's URLChecksums. AddChecksums skips urls that
@@ -194,7 +188,7 @@ func (c *Config) AddChecksums(dependencies []string, systems []SystemInfo) error
 	}
 	var err error
 	for _, depName := range dependencies {
-		depSystems := systems
+		depSystems := infosToSystems(systems)
 		if len(depSystems) == 0 {
 			depSystems, err = c.DependencySystems(depName)
 			if err != nil {
@@ -206,7 +200,7 @@ func (c *Config) AddChecksums(dependencies []string, systems []SystemInfo) error
 			return fmt.Errorf("no dependency configured with the name %q", depName)
 		}
 		for _, system := range depSystems {
-			err = c.addChecksum(depName, system)
+			err = c.addChecksum(depName, system.SystemInfo())
 			if err != nil {
 				return err
 			}
@@ -241,7 +235,7 @@ func (c *Config) PruneChecksums() error {
 }
 
 func (c *Config) addChecksum(dependencyName string, sysInfo SystemInfo) error {
-	dep, err := c.BuildDependency(dependencyName, sysInfo)
+	dep, err := c.BuildDependency(dependencyName, sysInfo.System())
 	if err != nil {
 		return err
 	}
@@ -275,7 +269,7 @@ func (c *Config) Validate(depName string, systems []SystemInfo) (errOut error) {
 	defer func() {
 		c.InstallDir, c.Cache = installDir, cacheDir
 	}()
-	depSystems := systems
+	depSystems := infosToSystems(systems)
 	if len(depSystems) == 0 {
 		depSystems, err = c.DependencySystems(depName)
 		if err != nil {
@@ -283,7 +277,7 @@ func (c *Config) Validate(depName string, systems []SystemInfo) (errOut error) {
 		}
 	}
 	for _, system := range depSystems {
-		_, err = c.InstallDependency(depName, system, &ConfigInstallDependencyOpts{
+		_, err = c.InstallDependency(depName, system.SystemInfo(), &ConfigInstallDependencyOpts{
 			Force: true,
 		})
 		if err != nil {
@@ -338,7 +332,7 @@ func (c *Config) DownloadDependency(
 	if opts == nil {
 		opts = &ConfigDownloadDependencyOpts{}
 	}
-	dep, err := c.BuildDependency(name, sysInfo)
+	dep, err := c.BuildDependency(name, sysInfo.System())
 	if err != nil {
 		return "", err
 	}
@@ -372,7 +366,7 @@ func (c *Config) ExtractDependency(dependencyName string, sysInfo SystemInfo, op
 	if opts == nil {
 		opts = &ConfigExtractDependencyOpts{}
 	}
-	dep, err := c.BuildDependency(dependencyName, sysInfo)
+	dep, err := c.BuildDependency(dependencyName, sysInfo.System())
 	if err != nil {
 		return "", err
 	}
@@ -408,7 +402,7 @@ func (c *Config) InstallDependency(dependencyName string, sysInfo SystemInfo, op
 	if opts == nil {
 		opts = &ConfigInstallDependencyOpts{}
 	}
-	dep, err := c.BuildDependency(dependencyName, sysInfo)
+	dep, err := c.BuildDependency(dependencyName, sysInfo.System())
 	if err != nil {
 		return "", err
 	}
@@ -553,7 +547,7 @@ func (c *Config) templateSourceConfig(ctx context.Context, name string) (*Config
 
 // DependencySystems returns the supported systems of either the config or the dependency if one is not empty
 // if both are not empty, it returns the intersection of the lists
-func (c *Config) DependencySystems(depName string) ([]SystemInfo, error) {
+func (c *Config) DependencySystems(depName string) ([]System, error) {
 	if c.Dependencies == nil || c.Dependencies[depName] == nil {
 		return c.Systems, nil
 	}
@@ -569,14 +563,14 @@ func (c *Config) DependencySystems(depName string) ([]SystemInfo, error) {
 		return c.DefaultSystems(), nil
 	}
 	if len(c.Systems) == 0 {
-		return dep.Systems, nil
+		return infosToSystems(dep.Systems), nil
 	}
-	mp := make(map[SystemInfo]bool, len(c.Systems))
+	mp := make(map[System]bool, len(c.Systems))
 	for _, system := range c.Systems {
 		mp[system] = true
 	}
-	result := make([]SystemInfo, 0, len(dep.Systems))
-	for _, system := range dep.Systems {
+	result := make([]System, 0, len(dep.Systems))
+	for _, system := range infosToSystems(dep.Systems) {
 		if mp[system] {
 			result = append(result, system)
 		}
@@ -598,7 +592,7 @@ func (c *Config) WriteFile(outputJSON bool) (errOut error) {
 	defer deferErr(&errOut, file.Close)
 	if len(c.Systems) > 0 {
 		sort.Slice(c.Systems, func(i, j int) bool {
-			return c.Systems[i].String() < c.Systems[j].String()
+			return c.Systems[i] < c.Systems[j]
 		})
 	}
 	if outputJSON {

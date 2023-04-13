@@ -369,7 +369,7 @@ func TestConfig_BuildDependency(t *testing.T) {
 			},
 		},
 	}
-	dep, err := cfg.BuildDependency("dut", newSystemInfo("testOS", "testArch"))
+	dep, err := cfg.BuildDependency("dut", "testOS/testArch")
 	require.NoError(t, err)
 	require.Equal(t, "https://testOS-overrideV1-overrideV2", *dep.URL)
 	require.Equal(t, "https://{{.os}}-{{.var1}}-{{.var2}}", *cfg.Dependencies["dut"].Overrides[0].Dependency.URL)

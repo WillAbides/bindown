@@ -88,16 +88,20 @@ func (c *dependencyInfoCmd) Run(ctx *runContext) error {
 	if err != nil {
 		return err
 	}
-	systems := c.Systems
+	systems := make([]bindown.System, len(c.Systems))
+	for i, system := range c.Systems {
+		systems[i] = system.System()
+	}
 	if len(systems) == 0 {
 		systems, err = cfg.DependencySystems(c.Dependency)
 		if err != nil {
 			return err
 		}
 	}
-	result := map[string]*bindown.Dependency{}
+	result := map[bindown.System]*bindown.Dependency{}
 	for _, system := range systems {
-		dep, err := cfg.BuildDependency(c.Dependency, system)
+		var dep *bindown.Dependency
+		dep, err = cfg.BuildDependency(c.Dependency, system)
 		if err != nil {
 			return err
 		}
@@ -109,7 +113,7 @@ func (c *dependencyInfoCmd) Run(ctx *runContext) error {
 			dep.Vars = nil
 			dep.RequiredVars = nil
 		}
-		result[system.String()] = dep
+		result[system] = dep
 	}
 
 	if ctx.rootCmd.JSONConfig {

@@ -129,7 +129,7 @@ func Test_Dependency_applyOverrides(t *testing.T) {
 			},
 		}
 		dep := want.Clone()
-		dep.applyOverrides(newSystemInfo("windows", "amd64"), 0)
+		dep.applyOverrides("windows/amd64", 0)
 		requireEqualDependency(t, &want, dep)
 	})
 
@@ -186,7 +186,7 @@ func Test_Dependency_applyOverrides(t *testing.T) {
 				"version": "1.2.3",
 			},
 		}
-		dep.applyOverrides(newSystemInfo("linux", "amd64"), 0)
+		dep.applyOverrides("linux/amd64", 0)
 		assertDependencyEqual(t, &want, dep)
 	})
 }
@@ -293,7 +293,7 @@ func TestOverrideMatcher_matches(t *testing.T) {
 		},
 	} {
 		t.Run(td.name, func(t *testing.T) {
-			require.Equal(t, td.want, td.matcher.matches(td.info, td.vars))
+			require.Equal(t, td.want, td.matcher.matches(td.info.System(), td.vars))
 		})
 	}
 }

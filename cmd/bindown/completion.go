@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"os"
-	"runtime"
 	"sort"
 	"strings"
 
@@ -76,13 +75,10 @@ func allDependencies(cfg *bindown.Config) []string {
 	if cfg == nil {
 		return []string{}
 	}
-	system := bindown.SystemInfo{
-		OS:   runtime.GOOS,
-		Arch: runtime.GOARCH,
-	}
+	system := bindown.CurrentSystem
 	dependencies := make([]string, 0, len(cfg.Dependencies))
 	for depName := range cfg.Dependencies {
-		bn, err := cfg.BinName(depName, system)
+		bn, err := cfg.BinName(depName, system.SystemInfo())
 		if err != nil {
 			return []string{}
 		}

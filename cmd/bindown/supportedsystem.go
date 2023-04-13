@@ -28,7 +28,7 @@ func (c *supportedSystemListCmd) Run(ctx *runContext) error {
 }
 
 type supportedSystemsRemoveCmd struct {
-	System bindown.SystemInfo `kong:"arg,predictor=system,help='system to remove'"`
+	System bindown.System `kong:"arg,predictor=system,help='system to remove'"`
 }
 
 func (c *supportedSystemsRemoveCmd) Run(ctx *runContext) error {
@@ -38,9 +38,9 @@ func (c *supportedSystemsRemoveCmd) Run(ctx *runContext) error {
 	}
 
 	systems := cfg.Systems
-	newSystems := make([]bindown.SystemInfo, 0, len(systems))
+	newSystems := make([]bindown.System, 0, len(systems))
 	for _, system := range systems {
-		if system.String() != c.System.String() {
+		if system != c.System {
 			newSystems = append(newSystems, system)
 		}
 	}
@@ -49,8 +49,8 @@ func (c *supportedSystemsRemoveCmd) Run(ctx *runContext) error {
 }
 
 type supportedSystemAddCmd struct {
-	System        bindown.SystemInfo `kong:"arg,predictor=allSystems,help='system to add'"`
-	SkipChecksums bool               `kong:"name=skipchecksums,help='do not add checksums for this system'"`
+	System        bindown.System `kong:"arg,predictor=allSystems,help='system to add'"`
+	SkipChecksums bool           `kong:"name=skipchecksums,help='do not add checksums for this system'"`
 }
 
 func (c *supportedSystemAddCmd) Run(ctx *runContext) error {
@@ -77,7 +77,7 @@ func (c *supportedSystemAddCmd) Run(ctx *runContext) error {
 			}
 		}
 		if len(depsForSystem) > 0 {
-			err = cfg.AddChecksums(depsForSystem, []bindown.SystemInfo{c.System})
+			err = cfg.AddChecksums(depsForSystem, []bindown.SystemInfo{c.System.SystemInfo()})
 			if err != nil {
 				return err
 			}
