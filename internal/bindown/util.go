@@ -5,7 +5,6 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
-	"gopkg.in/yaml.v3"
 	"hash"
 	"hash/fnv"
 	"io"
@@ -15,6 +14,7 @@ import (
 	"text/template"
 
 	"golang.org/x/exp/maps"
+	"gopkg.in/yaml.v3"
 )
 
 // executeTemplate executes a template
