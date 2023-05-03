@@ -10,25 +10,59 @@ import (
 	"golang.org/x/exp/slices"
 )
 
-// DependencyOverride overrides a dependency's configuration
 type DependencyOverride struct {
-	// OverrideMatcher is a map of variable name to a list of values that will match.
+	// Limits the override to configurations matching all of the matchers. Keys may be "os", "arch" or any variable name.
+	// Values are an array of values to match. Any matching value will match. If a value can be interpreted as a
+	// semantic version it will be treated as such.
 	OverrideMatcher map[string][]string `json:"matcher" yaml:"matcher,omitempty"`
-	Dependency      Dependency          `json:"dependency" yaml:",omitempty"`
+
+	// Values to override the parent dependency
+	Dependency Dependency `json:"dependency" yaml:",omitempty"`
 }
 
-// Dependency is something to download, extract and install
 type Dependency struct {
-	Template      *string                      `json:"template,omitempty" yaml:",omitempty"`
-	URL           *string                      `json:"url,omitempty" yaml:",omitempty"`
-	ArchivePath   *string                      `json:"archive_path,omitempty" yaml:"archive_path,omitempty"`
-	BinName       *string                      `json:"bin,omitempty" yaml:"bin,omitempty"`
-	Link          *bool                        `json:"link,omitempty" yaml:",omitempty"`
-	Vars          map[string]string            `json:"vars,omitempty" yaml:",omitempty"`
-	RequiredVars  []string                     `json:"required_vars,omitempty" yaml:"required_vars,omitempty"`
-	Overrides     []DependencyOverride         `json:"overrides,omitempty" yaml:",omitempty"`
+	// A template for this dependency. Any unset fields in this dependency will be set by values from the template.
+	// Overrides in the dependency and its template are concatenated with the template's overrides coming first.
+	// Vars and substitutions are both combined with the dependency's value taking precedence.
+	Template *string `json:"template,omitempty" yaml:",omitempty"`
+
+	// The url to download a dependency from.
+	URL *string `json:"url,omitempty" yaml:",omitempty"`
+
+	// The path in the downloaded archive where the binary is located. Default is ./<bin>
+	ArchivePath *string `json:"archive_path,omitempty" yaml:"archive_path,omitempty"`
+
+	// The name of the binary to be installed. Default is the name of the dependency.
+	BinName *string `json:"bin,omitempty" yaml:"bin,omitempty"`
+
+	// Whether to create a symlink to the bin instead of copying it.
+	Link *bool `json:"link,omitempty" yaml:",omitempty"`
+
+	// A list of variables that can be used in 'url', 'archive_path' and 'bin'.
+	//
+	// Two variables are always added based on the current environment: 'os' and 'arch'. Those are the operating
+	// system and architecture as defined by go's GOOS and GOARCH variables. I should document what those are
+	// somewhere.
+	//
+	// You can reference a variable using golang template syntax. For example, you could have a url set to
+	// `https://example.org/mydependency/v{{.version}}/mydependency-{{.os}}-{{.arch}}.tar.gz`.  If you define the var
+	// 'version: 1.2.3' and run bindown on a 64 bit Linux system, it will download
+	// `https://example.org/mydependency/v1.2.3/mydependency-linux-amd64.tar.gz`.
+	Vars map[string]string `json:"vars,omitempty" yaml:",omitempty"`
+
+	// List of systems this dependency supports. Systems are in the form of os/architecture.
+	Systems []System `json:"systems,omitempty" yaml:"systems,omitempty"`
+
+	// A list of variables that must be present for an install to succeed
+	RequiredVars []string `json:"required_vars,omitempty" yaml:"required_vars,omitempty"`
+
+	// Overrides allows you to override values depending on the os and architecture of the target system.
+	Overrides []DependencyOverride `json:"overrides,omitempty" yaml:",omitempty"`
+
+	// Substitutions will substitute values from vars. The key is the name of the variable to substitute. The value is
+	// a map of substitutions. { "os": { "linux": "Linux", "darwin": "MacOS" } } is an example of a substitution that
+	// will update the os variable.
 	Substitutions map[string]map[string]string `json:"substitutions,omitempty" yaml:",omitempty"`
-	Systems       []System                     `json:"systems,omitempty" yaml:"systems,omitempty"`
 
 	built    bool
 	name     string

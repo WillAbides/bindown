@@ -1,5 +1,4 @@
 cache: ./bin/.bindown
-trust_cache: true
 install_dir: ./bin
 systems:
 - darwin/amd64
@@ -46,7 +45,7 @@ dependencies:
   yq:
     template: local-origin#yq
     vars:
-      version: 3.2.1
+      version: 4.33.3
 templates:
   bindown-checksums:
     url: https://github.com/WillAbides/bindown/releases/download/{{.tag}}/checksums.txt
@@ -235,6 +234,11 @@ templates:
       dependency:
         vars:
           arch: amd64
+    - matcher:
+        version:
+        - '> 4.0.0'
+      dependency:
+        url: https://github.com/mikefarah/yq/releases/download/v{{.version}}/yq_{{.os}}_{{.arch}}{{.archivepathsuffix}}
     systems:
     - darwin/386
     - darwin/amd64
@@ -404,6 +408,9 @@ url_checksums:
   https://github.com/mikefarah/yq/releases/download/3.2.1/yq_darwin_amd64: 116f74a384d0b4fa31a58dd01cfcdeffa6fcd21c066de223cbb0ebc042a8bc28
   https://github.com/mikefarah/yq/releases/download/3.2.1/yq_linux_amd64: 11a830ffb72aad0eaa7640ef69637068f36469be4f68a93da822fbe454e998f8
   https://github.com/mikefarah/yq/releases/download/3.2.1/yq_windows_amd64.exe: 9b3466ff4e37c8a93d7530e3dc7a047314d0897dbfbffb50b82235695e231fff
+  https://github.com/mikefarah/yq/releases/download/v4.33.3/yq_darwin_amd64: 9224adb02f681904d871d7ff11e75d6cd6e23550f5516b1c1304f7dcba0b327f
+  https://github.com/mikefarah/yq/releases/download/v4.33.3/yq_linux_amd64: 4ee662847c588c3ef2fec8bfb304e8739e3dbaba87ccb9a608d691c88f5b64dc
+  https://github.com/mikefarah/yq/releases/download/v4.33.3/yq_windows_amd64.exe: 4a7526e290eb00c417f4741d30d2bd83c891e462c4993148e9e7c400978dab28
   https://github.com/mvdan/gofumpt/releases/download/v0.4.0/gofumpt_v0.4.0_darwin_amd64: 3f550baa6d4c071b01e9c68b9308bd2ca3bae6b3b09d203f19ed8626ee0fe487
   https://github.com/mvdan/gofumpt/releases/download/v0.4.0/gofumpt_v0.4.0_darwin_arm64: 768263452749a3a3cabf412f29f8a14e8bbdc7f6c6471427e977eebc6592ddb8
   https://github.com/mvdan/gofumpt/releases/download/v0.4.0/gofumpt_v0.4.0_linux_amd64: d3ca535e6b0b230a9c4f05a3ec54e358336b5e7474d239c15514e63a0b2a8041

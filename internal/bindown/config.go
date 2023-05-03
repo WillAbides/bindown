@@ -19,15 +19,31 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-// Config is our main config
 type Config struct {
-	Cache           string                 `json:"cache,omitempty" yaml:"cache,omitempty"`
-	InstallDir      string                 `json:"install_dir,omitempty" yaml:"install_dir,omitempty"`
-	Systems         []System               `json:"systems,omitempty" yaml:"systems,omitempty"`
-	Dependencies    map[string]*Dependency `json:"dependencies,omitempty" yaml:",omitempty"`
-	Templates       map[string]*Dependency `json:"templates,omitempty" yaml:",omitempty"`
-	TemplateSources map[string]string      `json:"template_sources,omitempty" yaml:"template_sources,omitempty"`
-	URLChecksums    map[string]string      `json:"url_checksums,omitempty" yaml:"url_checksums,omitempty"`
+	// The directory where bindown will cache downloads and extracted files. This is relative to the directory where
+	// the configuration file resides. cache paths should always use / as a delimiter even on Windows or other
+	// operating systems where the native delimiter isn't /.
+	Cache string `json:"cache,omitempty" yaml:"cache,omitempty"`
+
+	// The directory that bindown installs files to. This is relative to the directory where the configuration file
+	// resides. install_directory paths should always use / as a delimiter even on Windows or other operating systems
+	// where the native delimiter isn't /.
+	InstallDir string `json:"install_dir,omitempty" yaml:"install_dir,omitempty"`
+
+	// Dependencies available for bindown to install.
+	Dependencies map[string]*Dependency `json:"dependencies,omitempty" yaml:",omitempty"`
+
+	// Templates that can be used by dependencies in this file.
+	Templates map[string]*Dependency `json:"templates,omitempty" yaml:",omitempty"`
+
+	// Upstream sources for templates.
+	TemplateSources map[string]string `json:"template_sources,omitempty" yaml:"template_sources,omitempty"`
+
+	// List of systems supported by this config. Systems are in the form of os/architecture.
+	Systems []System `json:"systems,omitempty" yaml:"systems,omitempty"`
+
+	// Checksums of downloaded files.
+	URLChecksums map[string]string `json:"url_checksums,omitempty" yaml:"url_checksums,omitempty"`
 
 	Filename string `json:"-" yaml:"-"`
 }

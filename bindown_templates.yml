@@ -232,6 +232,11 @@ templates:
       dependency:
         vars:
           archivepathsuffix: .exe
+    - matcher:
+        version:
+          - '> 4.0.0'
+      dependency:
+        url: https://github.com/mikefarah/yq/releases/download/v{{.version}}/yq_{{.os}}_{{.arch}}{{.archivepathsuffix}}
     systems:
     - darwin/386
     - darwin/amd64
