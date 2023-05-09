@@ -216,6 +216,17 @@ func (d *Dependency) applyOverrides(info SystemInfo, depth int) {
 		if depth <= maxOverrideDepth {
 			dependency.applyOverrides(info, depth+1)
 		}
+		for subType, mp := range dependency.Substitutions {
+			if d.Substitutions == nil {
+				d.Substitutions = make(map[string]map[string]string)
+			}
+			if d.Substitutions[subType] == nil {
+				d.Substitutions[subType] = make(map[string]string)
+			}
+			for k, v := range mp {
+				d.Substitutions[subType][k] = v
+			}
+		}
 		d.Link = overrideValue(d.Link, dependency.Link)
 		d.ArchivePath = overrideValue(d.ArchivePath, dependency.ArchivePath)
 		d.BinName = overrideValue(d.BinName, dependency.BinName)
