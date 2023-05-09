@@ -220,6 +220,8 @@ func (c *dependencyAddCmd) Run(ctx *runContext) error {
 type dependencyAddByUrlsCmd struct {
 	Name         string   `kong:"arg,help='dependency name'"`
 	Version      string   `kong:"arg,help='dependency version'"`
+	Homepage     string   `kong:"name=homepage,help='dependency homepage'"`
+	Description  string   `kong:"name=description,help='dependency description'"`
 	URL          []string `kong:"arg,help='dependency URL'"`
 	Force        bool     `kong:"name=force,help='overwrite existing dependency'"`
 	Experimental bool     `kong:"required,name=experimental,help='enable experimental features',env='BINDOWN_EXPERIMENTAL'"`
@@ -233,7 +235,7 @@ func (c *dependencyAddByUrlsCmd) Run(ctx *runContext) error {
 	if config.Dependencies != nil && config.Dependencies[c.Name] != nil && !c.Force {
 		return fmt.Errorf("dependency %q already exists", c.Name)
 	}
-	err = builddep.AddDependency(ctx, &config.Config, c.Name, c.Version, c.URL)
+	err = builddep.AddDependency(ctx, &config.Config, c.Name, c.Version, c.Homepage, c.Description, c.URL)
 	if err != nil {
 		return err
 	}
@@ -244,6 +246,8 @@ type dependencyAddByGithubReleaseCmd struct {
 	Release      string `kong:"arg,help='github release URL or \"owner/repo(@tag)\"'"`
 	Name         string `kong:"name to use instead of repo name"`
 	Version      string `kong:"version to use instead of release tag"`
+	Homepage     string `kong:"name=homepage,help='dependency homepage'"`
+	Description  string `kong:"name=description,help='dependency description'"`
 	Force        bool   `kong:"name=force,help='overwrite existing dependency'"`
 	Experimental bool   `kong:"required,name=experimental,help='enable experimental features',env='BINDOWN_EXPERIMENTAL'"`
 	GithubToken  string `kong:"hidden,env='GITHUB_TOKEN'"`
@@ -270,7 +274,7 @@ func (c *dependencyAddByGithubReleaseCmd) Run(ctx *runContext) error {
 	default:
 		return fmt.Errorf(`invalid release URL or "owner/repo(@tag)"`)
 	}
-	urls, releaseVer, err := builddep.QueryGitHubRelease(ctx, fmt.Sprintf("%s/%s", owner, repo), tag, c.GithubToken)
+	urls, releaseVer, repoDesc, err := builddep.QueryGitHubRelease(ctx, fmt.Sprintf("%s/%s", owner, repo), tag, c.GithubToken)
 	if err != nil {
 		return err
 	}
@@ -282,10 +286,18 @@ func (c *dependencyAddByGithubReleaseCmd) Run(ctx *runContext) error {
 	if name == "" {
 		name = repo
 	}
+	homepage := c.Homepage
+	if homepage == "" {
+		homepage = fmt.Sprintf("https://github.com/%s/%s", owner, repo)
+	}
+	description := c.Description
+	if description == "" {
+		description = repoDesc
+	}
 	if config.Dependencies != nil && config.Dependencies[name] != nil && !c.Force {
 		return fmt.Errorf("dependency %q already exists", name)
 	}
-	err = builddep.AddDependency(ctx, &config.Config, name, ver, urls)
+	err = builddep.AddDependency(ctx, &config.Config, name, ver, homepage, description, urls)
 	if err != nil {
 		return err
 	}

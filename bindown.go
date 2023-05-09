@@ -253,6 +253,8 @@ type OverrideMatcher map[string][]string
 
 // Dependency is something to download, extract and install
 type Dependency struct {
+	Homepage      *string                      `json:"homepage,omitempty" yaml:",omitempty"`
+	Description   *string                      `json:"description,omitempty" yaml:",omitempty"`
 	Template      *string                      `json:"template,omitempty" yaml:",omitempty"`
 	URL           *string                      `json:"url,omitempty" yaml:",omitempty"`
 	ArchivePath   *string                      `json:"archive_path,omitempty" yaml:"archive_path,omitempty"`
