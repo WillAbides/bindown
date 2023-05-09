@@ -70,7 +70,11 @@ func addDependency(
 	urls []string,
 	selector selectCandidateFunc,
 ) error {
-	groups := parseDownloads(urls, name, version, cfg.Systems)
+	systems := cfg.Systems
+	if systems == nil {
+		systems = distSystems()
+	}
+	groups := parseDownloads(urls, name, version, systems)
 	var regrouped []*depGroup
 	for _, g := range groups {
 		gg, err := g.regroupByArchivePath(ctx, name, version, selector)
