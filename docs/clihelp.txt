@@ -12,32 +12,34 @@ Flags:
   -q, --quiet                      suppress output to stdout
 
 Commands:
-  download                       download a dependency but don't extract or install it
-  extract                        download and extract a dependency but don't install it
-  install                        download, extract and install a dependency
-  format                         formats the config file
-  dependency list                list configured dependencies
-  dependency add                 add a template-based dependency
-  dependency remove              remove a dependency
-  dependency info                info about a dependency
-  dependency show-config         show dependency config
-  dependency update-vars         update dependency vars
-  dependency validate            validate that installs work
-  template list                  list templates
-  template remove                remove a template
-  template update-from-source    update a template from source
-  template update-vars           update template vars
-  template-source list           list configured template sources
-  template-source add            add a template source
-  template-source remove         remove a template source
-  supported-system list          list supported systems
-  supported-system add           add a supported system
-  supported-system remove        remove a supported system
-  checksums add                  add checksums to the config file
-  checksums prune                remove unnecessary checksums from the config file
-  init                           create an empty config file
-  cache clear                    clear the cache
-  version                        show bindown version
-  install-completions            install shell completions
+  download                            download a dependency but don't extract or install it
+  extract                             download and extract a dependency but don't install it
+  install                             download, extract and install a dependency
+  format                              formats the config file
+  dependency list                     list configured dependencies
+  dependency add                      add a template-based dependency
+  dependency add-by-urls              add a dependency by urls
+  dependency add-by-github-release    add a dependency by github release
+  dependency remove                   remove a dependency
+  dependency info                     info about a dependency
+  dependency show-config              show dependency config
+  dependency update-vars              update dependency vars
+  dependency validate                 validate that installs work
+  template list                       list templates
+  template remove                     remove a template
+  template update-from-source         update a template from source
+  template update-vars                update template vars
+  template-source list                list configured template sources
+  template-source add                 add a template source
+  template-source remove              remove a template source
+  supported-system list               list supported systems
+  supported-system add                add a supported system
+  supported-system remove             remove a supported system
+  checksums add                       add checksums to the config file
+  checksums prune                     remove unnecessary checksums from the config file
+  init                                create an empty config file
+  cache clear                         clear the cache
+  version                             show bindown version
+  install-completions                 install shell completions
 
 Run "bindown <command> --help" for more information on a command.
