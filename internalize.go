@@ -10,6 +10,8 @@ func internalizeDependency(d *Dependency) *bindown.Dependency {
 		return nil
 	}
 	dep := &bindown.Dependency{
+		Homepage:      d.Homepage,
+		Description:   d.Description,
 		Template:      d.Template,
 		URL:           d.URL,
 		ArchivePath:   d.ArchivePath,
@@ -30,6 +32,8 @@ func externalizeDependency(iDep *bindown.Dependency) *Dependency {
 	}
 	iDep = iDep.Clone()
 	return &Dependency{
+		Homepage:      iDep.Homepage,
+		Description:   iDep.Description,
 		Template:      iDep.Template,
 		URL:           iDep.URL,
 		ArchivePath:   iDep.ArchivePath,

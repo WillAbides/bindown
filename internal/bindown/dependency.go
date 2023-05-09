@@ -85,6 +85,8 @@ type builtDependency struct {
 
 // Dependency is something to download, extract and install
 type Dependency struct {
+	Homepage      *string                      `json:"homepage,omitempty" yaml:",omitempty"`
+	Description   *string                      `json:"description,omitempty" yaml:",omitempty"`
 	Template      *string                      `json:"template,omitempty" yaml:",omitempty"`
 	URL           *string                      `json:"url,omitempty" yaml:",omitempty"`
 	ArchivePath   *string                      `json:"archive_path,omitempty" yaml:"archive_path,omitempty"`
@@ -121,6 +123,8 @@ func varsWithSubstitutions(vars map[string]string, subs map[string]map[string]st
 
 func (d *Dependency) Clone() *Dependency {
 	dep := Dependency{
+		Homepage:      clonePointer(d.Homepage),
+		Description:   clonePointer(d.Description),
 		Vars:          maps.Clone(d.Vars),
 		URL:           clonePointer(d.URL),
 		ArchivePath:   clonePointer(d.ArchivePath),

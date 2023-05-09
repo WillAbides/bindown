@@ -6,6 +6,12 @@ $defs:
   dependency:
     type: object
     properties:
+      homepage:
+        description: The homepage for this dependency
+        type: string
+      description:
+        description: A description of this dependency
+        type: string
       template:
         description: >
           A template for this dependency. Any unset fields in this dependency will be set by values from the template.

@@ -21,7 +21,7 @@ func Test_sanity(t *testing.T) {
 	if tkn == "" {
 		t.Skip("GITHUB_TOKEN not set")
 	}
-	urls, version, err := QueryGitHubRelease(ctx, "willabides/bindown", "v3.16.1", tkn)
+	urls, version, description, err := QueryGitHubRelease(ctx, "willabides/bindown", "v3.16.1", tkn)
 	require.NoError(t, err)
 	require.Equal(t, "3.16.1", version)
 	require.Equal(t, 18, len(urls))
@@ -40,7 +40,7 @@ systems:
 		*candidate = *candidates[0]
 		return nil
 	}
-	err = addDependency(ctx, &cfg, "bindown", "3.16.1", urls, selectCandidate)
+	err = addDependency(ctx, &cfg, "bindown", "3.16.1", "", description, urls, selectCandidate)
 	require.NoError(t, err)
 	got, err := yaml.Marshal(&cfg)
 	require.NoError(t, err)

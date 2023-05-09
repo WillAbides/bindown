@@ -52,11 +52,24 @@ func distSystems() []bindown.SystemInfo {
 	return dists
 }
 
-func AddDependency(ctx context.Context, cfg *bindown.Config, name, version string, urls []string) error {
-	return addDependency(ctx, cfg, name, version, urls, nil)
+func AddDependency(
+	ctx context.Context,
+	cfg *bindown.Config,
+	name, version string,
+	homepage, description string,
+	urls []string,
+) error {
+	return addDependency(ctx, cfg, name, version, homepage, description, urls, nil)
 }
 
-func addDependency(ctx context.Context, cfg *bindown.Config, name, version string, urls []string, selector selectCandidateFunc) error {
+func addDependency(
+	ctx context.Context,
+	cfg *bindown.Config,
+	name, version string,
+	homepage, description string,
+	urls []string,
+	selector selectCandidateFunc,
+) error {
 	groups := parseDownloads(urls, name, version, cfg.Systems)
 	var regrouped []*depGroup
 	for _, g := range groups {
@@ -90,6 +103,12 @@ func addDependency(ctx context.Context, cfg *bindown.Config, name, version strin
 		cfg.Dependencies[k] = v
 	}
 	for k, v := range built.Templates {
+		if homepage != "" {
+			v.Homepage = &homepage
+		}
+		if description != "" {
+			v.Description = &description
+		}
 		if cfg.Templates == nil {
 			cfg.Templates = make(map[string]*bindown.Dependency)
 		}
@@ -1022,26 +1041,31 @@ func (g *depGroup) fileAllowed(f *dlFile, binName string) bool {
 	return true
 }
 
-func QueryGitHubRelease(ctx context.Context, repo, tag, tkn string) (urls []string, version string, _ error) {
+func QueryGitHubRelease(ctx context.Context, repo, tag, tkn string) (urls []string, version, description string, _ error) {
 	client := github.NewClient(oauth2.NewClient(ctx, oauth2.StaticTokenSource(
 		&oauth2.Token{AccessToken: tkn},
 	)))
 	splitRepo := strings.Split(repo, "/")
 	orgName, repoName := splitRepo[0], splitRepo[1]
+	repoResp, _, err := client.Repositories.Get(ctx, orgName, repoName)
+	if err != nil {
+		return nil, "", "", err
+	}
+	description = repoResp.GetDescription()
 	var release *github.RepositoryRelease
-	var err error
 	if tag == "" {
 		release, _, err = client.Repositories.GetLatestRelease(ctx, orgName, repoName)
 		if err != nil {
-			return nil, "", err
+			return nil, "", "", err
 		}
 		tag = release.GetTagName()
 	} else {
 		release, _, err = client.Repositories.GetReleaseByTag(ctx, orgName, repoName, tag)
 		if err != nil {
-			return nil, "", err
+			return nil, "", "", err
 		}
 	}
+
 	if version == "" {
 		version = tag
 		if strings.HasPrefix(version, "v") {
@@ -1054,5 +1078,5 @@ func QueryGitHubRelease(ctx context.Context, repo, tag, tkn string) (urls []stri
 	for _, asset := range release.Assets {
 		urls = append(urls, asset.GetBrowserDownloadURL())
 	}
-	return urls, version, nil
+	return urls, version, description, nil
 }

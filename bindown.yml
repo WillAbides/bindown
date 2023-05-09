@@ -398,6 +398,10 @@ url_checksums:
   https://github.com/goreleaser/goreleaser/releases/download/v1.16.1/goreleaser_Darwin_x86_64.tar.gz: e709a44d112ceab37e017f3be6d436cfaaab0dbcf841381544c681408127761b
   https://github.com/goreleaser/goreleaser/releases/download/v1.16.1/goreleaser_Linux_x86_64.tar.gz: fa370201538b2a93d960ca620cb3e26e25adba5abd115bb91f3517086f2324b7
   https://github.com/goreleaser/goreleaser/releases/download/v1.16.1/goreleaser_Windows_x86_64.zip: 1b5c2a3d3a507e909c6fdf8d2061590a0933d695cce9ba37467f7a3b283a83f4
+  https://github.com/junegunn/fzf/releases/download/0.40.0/fzf-0.40.0-darwin_amd64.zip: cbd4b9c577295c54f8326088aeec162c9522af2338addc8d28fd0b5c31c8a419
+  https://github.com/junegunn/fzf/releases/download/0.40.0/fzf-0.40.0-darwin_arm64.zip: 6067881dbf70df8030e606310928a7d37fa1b7a94c72fceeacf3e53368f03952
+  https://github.com/junegunn/fzf/releases/download/0.40.0/fzf-0.40.0-linux_amd64.tar.gz: ec334c17ba437d280f4a690177cd65d66aca3e17d0e6c9499c1f4a1cfaa8da3a
+  https://github.com/junegunn/fzf/releases/download/0.40.0/fzf-0.40.0-windows_amd64.zip: 0f3ee8fee46f2be51aa81317c67994299e4d3f349fa6085daf295e7cac720d2c
   https://github.com/koalaman/shellcheck/releases/download/v0.9.0/shellcheck-v0.9.0.darwin.x86_64.tar.xz: 7d3730694707605d6e60cec4efcb79a0632d61babc035aa16cda1b897536acf5
   https://github.com/koalaman/shellcheck/releases/download/v0.9.0/shellcheck-v0.9.0.linux.x86_64.tar.xz: 700324c6dd0ebea0117591c6cc9d7350d9c7c5c287acbad7630fa17b1d4d9e2f
   https://github.com/koalaman/shellcheck/releases/download/v0.9.0/shellcheck-v0.9.0.zip: ae58191b1ea4ffd9e5b15da9134146e636440302ce3e2f46863e8d71c8be1bbb
