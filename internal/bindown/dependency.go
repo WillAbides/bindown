@@ -191,7 +191,7 @@ func (d *Dependency) applyTemplate(templates map[string]*Dependency, depth int) 
 	if d.RequiredVars != nil {
 		newDL.RequiredVars = append(newDL.RequiredVars, d.RequiredVars...)
 	}
-	newDL.Systems = slices.Clone(d.Systems)
+	newDL.Systems = slices.Clone(newDL.Systems)
 	newDL.addOverrides(d.Overrides)
 	*d = *newDL
 	return nil
