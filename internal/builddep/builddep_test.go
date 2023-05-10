@@ -27,7 +27,7 @@ func Test_sanity(t *testing.T) {
 	if tkn == "" {
 		t.Skip("GITHUB_TOKEN not set")
 	}
-	urls, version, description, err := QueryGitHubRelease(ctx, "willabides/bindown", "v3.16.1", tkn)
+	urls, version, homepage, description, err := QueryGitHubRelease(ctx, "willabides/bindown", "v3.16.1", tkn)
 	require.NoError(t, err)
 	require.Equal(t, "3.16.1", version)
 	require.Equal(t, 18, len(urls))
@@ -41,7 +41,7 @@ systems:
 	var cfg bindown.Config
 	err = yaml.Unmarshal([]byte(initialConfig), &cfg)
 	require.NoError(t, err)
-	err = addDependency(ctx, &cfg, "bindown", version, "", description, urls, selectFirstCandidate)
+	err = addDependency(ctx, &cfg, "bindown", version, homepage, description, urls, selectFirstCandidate)
 	require.NoError(t, err)
 	got, err := yaml.Marshal(&cfg)
 	require.NoError(t, err)
@@ -59,6 +59,7 @@ dependencies:
             version: 3.16.1
 templates:
     bindown:
+        homepage: https://github.com/WillAbides/bindown
         url: https://github.com/WillAbides/bindown/releases/download/v{{.version}}/bindown_{{.version}}_{{.os}}_{{.arch}}{{.urlSuffix}}
         archive_path: bindown{{.archivePathSuffix}}
         bin: bindown
@@ -93,10 +94,10 @@ func adhocRelease(t *testing.T, repo, tag string) {
 	if tkn == "" {
 		t.Skip("GITHUB_TOKEN not set")
 	}
-	urls, version, description, err := QueryGitHubRelease(ctx, repo, tag, tkn)
+	urls, version, homepage, description, err := QueryGitHubRelease(ctx, repo, tag, tkn)
 	require.NoError(t, err)
 	var cfg bindown.Config
-	err = addDependency(ctx, &cfg, "x", version, "", description, urls, selectFirstCandidate)
+	err = addDependency(ctx, &cfg, "x", version, homepage, description, urls, selectFirstCandidate)
 	require.NoError(t, err)
 	got, err := yaml.Marshal(&cfg)
 	require.NoError(t, err)

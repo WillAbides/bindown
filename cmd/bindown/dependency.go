@@ -274,7 +274,7 @@ func (c *dependencyAddByGithubReleaseCmd) Run(ctx *runContext) error {
 	default:
 		return fmt.Errorf(`invalid release URL or "owner/repo(@tag)"`)
 	}
-	urls, releaseVer, repoDesc, err := builddep.QueryGitHubRelease(ctx, fmt.Sprintf("%s/%s", owner, repo), tag, c.GithubToken)
+	urls, releaseVer, repoPage, repoDesc, err := builddep.QueryGitHubRelease(ctx, fmt.Sprintf("%s/%s", owner, repo), tag, c.GithubToken)
 	if err != nil {
 		return err
 	}
@@ -288,7 +288,7 @@ func (c *dependencyAddByGithubReleaseCmd) Run(ctx *runContext) error {
 	}
 	homepage := c.Homepage
 	if homepage == "" {
-		homepage = fmt.Sprintf("https://github.com/%s/%s", owner, repo)
+		homepage = repoPage
 	}
 	description := c.Description
 	if description == "" {
