@@ -314,11 +314,15 @@ func archSubs(systems []bindown.SystemInfo) []systemSub {
 		{val: "amd64", normalized: "amd64"},
 		{val: "arm64", normalized: "arm64"},
 		{val: "x86_64", normalized: "amd64"},
+		{val: "x86_32", normalized: "386"},
 		{val: "x86", normalized: "386"},
 		{val: "x64", normalized: "amd64"},
 		{val: "64bit", normalized: "amd64"},
 		{val: "64-bit", normalized: "amd64"},
 		{val: "aarch64", normalized: "arm64"},
+		{val: "aarch_64", normalized: "arm64"},
+		{val: "ppcle_64", normalized: "ppc64le"},
+		{val: "s390x_64", normalized: "s390x"},
 		{val: "i386", normalized: "386"},
 	}
 	if systems == nil {
@@ -475,21 +479,25 @@ func parseArchiveFile(origName, binName, osName, archName, version string, execu
 		executable:  executable,
 		containsBin: strings.Contains(origName, binName),
 	}
-	for {
-		idx := strings.Index(a.name, osName)
-		if idx == -1 {
-			break
+	if osName != "" {
+		for {
+			idx := strings.Index(a.name, osName)
+			if idx == -1 {
+				break
+			}
+			a.tmplCount++
+			a.name = a.name[:idx] + "{{.os}}" + a.name[idx+len(osName):]
 		}
-		a.tmplCount++
-		a.name = a.name[:idx] + "{{.os}}" + a.name[idx+len(osName):]
 	}
-	for {
-		idx := strings.Index(a.name, archName)
-		if idx == -1 {
-			break
+	if archName != "" {
+		for {
+			idx := strings.Index(a.name, archName)
+			if idx == -1 {
+				break
+			}
+			a.tmplCount++
+			a.name = a.name[:idx] + "{{.arch}}" + a.name[idx+len(archName):]
 		}
-		a.tmplCount++
-		a.name = a.name[:idx] + "{{.arch}}" + a.name[idx+len(archName):]
 	}
 	for {
 		idx := strings.Index(a.name, version)
