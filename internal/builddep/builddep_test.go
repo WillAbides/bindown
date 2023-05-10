@@ -3,6 +3,7 @@ package builddep
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"os"
 	"strings"
 	"testing"
@@ -11,6 +12,11 @@ import (
 	"github.com/willabides/bindown/v3"
 	"gopkg.in/yaml.v3"
 )
+
+func selectFirstCandidate(candidates []*archiveFileCandidate, candidate *archiveFileCandidate) error {
+	*candidate = *candidates[0]
+	return nil
+}
 
 func Test_sanity(t *testing.T) {
 	if testing.Short() {
@@ -35,12 +41,7 @@ systems:
 	var cfg bindown.Config
 	err = yaml.Unmarshal([]byte(initialConfig), &cfg)
 	require.NoError(t, err)
-	selectCandidate := func(candidates []*archiveFileCandidate, candidate *archiveFileCandidate) error {
-		require.True(t, len(candidates) > 0)
-		*candidate = *candidates[0]
-		return nil
-	}
-	err = addDependency(ctx, &cfg, "bindown", "3.16.1", "", description, urls, selectCandidate)
+	err = addDependency(ctx, &cfg, "bindown", version, "", description, urls, selectFirstCandidate)
 	require.NoError(t, err)
 	got, err := yaml.Marshal(&cfg)
 	require.NoError(t, err)
@@ -83,4 +84,21 @@ url_checksums:
     https://github.com/WillAbides/bindown/releases/download/v3.16.1/bindown_3.16.1_windows_amd64.tar.gz: d84601ef49a8f7339a96bd4a8e0bf89d3253a3403e84f4d25595cff786eafb88
 `
 	require.Equal(t, strings.TrimSpace(want), string(bytes.TrimSpace(got)))
+}
+
+//nolint:unused // this is for occasional manual testing
+func adhocRelease(t *testing.T, repo, tag string) {
+	ctx := context.Background()
+	tkn := os.Getenv("GITHUB_TOKEN")
+	if tkn == "" {
+		t.Skip("GITHUB_TOKEN not set")
+	}
+	urls, version, description, err := QueryGitHubRelease(ctx, repo, tag, tkn)
+	require.NoError(t, err)
+	var cfg bindown.Config
+	err = addDependency(ctx, &cfg, "x", version, "", description, urls, selectFirstCandidate)
+	require.NoError(t, err)
+	got, err := yaml.Marshal(&cfg)
+	require.NoError(t, err)
+	fmt.Println(string(got))
 }

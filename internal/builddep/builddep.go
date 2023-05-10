@@ -40,16 +40,26 @@ var forbiddenArch = map[string]bool{
 	"wasm": true,
 }
 
-func distSystems() []bindown.SystemInfo {
-	var dists []bindown.SystemInfo
-	for _, s := range strings.Split(strings.TrimSpace(_goDists), "\n") {
-		parts := strings.Split(s, "/")
-		dists = append(dists, bindown.SystemInfo{
-			OS:   parts[0],
-			Arch: parts[1],
-		})
+func distSystems() []string {
+	return strings.Split(strings.TrimSpace(_goDists), "\n")
+}
+
+func parseDist(dist string) (os, arch string) {
+	parts := strings.Split(dist, "/")
+	if len(parts) != 2 {
+		panic(fmt.Sprintf("invalid dist: %q", dist))
 	}
-	return dists
+	return parts[0], parts[1]
+}
+
+func systemOs(system string) string {
+	os, _ := parseDist(system)
+	return os
+}
+
+func systemArch(system string) string {
+	_, arch := parseDist(system)
+	return arch
 }
 
 func AddDependency(
@@ -70,8 +80,12 @@ func addDependency(
 	urls []string,
 	selector selectCandidateFunc,
 ) error {
-	systems := cfg.Systems
-	if systems == nil {
+	var systems []string
+	if cfg.Systems != nil {
+		for _, systemInfo := range cfg.Systems {
+			systems = append(systems, systemInfo.String())
+		}
+	} else {
 		systems = distSystems()
 	}
 	groups := parseDownloads(urls, name, version, systems)
@@ -228,14 +242,11 @@ func (f *dlFile) setArchiveFiles(ctx context.Context, binName, version string) e
 	return err
 }
 
-func (f *dlFile) system() bindown.SystemInfo {
+func (f *dlFile) system() string {
 	if f.osSub == nil || f.archSub == nil {
 		panic("system called on dlFile without osSub or archSub")
 	}
-	return bindown.SystemInfo{
-		OS:   f.osSub.normalized,
-		Arch: f.archSub.normalized,
-	}
+	return f.osSub.normalized + "/" + f.archSub.normalized
 }
 
 type archiveFile struct {
@@ -276,7 +287,7 @@ func archiveFileGroupable(a, b *archiveFile) bool {
 	return a.name == b.name && a.suffix == b.suffix
 }
 
-func osSubs(systems []bindown.SystemInfo) []systemSub {
+func osSubs(systems []string) []systemSub {
 	subs := []systemSub{
 		{val: "apple-darwin", normalized: "darwin"},
 		{val: "unknown-linux-gnu", normalized: "linux", priority: -1},
@@ -296,7 +307,7 @@ func osSubs(systems []bindown.SystemInfo) []systemSub {
 		systems = distSystems()
 	}
 	for _, dist := range systems {
-		distOS := dist.OS
+		distOS := systemOs(dist)
 		if !slices.ContainsFunc(subs, func(sub systemSub) bool {
 			return sub.val == distOS
 		}) {
@@ -309,23 +320,27 @@ func osSubs(systems []bindown.SystemInfo) []systemSub {
 	return subs
 }
 
-func archSubs(systems []bindown.SystemInfo) []systemSub {
+func archSubs(systems []string) []systemSub {
 	subs := []systemSub{
 		{val: "amd64", normalized: "amd64"},
 		{val: "arm64", normalized: "arm64"},
 		{val: "x86_64", normalized: "amd64"},
+		{val: "x86_32", normalized: "386"},
 		{val: "x86", normalized: "386"},
 		{val: "x64", normalized: "amd64"},
 		{val: "64bit", normalized: "amd64"},
 		{val: "64-bit", normalized: "amd64"},
 		{val: "aarch64", normalized: "arm64"},
+		{val: "aarch_64", normalized: "arm64"},
+		{val: "ppcle_64", normalized: "ppc64le"},
+		{val: "s390x_64", normalized: "s390x"},
 		{val: "i386", normalized: "386"},
 	}
 	if systems == nil {
 		systems = distSystems()
 	}
 	for _, dist := range systems {
-		distArch := dist.Arch
+		distArch := systemArch(dist)
 		if !slices.ContainsFunc(subs, func(sub systemSub) bool {
 			return sub.val == distArch
 		}) {
@@ -356,7 +371,7 @@ func matchSub(filename string, subs []systemSub) *systemSub {
 	return nil
 }
 
-func parseOs(filename string, systems []bindown.SystemInfo) *systemSub {
+func parseOs(filename string, systems []string) *systemSub {
 	sub := matchSub(filename, osSubs(systems))
 	if sub != nil {
 		return sub
@@ -371,7 +386,7 @@ func parseOs(filename string, systems []bindown.SystemInfo) *systemSub {
 	return nil
 }
 
-func parseArch(filename string, systems []bindown.SystemInfo) *systemSub {
+func parseArch(filename string, systems []string) *systemSub {
 	sub := matchSub(filename, archSubs(systems))
 	if sub != nil {
 		return sub
@@ -410,7 +425,7 @@ var archiveSuffixes = []string{
 	".zst",
 }
 
-func parseDownload(dlURL, version string, systems []bindown.SystemInfo) (*dlFile, bool) {
+func parseDownload(dlURL, version string, systems []string) (*dlFile, bool) {
 	tmpl := dlURL
 	osSub := parseOs(dlURL, systems)
 	if osSub == nil {
@@ -429,8 +444,9 @@ func parseDownload(dlURL, version string, systems []bindown.SystemInfo) (*dlFile
 	if forbiddenArch[archSub.normalized] || forbiddenOS[osSub.normalized] {
 		return nil, false
 	}
-	if !slices.ContainsFunc(systems, func(sys bindown.SystemInfo) bool {
-		return sys.OS == osSub.normalized && sys.Arch == archSub.normalized
+	if !slices.ContainsFunc(systems, func(sys string) bool {
+		o, a := parseDist(sys)
+		return o == osSub.normalized && a == archSub.normalized
 	}) {
 		return nil, false
 	}
@@ -475,21 +491,25 @@ func parseArchiveFile(origName, binName, osName, archName, version string, execu
 		executable:  executable,
 		containsBin: strings.Contains(origName, binName),
 	}
-	for {
-		idx := strings.Index(a.name, osName)
-		if idx == -1 {
-			break
+	if osName != "" {
+		for {
+			idx := strings.Index(a.name, osName)
+			if idx == -1 {
+				break
+			}
+			a.tmplCount++
+			a.name = a.name[:idx] + "{{.os}}" + a.name[idx+len(osName):]
 		}
-		a.tmplCount++
-		a.name = a.name[:idx] + "{{.os}}" + a.name[idx+len(osName):]
 	}
-	for {
-		idx := strings.Index(a.name, archName)
-		if idx == -1 {
-			break
+	if archName != "" {
+		for {
+			idx := strings.Index(a.name, archName)
+			if idx == -1 {
+				break
+			}
+			a.tmplCount++
+			a.name = a.name[:idx] + "{{.arch}}" + a.name[idx+len(archName):]
 		}
-		a.tmplCount++
-		a.name = a.name[:idx] + "{{.arch}}" + a.name[idx+len(archName):]
 	}
 	for {
 		idx := strings.Index(a.name, version)
@@ -508,7 +528,7 @@ func parseArchiveFile(origName, binName, osName, archName, version string, execu
 	return &a
 }
 
-func parseDownloads(dlUrls []string, binName, version string, allowedSystems []bindown.SystemInfo) []*depGroup {
+func parseDownloads(dlUrls []string, binName, version string, allowedSystems []string) []*depGroup {
 	systemFiles := map[string][]*dlFile{}
 	for _, dlUrl := range dlUrls {
 		f, ok := parseDownload(dlUrl, version, allowedSystems)
@@ -516,7 +536,7 @@ func parseDownloads(dlUrls []string, binName, version string, allowedSystems []b
 			continue
 		}
 		dlSystem := f.system()
-		systemFiles[dlSystem.String()] = append(systemFiles[dlSystem.String()], f)
+		systemFiles[dlSystem] = append(systemFiles[dlSystem], f)
 	}
 	for system := range systemFiles {
 		if len(systemFiles[system]) < 2 {
@@ -583,9 +603,27 @@ func parseDownloads(dlUrls []string, binName, version string, allowedSystems []b
 		return urlFrequency[a] > urlFrequency[b]
 	})
 
+	// special handling to remap darwin/arm64 to darwin/amd64
+	if len(systemFiles["darwin/amd64"]) > 0 && len(systemFiles["darwin/arm64"]) == 0 && slices.Contains(allowedSystems, "darwin/arm64") {
+		f := systemFiles["darwin/amd64"][0].clone()
+		f.archSub.normalized = "arm64"
+		f.priority -= 2
+		systemFiles["darwin/arm64"] = append(systemFiles["darwin/arm64"], f)
+	}
+
 	var groups []*depGroup
 	systems := maps.Keys(systemFiles)
-	slices.Sort(systems)
+	slices.SortFunc(systems, func(a, b string) bool {
+		if len(systemFiles[a]) == 0 || len(systemFiles[b]) == 0 {
+			return len(systemFiles[a]) > 0
+		}
+		aFile := systemFiles[a][0]
+		bFile := systemFiles[b][0]
+		if aFile.priority != bFile.priority {
+			return aFile.priority > bFile.priority
+		}
+		return a < b
+	})
 	for _, system := range systems {
 		file := systemFiles[system][0]
 		idx := slices.IndexFunc(groups, func(g *depGroup) bool {
@@ -611,13 +649,6 @@ func parseDownloads(dlUrls []string, binName, version string, allowedSystems []b
 	return groups
 }
 
-func systemLess(a, b bindown.SystemInfo) bool {
-	if a.OS != b.OS {
-		return a.OS < b.OS
-	}
-	return a.Arch < b.Arch
-}
-
 func buildConfig(name, version string, groups []*depGroup) *bindown.Config {
 	dep := groups[0].dependency()
 	checksums := map[string]string{}
@@ -631,10 +662,21 @@ func buildConfig(name, version string, groups []*depGroup) *bindown.Config {
 		}
 		otherGroups := slices.Clone(groups[:i])
 		otherGroups = append(otherGroups, groups[i+1:]...)
-		dep.Systems = append(dep.Systems, group.systems...)
+		for _, system := range group.systems {
+			o, a := parseDist(system)
+			dep.Systems = append(dep.Systems, bindown.SystemInfo{
+				OS:   o,
+				Arch: a,
+			})
+		}
 		dep.Overrides = append(dep.Overrides, group.overrides(otherGroups)...)
 	}
-	slices.SortFunc(dep.Systems, systemLess)
+	slices.SortFunc(dep.Systems, func(a, b bindown.SystemInfo) bool {
+		if a.OS != b.OS {
+			return a.OS < b.OS
+		}
+		return a.Arch < b.Arch
+	})
 	for tp := range dep.Substitutions {
 		for k, v := range dep.Substitutions[tp] {
 			if k == v {
@@ -694,7 +736,7 @@ type depGroup struct {
 	archivePathSuffix string
 	archivePath       string
 	binName           string
-	systems           []bindown.SystemInfo
+	systems           []string
 	files             []*dlFile
 	substitutions     map[string]map[string]string
 	overrideMatcher   map[string][]string
@@ -837,6 +879,14 @@ func (g *depGroup) regroupByArchivePath(ctx context.Context, binName, version st
 }
 
 func (g *depGroup) dependency() *bindown.Dependency {
+	var systems []bindown.SystemInfo
+	for _, system := range g.systems {
+		o, a := parseDist(system)
+		systems = append(systems, bindown.SystemInfo{
+			OS:   o,
+			Arch: a,
+		})
+	}
 	dep := bindown.Dependency{
 		URL:          &g.url,
 		BinName:      &g.binName,
@@ -847,7 +897,7 @@ func (g *depGroup) dependency() *bindown.Dependency {
 			"archivePathSuffix": g.archivePathSuffix,
 		},
 		Substitutions: map[string]map[string]string{},
-		Systems:       g.systems,
+		Systems:       systems,
 	}
 	if g.substitutions != nil {
 		if len(g.substitutions["os"]) > 0 {
@@ -887,8 +937,8 @@ func (g *depGroup) overrides(otherGroups []*depGroup) []bindown.DependencyOverri
 		matcher := m.matcher
 		systems := m.systems
 		for normalized := range dep.Substitutions["os"] {
-			if !slices.ContainsFunc(systems, func(s bindown.SystemInfo) bool {
-				return s.OS == normalized
+			if !slices.ContainsFunc(systems, func(system string) bool {
+				return systemOs(system) == normalized
 			}) {
 				delete(dep.Substitutions["os"], normalized)
 			}
@@ -901,7 +951,7 @@ func (g *depGroup) overrides(otherGroups []*depGroup) []bindown.DependencyOverri
 	return overrides
 }
 
-func splitSystems(systems []bindown.SystemInfo, fn func(s bindown.SystemInfo) bool) (matching, nonMatching []bindown.SystemInfo) {
+func splitSystems(systems []string, fn func(s string) bool) (matching, nonMatching []string) {
 	for _, system := range systems {
 		if fn(system) {
 			matching = append(matching, system)
@@ -912,22 +962,24 @@ func splitSystems(systems []bindown.SystemInfo, fn func(s bindown.SystemInfo) bo
 	return
 }
 
-func systemsMatcher(systems, otherSystems []bindown.SystemInfo) (_ map[string][]string, matcherSystems, remainingSystems []bindown.SystemInfo) {
+func systemsMatcher(systems, otherSystems []string) (_ map[string][]string, matcherSystems, remainingSystems []string) {
 	var oses, arches, otherOses, otherArches, exclusiveOses, exclusiveArches []string
 	for _, system := range systems {
-		if !slices.Contains(oses, system.OS) {
-			oses = append(oses, system.OS)
+		o, a := parseDist(system)
+		if !slices.Contains(oses, o) {
+			oses = append(oses, o)
 		}
-		if !slices.Contains(arches, system.Arch) {
-			arches = append(arches, system.Arch)
+		if !slices.Contains(arches, a) {
+			arches = append(arches, a)
 		}
 	}
 	for _, system := range otherSystems {
-		if !slices.Contains(otherOses, system.OS) {
-			otherOses = append(otherOses, system.OS)
+		o, a := parseDist(system)
+		if !slices.Contains(otherOses, o) {
+			otherOses = append(otherOses, o)
 		}
-		if !slices.Contains(otherArches, system.Arch) {
-			otherArches = append(otherArches, system.Arch)
+		if !slices.Contains(otherArches, a) {
+			otherArches = append(otherArches, a)
 		}
 	}
 	for _, s := range oses {
@@ -936,8 +988,8 @@ func systemsMatcher(systems, otherSystems []bindown.SystemInfo) (_ map[string][]
 		}
 	}
 	if len(exclusiveOses) > 0 {
-		s, r := splitSystems(systems, func(system bindown.SystemInfo) bool {
-			return slices.Contains(exclusiveOses, system.OS)
+		s, r := splitSystems(systems, func(system string) bool {
+			return slices.Contains(exclusiveOses, systemOs(system))
 		})
 		return map[string][]string{"os": exclusiveOses}, s, r
 	}
@@ -947,8 +999,8 @@ func systemsMatcher(systems, otherSystems []bindown.SystemInfo) (_ map[string][]
 		}
 	}
 	if len(exclusiveArches) > 0 {
-		s, r := splitSystems(systems, func(system bindown.SystemInfo) bool {
-			return slices.Contains(exclusiveArches, system.Arch)
+		s, r := splitSystems(systems, func(system string) bool {
+			return slices.Contains(exclusiveArches, systemArch(system))
 		})
 		return map[string][]string{"arch": exclusiveArches}, s, r
 	}
@@ -962,9 +1014,9 @@ func systemsMatcher(systems, otherSystems []bindown.SystemInfo) (_ map[string][]
 		a := arches[0]
 		var archOses []string
 		for _, system := range systems {
-			if system.Arch == a {
+			if systemArch(system) == a {
 				matcherSystems = append(matcherSystems, system)
-				archOses = append(archOses, system.OS)
+				archOses = append(archOses, systemOs(system))
 				continue
 			}
 			remainingSystems = append(remainingSystems, system)
@@ -977,12 +1029,12 @@ func systemsMatcher(systems, otherSystems []bindown.SystemInfo) (_ map[string][]
 	o := oses[0]
 	var osArches []string
 	for _, system := range systems {
-		if system.OS == o {
-			osArches = append(osArches, system.Arch)
+		if systemOs(system) == o {
+			osArches = append(osArches, systemArch(system))
 		}
 	}
-	s, r := splitSystems(systems, func(system bindown.SystemInfo) bool {
-		return system.OS == o
+	s, r := splitSystems(systems, func(system string) bool {
+		return systemOs(system) == o
 	})
 	return map[string][]string{
 		"os":   {o},
@@ -992,10 +1044,10 @@ func systemsMatcher(systems, otherSystems []bindown.SystemInfo) (_ map[string][]
 
 func (g *depGroup) matchers(otherGroups []*depGroup) (result []struct {
 	matcher map[string][]string
-	systems []bindown.SystemInfo
+	systems []string
 },
 ) {
-	var otherSystems []bindown.SystemInfo
+	var otherSystems []string
 	for _, other := range otherGroups {
 		otherSystems = append(otherSystems, other.systems...)
 	}
@@ -1003,7 +1055,7 @@ func (g *depGroup) matchers(otherGroups []*depGroup) (result []struct {
 	for len(systems) > 0 {
 		r := struct {
 			matcher map[string][]string
-			systems []bindown.SystemInfo
+			systems []string
 		}{}
 		r.matcher, r.systems, systems = systemsMatcher(systems, otherSystems)
 		result = append(result, r)
