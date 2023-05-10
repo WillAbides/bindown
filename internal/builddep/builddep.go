@@ -1097,7 +1097,7 @@ func (g *depGroup) fileAllowed(f *dlFile, binName string) bool {
 	return true
 }
 
-func QueryGitHubRelease(ctx context.Context, repo, tag, tkn string) (urls []string, version, description string, _ error) {
+func QueryGitHubRelease(ctx context.Context, repo, tag, tkn string) (urls []string, version, homepage, description string, _ error) {
 	client := github.NewClient(oauth2.NewClient(ctx, oauth2.StaticTokenSource(
 		&oauth2.Token{AccessToken: tkn},
 	)))
@@ -1105,20 +1105,24 @@ func QueryGitHubRelease(ctx context.Context, repo, tag, tkn string) (urls []stri
 	orgName, repoName := splitRepo[0], splitRepo[1]
 	repoResp, _, err := client.Repositories.Get(ctx, orgName, repoName)
 	if err != nil {
-		return nil, "", "", err
+		return nil, "", "", "", err
 	}
 	description = repoResp.GetDescription()
+	homepage = repoResp.GetHomepage()
+	if homepage == "" {
+		homepage = repoResp.GetHTMLURL()
+	}
 	var release *github.RepositoryRelease
 	if tag == "" {
 		release, _, err = client.Repositories.GetLatestRelease(ctx, orgName, repoName)
 		if err != nil {
-			return nil, "", "", err
+			return nil, "", "", "", err
 		}
 		tag = release.GetTagName()
 	} else {
 		release, _, err = client.Repositories.GetReleaseByTag(ctx, orgName, repoName, tag)
 		if err != nil {
-			return nil, "", "", err
+			return nil, "", "", "", err
 		}
 	}
 
@@ -1134,5 +1138,5 @@ func QueryGitHubRelease(ctx context.Context, repo, tag, tkn string) (urls []stri
 	for _, asset := range release.Assets {
 		urls = append(urls, asset.GetBrowserDownloadURL())
 	}
-	return urls, version, description, nil
+	return urls, version, homepage, description, nil
 }
