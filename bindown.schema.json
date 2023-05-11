@@ -4,6 +4,14 @@
   "$defs": {
     "Dependency": {
       "properties": {
+        "homepage": {
+          "type": "string",
+          "description": "The homepage for this dependency. Informational only."
+        },
+        "description": {
+          "type": "string",
+          "description": "A description of the dependency. Informational only."
+        },
         "template": {
           "type": "string",
           "description": "A template for this dependency. Any unset fields in this dependency will be set by values from the template.\nOverrides in the dependency and its template are concatenated with the template's overrides coming first.\nVars and substitutions are both combined with the dependency's value taking precedence."
@@ -19,14 +27,6 @@
         "bin": {
           "type": "string",
           "description": "The name of the binary to be installed. Default is the name of the dependency."
-        },
-        "description": {
-          "description": "A description of this dependency",
-          "type": "string"
-        },
-        "homepage": {
-          "description": "The homepage for this dependency",
-          "type": "string"
         },
         "link": {
           "type": "boolean",

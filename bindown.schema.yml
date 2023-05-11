@@ -4,11 +4,11 @@ $defs:
   Dependency:
     properties:
       homepage:
-        description: The homepage for this dependency
         type: string
+        description: The homepage for this dependency. Informational only.
       description:
-        description: A description of this dependency
         type: string
+        description: A description of the dependency. Informational only.
       template:
         type: string
         description: |-
