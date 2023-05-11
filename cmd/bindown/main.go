@@ -8,11 +8,6 @@ import (
 
 var version string
 
-//go:generate sh -c "go tool dist list > go_dist_list.txt"
-
-//go:embed go_dist_list.txt
-var goDists string
-
 func main() {
 	ctx := context.Background()
 	if version != "" {

@@ -15,11 +15,6 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-//go:generate sh -c "go tool dist list > go_dist_list.txt"
-
-//go:embed go_dist_list.txt
-var _goDists string
-
 var forbiddenOS = map[string]bool{
 	"js": true,
 }
@@ -31,7 +26,7 @@ var forbiddenArch = map[string]bool{
 
 func distSystems() []bindown.System {
 	var systems []bindown.System
-	for _, system := range strings.Split(strings.TrimSpace(_goDists), "\n") {
+	for _, system := range strings.Split(strings.TrimSpace(bindown.GoDists), "\n") {
 		systems = append(systems, bindown.System(system))
 	}
 	return systems

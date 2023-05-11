@@ -3,6 +3,7 @@ package bindown
 import (
 	"bytes"
 	"crypto/sha256"
+	_ "embed"
 	"encoding/hex"
 	"fmt"
 	"hash"
@@ -16,6 +17,11 @@ import (
 	"golang.org/x/exp/maps"
 	"gopkg.in/yaml.v3"
 )
+
+//go:generate sh -c "go tool dist list > go_dist_list.txt"
+
+//go:embed go_dist_list.txt
+var GoDists string
 
 // executeTemplate executes a template
 func executeTemplate(tmplString, goos, arch string, vars map[string]string) (string, error) {
