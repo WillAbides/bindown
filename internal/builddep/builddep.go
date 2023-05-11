@@ -2,7 +2,6 @@ package builddep
 
 import (
 	"context"
-	_ "embed"
 	"fmt"
 	"strings"
 
