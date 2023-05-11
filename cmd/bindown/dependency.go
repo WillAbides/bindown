@@ -4,19 +4,24 @@ import (
 	"bufio"
 	"encoding/json"
 	"fmt"
+	"regexp"
 	"strings"
+
+	"github.com/willabides/bindown/v3/internal/builddep"
 
 	"github.com/willabides/bindown/v3/internal/bindown"
 )
 
 type dependencyCmd struct {
-	List       dependencyListCmd       `kong:"cmd,help='list configured dependencies'"`
-	Add        dependencyAddCmd        `kong:"cmd,help='add a template-based dependency'"`
-	Remove     dependencyRemoveCmd     `kong:"cmd,help='remove a dependency'"`
-	Info       dependencyInfoCmd       `kong:"cmd,help='info about a dependency'"`
-	ShowConfig dependencyShowConfigCmd `kong:"cmd,help='show dependency config'"`
-	UpdateVars dependencyUpdateVarsCmd `kong:"cmd,help='update dependency vars'"`
-	Validate   dependencyValidateCmd   `kong:"cmd,help='validate that installs work'"`
+	List               dependencyListCmd               `kong:"cmd,help='list configured dependencies'"`
+	Add                dependencyAddCmd                `kong:"cmd,help='add a template-based dependency'"`
+	AddByUrls          dependencyAddByUrlsCmd          `kong:"cmd,help='add a dependency by urls'"`
+	AddByGithubRelease dependencyAddByGithubReleaseCmd `kong:"cmd,help='add a dependency by github release'"`
+	Remove             dependencyRemoveCmd             `kong:"cmd,help='remove a dependency'"`
+	Info               dependencyInfoCmd               `kong:"cmd,help='info about a dependency'"`
+	ShowConfig         dependencyShowConfigCmd         `kong:"cmd,help='show dependency config'"`
+	UpdateVars         dependencyUpdateVarsCmd         `kong:"cmd,help='update dependency vars'"`
+	Validate           dependencyValidateCmd           `kong:"cmd,help='validate that installs work'"`
 }
 
 type dependencyUpdateVarsCmd struct {
@@ -210,6 +215,93 @@ func (c *dependencyAddCmd) Run(ctx *runContext) error {
 		if err != nil {
 			return err
 		}
+	}
+	return config.WriteFile(ctx.rootCmd.JSONConfig)
+}
+
+type dependencyAddByUrlsCmd struct {
+	Name         string   `kong:"arg,help='dependency name'"`
+	Version      string   `kong:"arg,help='dependency version'"`
+	Homepage     string   `kong:"name=homepage,help='dependency homepage'"`
+	Description  string   `kong:"name=description,help='dependency description'"`
+	URL          []string `kong:"arg,help='dependency URL'"`
+	Force        bool     `kong:"name=force,help='overwrite existing dependency'"`
+	Experimental bool     `kong:"required,name=experimental,help='enable experimental features',env='BINDOWN_EXPERIMENTAL'"`
+}
+
+func (c *dependencyAddByUrlsCmd) Run(ctx *runContext) error {
+	config, err := loadConfigFile(ctx, true)
+	if err != nil {
+		return err
+	}
+	if config.Dependencies != nil && config.Dependencies[c.Name] != nil && !c.Force {
+		return fmt.Errorf("dependency %q already exists", c.Name)
+	}
+	err = builddep.AddDependency(ctx, config, c.Name, c.Version, c.Homepage, c.Description, c.URL)
+	if err != nil {
+		return err
+	}
+	return config.WriteFile(ctx.rootCmd.JSONConfig)
+}
+
+type dependencyAddByGithubReleaseCmd struct {
+	Release      string `kong:"arg,help='github release URL or \"owner/repo(@tag)\"'"`
+	Name         string `kong:"name to use instead of repo name"`
+	Version      string `kong:"version to use instead of release tag"`
+	Homepage     string `kong:"name=homepage,help='dependency homepage'"`
+	Description  string `kong:"name=description,help='dependency description'"`
+	Force        bool   `kong:"name=force,help='overwrite existing dependency'"`
+	Experimental bool   `kong:"required,name=experimental,help='enable experimental features',env='BINDOWN_EXPERIMENTAL'"`
+	GithubToken  string `kong:"hidden,env='GITHUB_TOKEN'"`
+}
+
+var (
+	releaseShortExp = regexp.MustCompile(`^([^/]+)/([^/^@]+)@?(.+)?$`)
+	releaseURLExp   = regexp.MustCompile(`^https://github\.com/([^/]+)/([^/]+)/releases/tag/([^/]+)`)
+)
+
+func (c *dependencyAddByGithubReleaseCmd) Run(ctx *runContext) error {
+	config, err := loadConfigFile(ctx, true)
+	if err != nil {
+		return err
+	}
+	var owner, repo, tag string
+	switch {
+	case releaseURLExp.MatchString(c.Release):
+		m := releaseURLExp.FindStringSubmatch(c.Release)
+		owner, repo, tag = m[1], m[2], m[3]
+	case releaseShortExp.MatchString(c.Release):
+		m := releaseShortExp.FindStringSubmatch(c.Release)
+		owner, repo, tag = m[1], m[2], m[3]
+	default:
+		return fmt.Errorf(`invalid release URL or "owner/repo(@tag)"`)
+	}
+	urls, releaseVer, repoPage, repoDesc, err := builddep.QueryGitHubRelease(ctx, fmt.Sprintf("%s/%s", owner, repo), tag, c.GithubToken)
+	if err != nil {
+		return err
+	}
+	ver := c.Version
+	if ver == "" {
+		ver = releaseVer
+	}
+	name := c.Name
+	if name == "" {
+		name = repo
+	}
+	homepage := c.Homepage
+	if homepage == "" {
+		homepage = repoPage
+	}
+	description := c.Description
+	if description == "" {
+		description = repoDesc
+	}
+	if config.Dependencies != nil && config.Dependencies[name] != nil && !c.Force {
+		return fmt.Errorf("dependency %q already exists", name)
+	}
+	err = builddep.AddDependency(ctx, config, name, ver, homepage, description, urls)
+	if err != nil {
+		return err
 	}
 	return config.WriteFile(ctx.rootCmd.JSONConfig)
 }

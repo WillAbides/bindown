@@ -29,7 +29,7 @@ func downloadDependency(
 	checksum := dep.checksum
 	if checksum == "" {
 		if !allowMissingChecksum {
-			err = fmt.Errorf("no checksum configured for %s", dep.name)
+			err = fmt.Errorf("no checksum configured for %s %s", dep.name, dep.url)
 			return "", "", nil, err
 		}
 		var tempDir string

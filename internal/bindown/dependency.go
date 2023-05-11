@@ -21,6 +21,12 @@ type DependencyOverride struct {
 }
 
 type Dependency struct {
+	// The homepage for this dependency. Informational only.
+	Homepage *string `json:"homepage,omitempty" yaml:",omitempty"`
+
+	// A description of the dependency. Informational only.
+	Description *string `json:"description,omitempty" yaml:",omitempty"`
+
 	// A template for this dependency. Any unset fields in this dependency will be set by values from the template.
 	// Overrides in the dependency and its template are concatenated with the template's overrides coming first.
 	// Vars and substitutions are both combined with the dependency's value taking precedence.
@@ -168,12 +174,11 @@ func (d *Dependency) applyTemplate(templates map[string]*Dependency, depth int) 
 	if d.RequiredVars != nil {
 		newDL.RequiredVars = append(newDL.RequiredVars, d.RequiredVars...)
 	}
-	newDL.Systems = slices.Clone(d.Systems)
+	newDL.Systems = slices.Clone(newDL.Systems)
 
 	if len(d.Overrides) > 0 {
 		newDL.Overrides = append(newDL.Overrides, d.Overrides...)
 	}
-
 	*d = *newDL
 	return nil
 }
@@ -220,6 +225,17 @@ func (d *Dependency) applyOverrides(system System, depth int) {
 		dependency := &d.Overrides[i].Dependency
 		if depth <= maxOverrideDepth {
 			dependency.applyOverrides(system, depth+1)
+		}
+		for subType, mp := range dependency.Substitutions {
+			if d.Substitutions == nil {
+				d.Substitutions = make(map[string]map[string]string)
+			}
+			if d.Substitutions[subType] == nil {
+				d.Substitutions[subType] = make(map[string]string)
+			}
+			for k, v := range mp {
+				d.Substitutions[subType][k] = v
+			}
 		}
 		d.Link = overrideValue(d.Link, dependency.Link)
 		d.ArchivePath = overrideValue(d.ArchivePath, dependency.ArchivePath)

@@ -20,6 +20,14 @@
           "type": "string",
           "description": "The name of the binary to be installed. Default is the name of the dependency."
         },
+        "description": {
+          "description": "A description of this dependency",
+          "type": "string"
+        },
+        "homepage": {
+          "description": "The homepage for this dependency",
+          "type": "string"
+        },
         "link": {
           "type": "boolean",
           "description": "Whether to create a symlink to the bin instead of copying it."
