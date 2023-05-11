@@ -114,6 +114,8 @@ func (d *Dependency) clone() *Dependency {
 	return &Dependency{
 		Vars:          maps.Clone(d.Vars),
 		URL:           clonePointer(d.URL),
+		Homepage:      clonePointer(d.Homepage),
+		Description:   clonePointer(d.Description),
 		ArchivePath:   clonePointer(d.ArchivePath),
 		Template:      clonePointer(d.Template),
 		BinName:       clonePointer(d.BinName),
@@ -127,7 +129,7 @@ func (d *Dependency) clone() *Dependency {
 
 // interpolateVars executes go templates in values
 func (d *Dependency) interpolateVars(system System) error {
-	for _, p := range []*string{d.URL, d.ArchivePath, d.BinName} {
+	for _, p := range []*string{d.URL, d.ArchivePath, d.BinName, d.Homepage, d.Description} {
 		if p == nil {
 			continue
 		}
@@ -167,6 +169,8 @@ func (d *Dependency) applyTemplate(templates map[string]*Dependency, depth int) 
 		newDL.Vars = make(map[string]string, len(d.Vars))
 	}
 	maps.Copy(newDL.Vars, d.Vars)
+	newDL.Homepage = overrideValue(newDL.Homepage, d.Homepage)
+	newDL.Description = overrideValue(newDL.Description, d.Description)
 	newDL.ArchivePath = overrideValue(newDL.ArchivePath, d.ArchivePath)
 	newDL.BinName = overrideValue(newDL.BinName, d.BinName)
 	newDL.URL = overrideValue(newDL.URL, d.URL)
@@ -238,6 +242,8 @@ func (d *Dependency) applyOverrides(system System, depth int) {
 			}
 		}
 		d.Link = overrideValue(d.Link, dependency.Link)
+		d.Homepage = overrideValue(d.Homepage, dependency.Homepage)
+		d.Description = overrideValue(d.Description, dependency.Description)
 		d.ArchivePath = overrideValue(d.ArchivePath, dependency.ArchivePath)
 		d.BinName = overrideValue(d.BinName, dependency.BinName)
 		d.URL = overrideValue(d.URL, dependency.URL)
