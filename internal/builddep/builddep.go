@@ -1,28 +1,17 @@
 package builddep
 
 import (
-	"bytes"
 	"context"
-	"crypto/sha256"
 	_ "embed"
-	"encoding/hex"
-	"errors"
 	"fmt"
-	"io"
-	"net/http"
-	"net/url"
-	"path"
 	"strings"
 
-	"github.com/AlecAivazis/survey/v2"
 	"github.com/Masterminds/semver/v3"
 	"github.com/google/go-github/v52/github"
-	"github.com/mholt/archiver/v4"
 	"github.com/willabides/bindown/v3"
 	"golang.org/x/exp/maps"
 	"golang.org/x/exp/slices"
 	"golang.org/x/oauth2"
-	"golang.org/x/sync/errgroup"
 	"gopkg.in/yaml.v3"
 )
 
@@ -31,35 +20,48 @@ import (
 //go:embed go_dist_list.txt
 var _goDists string
 
-var forbiddenOS = map[string]bool{
-	"js": true,
-}
-
-var forbiddenArch = map[string]bool{
-	"arm":  true,
-	"wasm": true,
-}
-
-func distSystems() []string {
-	return strings.Split(strings.TrimSpace(_goDists), "\n")
-}
-
-func parseDist(dist string) (os, arch string) {
-	parts := strings.Split(dist, "/")
-	if len(parts) != 2 {
-		panic(fmt.Sprintf("invalid dist: %q", dist))
+func QueryGitHubRelease(ctx context.Context, repo, tag, tkn string) (urls []string, version, homepage, description string, _ error) {
+	client := github.NewClient(oauth2.NewClient(ctx, oauth2.StaticTokenSource(
+		&oauth2.Token{AccessToken: tkn},
+	)))
+	splitRepo := strings.Split(repo, "/")
+	orgName, repoName := splitRepo[0], splitRepo[1]
+	repoResp, _, err := client.Repositories.Get(ctx, orgName, repoName)
+	if err != nil {
+		return nil, "", "", "", err
 	}
-	return parts[0], parts[1]
-}
+	description = repoResp.GetDescription()
+	homepage = repoResp.GetHomepage()
+	if homepage == "" {
+		homepage = repoResp.GetHTMLURL()
+	}
+	var release *github.RepositoryRelease
+	if tag == "" {
+		release, _, err = client.Repositories.GetLatestRelease(ctx, orgName, repoName)
+		if err != nil {
+			return nil, "", "", "", err
+		}
+		tag = release.GetTagName()
+	} else {
+		release, _, err = client.Repositories.GetReleaseByTag(ctx, orgName, repoName, tag)
+		if err != nil {
+			return nil, "", "", "", err
+		}
+	}
 
-func systemOs(system string) string {
-	os, _ := parseDist(system)
-	return os
-}
-
-func systemArch(system string) string {
-	_, arch := parseDist(system)
-	return arch
+	if version == "" {
+		version = tag
+		if strings.HasPrefix(version, "v") {
+			_, err = semver.NewVersion(version[1:])
+			if err == nil {
+				version = version[1:]
+			}
+		}
+	}
+	for _, asset := range release.Assets {
+		urls = append(urls, asset.GetBrowserDownloadURL())
+	}
+	return urls, version, homepage, description, nil
 }
 
 func AddDependency(
@@ -141,150 +143,42 @@ func addDependency(
 	return nil
 }
 
+var forbiddenOS = map[string]bool{
+	"js": true,
+}
+
+var forbiddenArch = map[string]bool{
+	"arm":  true,
+	"wasm": true,
+}
+
+func distSystems() []string {
+	return strings.Split(strings.TrimSpace(_goDists), "\n")
+}
+
+func parseDist(dist string) (os, arch string) {
+	parts := strings.Split(dist, "/")
+	if len(parts) != 2 {
+		panic(fmt.Sprintf("invalid dist: %q", dist))
+	}
+	return parts[0], parts[1]
+}
+
+func systemOs(system string) string {
+	os, _ := parseDist(system)
+	return os
+}
+
+func systemArch(system string) string {
+	_, arch := parseDist(system)
+	return arch
+}
+
 type systemSub struct {
 	val        string
 	normalized string
 	priority   int
 	idx        int
-}
-
-type dlFile struct {
-	origUrl      string
-	url          string
-	osSub        *systemSub
-	archSub      *systemSub
-	suffix       string
-	isArchive    bool
-	priority     int
-	archiveFiles []*archiveFile
-	checksum     string
-}
-
-func (f *dlFile) clone() *dlFile {
-	clone := *f
-	clone.archiveFiles = slices.Clone(f.archiveFiles)
-	for i, file := range f.archiveFiles {
-		cf := *file
-		clone.archiveFiles[i] = &cf
-	}
-	osSub := *f.osSub
-	clone.osSub = &osSub
-	archSub := *f.archSub
-	clone.archSub = &archSub
-	return &clone
-}
-
-func (f *dlFile) setArchiveFiles(ctx context.Context, binName, version string) error {
-	if !f.isArchive {
-		return nil
-	}
-	parsedUrl, err := url.Parse(f.origUrl)
-	if err != nil {
-		return err
-	}
-	filename := path.Base(parsedUrl.EscapedPath())
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, f.origUrl, http.NoBody)
-	if err != nil {
-		return err
-	}
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return err
-	}
-	defer func() {
-		//nolint:errcheck // ignore error
-		_ = resp.Body.Close()
-	}()
-	hasher := sha256.New()
-	reader := io.TeeReader(resp.Body, hasher)
-	format, reader, err := archiver.Identify(filename, reader)
-	if err != nil {
-		if errors.Is(err, archiver.ErrNoMatch) {
-			err = fmt.Errorf("unable to identify archive format for %s", filename)
-		}
-		return err
-	}
-	// reader needs to be an io.ReaderAt and io.Seeker for zip
-	_, isZip := format.(archiver.Zip)
-	if isZip {
-		var b []byte
-		b, err = io.ReadAll(reader)
-		if err != nil {
-			return err
-		}
-		reader = bytes.NewReader(b)
-	}
-	extractor, ok := format.(archiver.Extractor)
-	if !ok {
-		return errors.New("format does not support extraction")
-	}
-	err = extractor.Extract(ctx, reader, nil, func(_ context.Context, af archiver.File) error {
-		if af.IsDir() {
-			return nil
-		}
-		executable := af.Mode().Perm()&0o100 != 0
-		if !executable && f.osSub.normalized == "windows" {
-			executable = strings.HasSuffix(af.Name(), ".exe")
-		}
-		f.archiveFiles = append(f.archiveFiles, parseArchiveFile(af.NameInArchive, binName, f.osSub.val, f.archSub.val, version, executable))
-		return nil
-	})
-	if err != nil {
-		return err
-	}
-	slices.SortFunc(f.archiveFiles, archiveFileLess)
-	// read remaining bytes to calculate hash
-	_, err = io.Copy(io.Discard, reader)
-	if err != nil {
-		return err
-	}
-	f.checksum = hex.EncodeToString(hasher.Sum(nil))
-	return err
-}
-
-func (f *dlFile) system() string {
-	if f.osSub == nil || f.archSub == nil {
-		panic("system called on dlFile without osSub or archSub")
-	}
-	return f.osSub.normalized + "/" + f.archSub.normalized
-}
-
-type archiveFile struct {
-	origName    string
-	name        string
-	suffix      string
-	tmplCount   int
-	executable  bool
-	containsBin bool
-}
-
-// archiveFileLess puts executables first,
-// then containsBin,
-// then the most templated files,
-// then the shortest path, then alphabetically
-func archiveFileLess(a, b *archiveFile) bool {
-	if a.executable != b.executable {
-		return a.executable
-	}
-	if a.containsBin != b.containsBin {
-		return a.containsBin
-	}
-	fTmpls := strings.Count(a.name, "{{")
-	otherTmpls := strings.Count(b.name, "{{")
-	if fTmpls != otherTmpls {
-		return fTmpls > otherTmpls
-	}
-	fSlashes := strings.Count(a.origName, "/")
-	otherSlashes := strings.Count(b.origName, "/")
-	if fSlashes != otherSlashes {
-		return fSlashes < otherSlashes
-	}
-	return a.origName < b.origName
-}
-
-// archiveFileGroupable returns true if a and b can be in the same top-level dependency
-func archiveFileGroupable(a, b *archiveFile) bool {
-	return a.name == b.name && a.suffix == b.suffix
 }
 
 func osSubs(systems []string) []systemSub {
@@ -482,50 +376,6 @@ func parseDownload(dlURL, version string, systems []string) (*dlFile, bool) {
 		isArchive: isArchive,
 		priority:  priority,
 	}, true
-}
-
-func parseArchiveFile(origName, binName, osName, archName, version string, executable bool) *archiveFile {
-	a := archiveFile{
-		origName:    origName,
-		name:        origName,
-		executable:  executable,
-		containsBin: strings.Contains(origName, binName),
-	}
-	if osName != "" {
-		for {
-			idx := strings.Index(a.name, osName)
-			if idx == -1 {
-				break
-			}
-			a.tmplCount++
-			a.name = a.name[:idx] + "{{.os}}" + a.name[idx+len(osName):]
-		}
-	}
-	if archName != "" {
-		for {
-			idx := strings.Index(a.name, archName)
-			if idx == -1 {
-				break
-			}
-			a.tmplCount++
-			a.name = a.name[:idx] + "{{.arch}}" + a.name[idx+len(archName):]
-		}
-	}
-	for {
-		idx := strings.Index(a.name, version)
-		if idx == -1 {
-			break
-		}
-		a.tmplCount++
-		a.name = a.name[:idx] + "{{.version}}" + a.name[idx+len(version):]
-	}
-	// .exe is the only suffix we care about
-	if strings.HasSuffix(a.name, ".exe") {
-		a.suffix = ".exe"
-		a.name = a.name[:len(a.name)-4]
-	}
-	a.name += "{{.archivePathSuffix}}"
-	return &a
 }
 
 func parseDownloads(dlUrls []string, binName, version string, allowedSystems []string) []*depGroup {
@@ -730,227 +580,6 @@ func buildConfig(name, version string, groups []*depGroup) *bindown.Config {
 	}
 }
 
-type depGroup struct {
-	urlSuffix         string
-	url               string
-	archivePathSuffix string
-	archivePath       string
-	binName           string
-	systems           []string
-	files             []*dlFile
-	substitutions     map[string]map[string]string
-	overrideMatcher   map[string][]string
-}
-
-func (g *depGroup) clone() *depGroup {
-	clone := *g
-	clone.files = slices.Clone(g.files)
-	for i := range clone.files {
-		clone.files[i] = clone.files[i].clone()
-	}
-	clone.substitutions = map[string]map[string]string{}
-	for k, v := range g.substitutions {
-		clone.substitutions[k] = map[string]string{}
-		for k2, v2 := range v {
-			clone.substitutions[k][k2] = v2
-		}
-	}
-	clone.overrideMatcher = map[string][]string{}
-	for k, v := range g.overrideMatcher {
-		clone.overrideMatcher[k] = slices.Clone(v)
-	}
-	clone.systems = slices.Clone(g.systems)
-	return &clone
-}
-
-type archiveFileCandidate struct {
-	archiveFile *archiveFile
-	matches     []*dlFile
-	nonMatches  []*dlFile
-}
-
-type selectCandidateFunc func([]*archiveFileCandidate, *archiveFileCandidate) error
-
-func defaultSelectCandidateFunc(candidates []*archiveFileCandidate, candidate *archiveFileCandidate) error {
-	options := make([]string, len(candidates))
-	optionsMap := map[string]*archiveFileCandidate{}
-	for i := range candidates {
-		text := fmt.Sprintf("%s - (%s)", candidates[i].archiveFile.name, candidates[i].archiveFile.origName)
-		options[i] = text
-		optionsMap[text] = candidates[i]
-	}
-	var choice string
-	err := survey.AskOne(&survey.Select{
-		Message: "Select the correct archive file",
-		Options: options,
-	}, &choice)
-	if err != nil {
-		return err
-	}
-	*candidate = *optionsMap[choice]
-	return nil
-}
-
-func (g *depGroup) regroupByArchivePath(ctx context.Context, binName, version string, selectCandidate selectCandidateFunc) ([]*depGroup, error) {
-	gr := g.clone()
-	if len(gr.files) == 0 {
-		return []*depGroup{gr}, nil
-	}
-	// trust that if the first isn't an archive, none of them are
-	if !gr.files[0].isArchive {
-		gr.archivePath = path.Base(gr.files[0].url)
-		return []*depGroup{gr}, nil
-	}
-	errGroup, ctx := errgroup.WithContext(ctx)
-	for i := range gr.files {
-		i := i
-		if gr.files[i].archiveFiles != nil {
-			continue
-		}
-		errGroup.Go(func() error {
-			err := gr.files[i].setArchiveFiles(ctx, binName, version)
-			if err != nil {
-				return err
-			}
-			if len(gr.files[i].archiveFiles) == 0 {
-				return fmt.Errorf("no archive files found for %s", gr.files[i].origUrl)
-			}
-			return nil
-		})
-	}
-	err := errGroup.Wait()
-	if err != nil {
-		return nil, err
-	}
-
-	var candidates []*archiveFileCandidate
-
-	for i := range gr.files[0].archiveFiles {
-		c := archiveFileCandidate{
-			archiveFile: gr.files[0].archiveFiles[i],
-		}
-		for _, df := range gr.files {
-			match := slices.ContainsFunc(df.archiveFiles, func(af *archiveFile) bool {
-				return archiveFileGroupable(c.archiveFile, af)
-			})
-			if match {
-				c.matches = append(c.matches, df)
-				continue
-			}
-			c.nonMatches = append(c.nonMatches, df)
-		}
-		candidates = append(candidates, &c)
-	}
-
-	var selectedCandidate archiveFileCandidate
-	if selectCandidate == nil {
-		selectCandidate = defaultSelectCandidateFunc
-	}
-	err = selectCandidate(candidates, &selectedCandidate)
-	if err != nil {
-		return nil, err
-	}
-
-	nextGr := gr.clone()
-
-	gr.archivePath = selectedCandidate.archiveFile.name
-	gr.archivePathSuffix = selectedCandidate.archiveFile.suffix
-	gr.files = selectedCandidate.matches
-	groups := []*depGroup{gr}
-	if len(selectedCandidate.nonMatches) == 0 {
-		return groups, nil
-	}
-	gr.systems = gr.systems[:0]
-	for _, f := range gr.files {
-		gr.systems = append(gr.systems, f.system())
-	}
-	nextGr.files = selectedCandidate.nonMatches
-	nextGr.systems = nextGr.systems[:0]
-	for _, f := range nextGr.files {
-		nextGr.systems = append(nextGr.systems, f.system())
-	}
-	var moreGroups []*depGroup
-	moreGroups, err = nextGr.regroupByArchivePath(ctx, binName, version, selectCandidate)
-	if err != nil {
-		return nil, err
-	}
-	groups = append(groups, moreGroups...)
-	return groups, nil
-}
-
-func (g *depGroup) dependency() *bindown.Dependency {
-	var systems []bindown.SystemInfo
-	for _, system := range g.systems {
-		o, a := parseDist(system)
-		systems = append(systems, bindown.SystemInfo{
-			OS:   o,
-			Arch: a,
-		})
-	}
-	dep := bindown.Dependency{
-		URL:          &g.url,
-		BinName:      &g.binName,
-		ArchivePath:  &g.archivePath,
-		RequiredVars: []string{"version"},
-		Vars: map[string]string{
-			"urlSuffix":         g.urlSuffix,
-			"archivePathSuffix": g.archivePathSuffix,
-		},
-		Substitutions: map[string]map[string]string{},
-		Systems:       systems,
-	}
-	if g.substitutions != nil {
-		if len(g.substitutions["os"]) > 0 {
-			dep.Substitutions["os"] = maps.Clone(g.substitutions["os"])
-		}
-		if len(g.substitutions["arch"]) > 0 {
-			dep.Substitutions["arch"] = maps.Clone(g.substitutions["arch"])
-		}
-	}
-	slices.SortFunc(dep.Systems, func(a, b bindown.SystemInfo) bool {
-		return a.String() < b.String()
-	})
-	return &dep
-}
-
-func (g *depGroup) overrides(otherGroups []*depGroup) []bindown.DependencyOverride {
-	dep0 := otherGroups[0].dependency()
-	var overrides []bindown.DependencyOverride
-	for _, m := range g.matchers(otherGroups) {
-		dep := g.dependency()
-		dep.Systems = nil
-		dep.RequiredVars = nil
-		for k, v := range dep.Vars {
-			if dep0.Vars[k] == v {
-				delete(dep.Vars, k)
-			}
-		}
-		if *dep0.URL == *dep.URL {
-			dep.URL = nil
-		}
-		if *dep0.ArchivePath == *dep.ArchivePath {
-			dep.ArchivePath = nil
-		}
-		if *dep0.BinName == *dep.BinName {
-			dep.BinName = nil
-		}
-		matcher := m.matcher
-		systems := m.systems
-		for normalized := range dep.Substitutions["os"] {
-			if !slices.ContainsFunc(systems, func(system string) bool {
-				return systemOs(system) == normalized
-			}) {
-				delete(dep.Substitutions["os"], normalized)
-			}
-		}
-		overrides = append(overrides, bindown.DependencyOverride{
-			OverrideMatcher: matcher,
-			Dependency:      *dep,
-		})
-	}
-	return overrides
-}
-
 func splitSystems(systems []string, fn func(s string) bool) (matching, nonMatching []string) {
 	for _, system := range systems {
 		if fn(system) {
@@ -1040,103 +669,4 @@ func systemsMatcher(systems, otherSystems []string) (_ map[string][]string, matc
 		"os":   {o},
 		"arch": osArches,
 	}, s, r
-}
-
-func (g *depGroup) matchers(otherGroups []*depGroup) (result []struct {
-	matcher map[string][]string
-	systems []string
-},
-) {
-	var otherSystems []string
-	for _, other := range otherGroups {
-		otherSystems = append(otherSystems, other.systems...)
-	}
-	systems := slices.Clone(g.systems)
-	for len(systems) > 0 {
-		r := struct {
-			matcher map[string][]string
-			systems []string
-		}{}
-		r.matcher, r.systems, systems = systemsMatcher(systems, otherSystems)
-		result = append(result, r)
-	}
-	return result
-}
-
-func (g *depGroup) addFile(f *dlFile, binName string) {
-	g.url = f.url
-	g.binName = binName
-	g.urlSuffix = f.suffix
-	g.systems = append(g.systems, f.system())
-	g.files = append(g.files, f)
-	g.substitutions["os"][f.osSub.normalized] = f.osSub.val
-	g.substitutions["arch"][f.archSub.normalized] = f.archSub.val
-	if !slices.Contains(g.overrideMatcher["os"], f.osSub.normalized) {
-		g.overrideMatcher["os"] = append(g.overrideMatcher["os"], f.osSub.normalized)
-	}
-	if !slices.Contains(g.overrideMatcher["arch"], f.archSub.normalized) {
-		g.overrideMatcher["arch"] = append(g.overrideMatcher["arch"], f.archSub.normalized)
-	}
-}
-
-func (g *depGroup) fileAllowed(f *dlFile, binName string) bool {
-	if f.suffix != g.urlSuffix ||
-		f.url != g.url ||
-		binName != g.binName {
-		return false
-	}
-	subVal := g.substitutions["os"][f.osSub.normalized]
-	if subVal != "" && subVal != f.osSub.val {
-		return false
-	}
-	subVal = g.substitutions["arch"][f.archSub.normalized]
-	if subVal != "" && subVal != f.archSub.val {
-		return false
-	}
-
-	return true
-}
-
-func QueryGitHubRelease(ctx context.Context, repo, tag, tkn string) (urls []string, version, homepage, description string, _ error) {
-	client := github.NewClient(oauth2.NewClient(ctx, oauth2.StaticTokenSource(
-		&oauth2.Token{AccessToken: tkn},
-	)))
-	splitRepo := strings.Split(repo, "/")
-	orgName, repoName := splitRepo[0], splitRepo[1]
-	repoResp, _, err := client.Repositories.Get(ctx, orgName, repoName)
-	if err != nil {
-		return nil, "", "", "", err
-	}
-	description = repoResp.GetDescription()
-	homepage = repoResp.GetHomepage()
-	if homepage == "" {
-		homepage = repoResp.GetHTMLURL()
-	}
-	var release *github.RepositoryRelease
-	if tag == "" {
-		release, _, err = client.Repositories.GetLatestRelease(ctx, orgName, repoName)
-		if err != nil {
-			return nil, "", "", "", err
-		}
-		tag = release.GetTagName()
-	} else {
-		release, _, err = client.Repositories.GetReleaseByTag(ctx, orgName, repoName, tag)
-		if err != nil {
-			return nil, "", "", "", err
-		}
-	}
-
-	if version == "" {
-		version = tag
-		if strings.HasPrefix(version, "v") {
-			_, err = semver.NewVersion(version[1:])
-			if err == nil {
-				version = version[1:]
-			}
-		}
-	}
-	for _, asset := range release.Assets {
-		urls = append(urls, asset.GetBrowserDownloadURL())
-	}
-	return urls, version, homepage, description, nil
 }
