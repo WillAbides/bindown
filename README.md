@@ -28,7 +28,7 @@ Usage: ./bootstrap-bindown.sh [-b bindir] [-d]
 If you happen to already have go installed on your system, you can install bindown with:
 
 ```
-go install github.com/willabides/bindown/v3/cmd/bindown@latest 
+go install github.com/willabides/bindown/v4/cmd/bindown@latest 
 ```
 
 Note the lowercase `willabides`. Pro tip: Your life will be easier with a lowercase GitHub username.

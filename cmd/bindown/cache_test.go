@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/willabides/bindown/v3/internal/bindown"
+	"github.com/willabides/bindown/v4/internal/bindown"
 )
 
 func Test_cacheClearCmd(t *testing.T) {

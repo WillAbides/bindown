@@ -8,7 +8,7 @@ import (
 
 	"github.com/alecthomas/kong"
 	"github.com/posener/complete"
-	"github.com/willabides/bindown/v3/internal/bindown"
+	"github.com/willabides/bindown/v4/internal/bindown"
 )
 
 func findConfigFileForCompletion(args []string) string {

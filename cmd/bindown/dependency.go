@@ -7,9 +7,9 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/willabides/bindown/v3/internal/builddep"
+	"github.com/willabides/bindown/v4/internal/builddep"
 
-	"github.com/willabides/bindown/v3/internal/bindown"
+	"github.com/willabides/bindown/v4/internal/bindown"
 )
 
 type dependencyCmd struct {

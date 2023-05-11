@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/alecthomas/kong"
-	"github.com/willabides/bindown/v3/internal/bindown"
+	"github.com/willabides/bindown/v4/internal/bindown"
 	"github.com/willabides/kongplete"
 )
 

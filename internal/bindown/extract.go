@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 
 	"github.com/mholt/archiver/v3"
-	"github.com/willabides/bindown/v3/internal/cache"
+	"github.com/willabides/bindown/v4/internal/cache"
 )
 
 func extractDependencyToCache(

@@ -14,7 +14,7 @@ import (
 	"strings"
 
 	"github.com/mholt/archiver/v4"
-	"github.com/willabides/bindown/v3/internal/bindown"
+	"github.com/willabides/bindown/v4/internal/bindown"
 	"golang.org/x/exp/slices"
 )
 

@@ -15,7 +15,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/willabides/bindown/v3/internal/cache"
+	"github.com/willabides/bindown/v4/internal/cache"
 	"gopkg.in/yaml.v3"
 )
 

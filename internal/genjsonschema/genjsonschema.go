@@ -5,13 +5,13 @@ import (
 	"os"
 
 	"github.com/invopop/jsonschema"
-	"github.com/willabides/bindown/v3/internal/bindown"
+	"github.com/willabides/bindown/v4/internal/bindown"
 )
 
 func main() {
 	r := &jsonschema.Reflector{}
 	r.ExpandedStruct = true
-	err := r.AddGoComments("github.com/willabides/bindown/v3", "./internal/bindown/")
+	err := r.AddGoComments("github.com/willabides/bindown/v4", "./internal/bindown/")
 	if err != nil {
 		panic(err)
 	}
