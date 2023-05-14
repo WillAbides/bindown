@@ -87,14 +87,14 @@ $defs:
           Values are an array of values to match. Any matching value will match. If a value can be interpreted as a
           semantic version it will be treated as such.
       dependency:
-        $ref: '#/$defs/OverrideDependency'
+        $ref: '#/$defs/Overrideable'
         description: Values to override the parent dependency
     additionalProperties: false
     type: object
     required:
       - matcher
       - dependency
-  OverrideDependency:
+  Overrideable:
     properties:
       url:
         type: string

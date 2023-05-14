@@ -95,7 +95,7 @@
           "description": "Limits the override to configurations matching all of the matchers. Keys may be \"os\", \"arch\" or any variable name.\nValues are an array of values to match. Any matching value will match. If a value can be interpreted as a\nsemantic version it will be treated as such."
         },
         "dependency": {
-          "$ref": "#/$defs/OverrideDependency",
+          "$ref": "#/$defs/Overrideable",
           "description": "Values to override the parent dependency"
         }
       },
@@ -106,7 +106,7 @@
         "dependency"
       ]
     },
-    "OverrideDependency": {
+    "Overrideable": {
       "properties": {
         "url": {
           "type": "string",
