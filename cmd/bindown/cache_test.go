@@ -1,11 +1,11 @@
 package main
 
 import (
+	"fmt"
 	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/willabides/bindown/v4/internal/bindown"
 )
 
 func Test_cacheClearCmd(t *testing.T) {
@@ -16,14 +16,13 @@ func Test_cacheClearCmd(t *testing.T) {
 	t.Run("removes populated cache", func(t *testing.T) {
 		runner := newCmdRunner(t)
 		// extract something to populate the cache
-		runner.writeConfig(&bindown.Config{
-			URLChecksums: map[string]string{
-				depURL: "27dcce60d1ed72920a84dd4bc01e0bbd013e5a841660e9ee2e964e53fb83c0b3",
-			},
-			Dependencies: map[string]*bindown.Dependency{
-				"foo": {URL: &depURL},
-			},
-		})
+		runner.writeConfigYaml(fmt.Sprintf(`
+dependencies:
+  foo:
+    url: %s
+url_checksums:
+  %s: 27dcce60d1ed72920a84dd4bc01e0bbd013e5a841660e9ee2e964e53fb83c0b3
+`, depURL, depURL))
 		result := runner.run("extract", "foo")
 		extractDir := result.getExtractDir()
 		assert.FileExists(t, filepath.Join(extractDir, "foo"))
@@ -34,7 +33,7 @@ func Test_cacheClearCmd(t *testing.T) {
 
 	t.Run("does nothing if cache is empty", func(t *testing.T) {
 		runner := newCmdRunner(t)
-		runner.writeConfig(&bindown.Config{})
+		runner.writeConfigYaml(`{}`)
 		result := runner.run("cache", "clear")
 		result.assertState(resultState{})
 	})

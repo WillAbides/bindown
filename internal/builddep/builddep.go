@@ -486,8 +486,10 @@ func buildConfig(name, version string, groups []*depGroup) *bindown.Config {
 		Dependencies: map[string]*bindown.Dependency{
 			name: {
 				Template: &name,
-				Vars: map[string]string{
-					"version": version,
+				Overrideable: bindown.Overrideable{
+					Vars: map[string]string{
+						"version": version,
+					},
 				},
 			},
 		},

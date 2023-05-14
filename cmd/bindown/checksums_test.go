@@ -1,11 +1,11 @@
 package main
 
 import (
+	"fmt"
 	"net/http/httptest"
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"github.com/willabides/bindown/v4/internal/bindown"
 )
 
 func Test_addChecksumsCmd(t *testing.T) {
@@ -17,32 +17,28 @@ func Test_addChecksumsCmd(t *testing.T) {
 			urls[i] = servers[i].URL + "/foo/foo.tar.gz"
 		}
 		runner := newCmdRunner(t)
-		runner.writeConfig(&bindown.Config{
-			Dependencies: map[string]*bindown.Dependency{
-				"d1": {
-					URL: &urls[0],
-					Overrides: []bindown.DependencyOverride{
-						{
-							Dependency:      bindown.Dependency{URL: &urls[1]},
-							OverrideMatcher: map[string][]string{"os": {"darwin"}},
-						},
-						{
-							Dependency:      bindown.Dependency{URL: &urls[4]},
-							OverrideMatcher: map[string][]string{"os": {"windows"}},
-						},
-					},
-				},
-				"d2": {
-					URL: &urls[2],
-					Overrides: []bindown.DependencyOverride{
-						{
-							Dependency:      bindown.Dependency{URL: &urls[3]},
-							OverrideMatcher: map[string][]string{"os": {"darwin"}},
-						},
-					},
-				},
-			},
-		})
+		runner.writeConfigYaml(fmt.Sprintf(`
+dependencies:
+  d1:
+    url: %q
+    overrides:
+      - dependency:
+          url: %q
+        matcher:
+         os: [ darwin ]
+      - dependency:
+           url: %q
+        matcher:
+            os: [ windows ]
+  d2:
+    url: %q
+    overrides:
+      - dependency:
+          url: %q
+        matcher:
+          os: [ darwin ]
+`, urls[0], urls[1], urls[2], urls[2], urls[3]))
+
 		result := runner.run("checksums", "add", "--system", "darwin/amd64", "--system", "linux/amd64")
 		result.assertState(resultState{})
 		want := map[string]string{
@@ -57,11 +53,11 @@ func Test_addChecksumsCmd(t *testing.T) {
 	t.Run("400", func(t *testing.T) {
 		server := serveErr(t, 400)
 		runner := newCmdRunner(t)
-		runner.writeConfig(&bindown.Config{
-			Dependencies: map[string]*bindown.Dependency{
-				"d1": {URL: &server.URL},
-			},
-		})
+		runner.writeConfigYaml(fmt.Sprintf(`
+dependencies:
+  d1:
+    url: %q
+`, server.URL))
 		result := runner.run("checksums", "add", "--system", "darwin/amd64")
 		result.assertState(resultState{
 			stderr: "cmd: error: failed downloading",
@@ -71,11 +67,11 @@ func Test_addChecksumsCmd(t *testing.T) {
 
 	t.Run("dependency does not exist", func(t *testing.T) {
 		runner := newCmdRunner(t)
-		runner.writeConfig(&bindown.Config{
-			Dependencies: map[string]*bindown.Dependency{
-				"d1": {URL: ptr("fake")},
-			},
-		})
+		runner.writeConfigYaml(`
+dependencies:
+  d1:
+    url: fake
+`)
 		result := runner.run("checksums", "add", "--system", "darwin/amd64", "--dependency", "d2")
 		result.assertState(resultState{
 			stderr: `cmd: error: no dependency configured with the name "d2"`,
@@ -87,15 +83,14 @@ func Test_addChecksumsCmd(t *testing.T) {
 func Test_pruneChecksumsCmd(t *testing.T) {
 	t.Run("prunes", func(t *testing.T) {
 		runner := newCmdRunner(t)
-		runner.writeConfig(&bindown.Config{
-			URLChecksums: map[string]string{
-				"foo": "bar",
-				"baz": "qux",
-			},
-			Dependencies: map[string]*bindown.Dependency{
-				"d1": {URL: ptr("foo")},
-			},
-		})
+		runner.writeConfigYaml(`
+url_checksums:
+  foo: bar
+  baz: qux
+dependencies:
+  d1:
+    url: foo
+`)
 		result := runner.run("checksums", "prune")
 		result.assertState(resultState{})
 		want := map[string]string{

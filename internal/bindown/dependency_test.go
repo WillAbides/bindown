@@ -2,6 +2,7 @@ package bindown
 
 import (
 	"encoding/json"
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -19,27 +20,23 @@ func requireEqualDependency(t *testing.T, want, got *Dependency) {
 
 func TestDependency_applyTemplate(t *testing.T) {
 	t.Run("no template", func(t *testing.T) {
-		dep := &Dependency{
-			URL: ptr("foo"),
-		}
-		want := &Dependency{
-			URL: ptr("foo"),
-		}
+		dep := mustConfigFromYAML(t, `dependencies: {dep1: {url: "foo"}}`).Dependencies["dep1"]
+		want := mustConfigFromYAML(t, `dependencies: {dep1: {url: "foo"}}`).Dependencies["dep1"]
 		err := dep.applyTemplate(nil, 0)
 		require.NoError(t, err)
 		requireEqualDependency(t, want, dep)
 	})
 
 	t.Run("missing grandparent template", func(t *testing.T) {
-		dep := &Dependency{
-			Template: ptr("foo"),
-		}
-		templates := map[string]*Dependency{
-			"foo": {
-				Template: ptr("bar"),
-			},
-		}
-		err := dep.applyTemplate(templates, 0)
+		cfg := mustConfigFromYAML(t, `
+dependencies:
+  dep1:
+    template: foo
+templates:
+  foo:
+    template: bar
+`)
+		err := cfg.Dependencies["dep1"].applyTemplate(cfg.Templates, 0)
 		require.Error(t, err)
 	})
 
@@ -109,77 +106,96 @@ dependencies:
 		require.NoError(t, err)
 		assertDependencyEqual(t, cfg.Dependencies["want"], dep)
 	})
+
+	t.Run("maxTemplateDepth", func(t *testing.T) {
+		templates := map[string]*Dependency{}
+		for i := 0; i < maxTemplateDepth; i++ {
+			name := fmt.Sprintf("template%d", i)
+			nextName := fmt.Sprintf("template%d", i+1)
+			templates[name] = &Dependency{Template: ptr(nextName)}
+		}
+		templates[fmt.Sprintf("template%d", maxTemplateDepth)] = &Dependency{
+			Overrideable: Overrideable{URL: ptr("foo")},
+		}
+		dep := &Dependency{
+			Template: ptr("template0"),
+		}
+		err := dep.applyTemplate(templates, 0)
+		require.EqualError(t, err, fmt.Sprintf("max template depth of %d exceeded", maxTemplateDepth))
+	})
 }
 
 func Test_Dependency_applyOverrides(t *testing.T) {
 	t.Run("nil overrides", func(t *testing.T) {
-		want := Dependency{
-			ArchivePath: ptr("archivePath"),
-			Link:        nil,
-			Vars: map[string]string{
-				"foo": "bar",
-			},
-		}
+		want := mustConfigFromYAML(t, `
+dependencies:
+  dep1:
+    archive_path: archivePath
+    vars: {foo: bar}
+`).Dependencies["dep1"]
 		dep := want.clone()
-		dep.applyOverrides("windows/amd64", 0)
-		requireEqualDependency(t, &want, dep)
+		err := dep.applyOverrides("windows/amd64", 0)
+		require.NoError(t, err)
+		requireEqualDependency(t, want, dep)
 	})
 
 	t.Run("simple override", func(t *testing.T) {
-		dep := &Dependency{
-			ArchivePath: ptr("archivePath"),
-			Vars: map[string]string{
-				"foo":     "bar",
-				"baz":     "qux",
-				"version": "1.2.3",
-			},
-			Overrides: []DependencyOverride{
-				{
-					OverrideMatcher: map[string][]string{
-						"os":      {"linux"},
-						"foo":     {"bar"},
-						"version": {"asdf", "1.2.4", "1.x"},
-					},
-					Dependency: Dependency{
-						Link: ptr(true),
-						Vars: map[string]string{
-							"foo": "not bar",
-							"bar": "moo",
-						},
-						Overrides: []DependencyOverride{
-							{
-								OverrideMatcher: map[string][]string{
-									"arch": {"amd64"},
-								},
-								Dependency: Dependency{
-									ArchivePath: ptr("it's amd64"),
-								},
-							},
-							{
-								OverrideMatcher: map[string][]string{
-									"arch": {"x86"},
-								},
-								Dependency: Dependency{
-									ArchivePath: ptr("it's x86"),
-								},
-							},
-						},
-					},
-				},
-			},
+		cfg := mustConfigFromYAML(t, `
+dependencies:
+  dep1:
+    archive_path: archivePath
+    vars:
+      foo: bar
+      baz: qux
+      version: 1.2.3
+    overrides:
+      - matcher:
+          os: [linux]
+          foo: [bar]
+          version: [asdf, 1.2.4, 1.x]
+        dependency:
+          link: true
+          vars:
+            foo: not bar
+            bar: moo
+          overrides:
+            - matcher:
+                arch: [amd64]
+              dependency:
+                archive_path: it's amd64
+                overrides:
+                  - matcher:
+                      arch: [ amd64 ]
+                    dependency:
+                      archive_path: still amd64
+`)
+
+		dep := cfg.Dependencies["dep1"]
+		want := mustConfigFromYAML(t, `
+dependencies:
+  dep1:
+    archive_path: still amd64
+    link: true
+    vars:
+      foo: not bar
+      baz: qux
+      bar: moo
+      version: 1.2.3
+`).Dependencies["dep1"]
+		err := dep.applyOverrides("linux/amd64", 0)
+		require.NoError(t, err)
+		assertDependencyEqual(t, want, dep)
+	})
+
+	t.Run("maxOverrideDepth", func(t *testing.T) {
+		dep := &Dependency{}
+		latest := &dep.Overrideable
+		for i := 0; i < maxOverrideDepth+1; i++ {
+			latest.Overrides = []DependencyOverride{{OverrideMatcher: map[string][]string{"os": {"darwin"}}}}
+			latest = &latest.Overrides[0].Dependency
 		}
-		want := Dependency{
-			ArchivePath: ptr("it's amd64"),
-			Link:        ptr(true),
-			Vars: map[string]string{
-				"foo":     "not bar",
-				"baz":     "qux",
-				"bar":     "moo",
-				"version": "1.2.3",
-			},
-		}
-		dep.applyOverrides("linux/amd64", 0)
-		assertDependencyEqual(t, &want, dep)
+		err := dep.applyOverrides("darwin/amd64", 0)
+		require.EqualError(t, err, fmt.Sprintf("max override depth of %d exceeded", maxOverrideDepth))
 	})
 }
 

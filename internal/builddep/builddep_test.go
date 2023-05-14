@@ -62,12 +62,6 @@ templates:
         vars:
             archivePathSuffix: ""
             urlSuffix: .tar.gz
-        systems:
-            - darwin/amd64
-            - linux/386
-            - windows/amd64
-        required_vars:
-            - version
         overrides:
             - matcher:
                 os:
@@ -75,6 +69,12 @@ templates:
               dependency:
                 vars:
                     archivePathSuffix: .exe
+        systems:
+            - darwin/amd64
+            - linux/386
+            - windows/amd64
+        required_vars:
+            - version
 systems:
     - linux/386
     - darwin/amd64

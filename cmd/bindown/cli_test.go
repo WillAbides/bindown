@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -8,7 +9,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/willabides/bindown/v4/internal/bindown"
 	"github.com/willabides/bindown/v4/internal/cache"
 )
 
@@ -154,32 +154,26 @@ func Test_extractCmd(t *testing.T) {
 
 	t.Run("success", func(t *testing.T) {
 		runner := newCmdRunner(t)
-		runner.writeConfig(&bindown.Config{
-			URLChecksums: map[string]string{
-				depURL: "27dcce60d1ed72920a84dd4bc01e0bbd013e5a841660e9ee2e964e53fb83c0b3",
-			},
-			Dependencies: map[string]*bindown.Dependency{
-				"foo": {
-					URL: &depURL,
-				},
-			},
-		})
+		runner.writeConfigYaml(fmt.Sprintf(`
+dependencies:
+  foo:
+    url: %s
+url_checksums:
+  %s: 27dcce60d1ed72920a84dd4bc01e0bbd013e5a841660e9ee2e964e53fb83c0b3
+`, depURL, depURL))
 		result := runner.run("extract", "foo")
 		assertExtractSuccess(t, result)
 	})
 
 	t.Run("invalid cache", func(t *testing.T) {
 		runner := newCmdRunner(t)
-		runner.writeConfig(&bindown.Config{
-			URLChecksums: map[string]string{
-				depURL: "27dcce60d1ed72920a84dd4bc01e0bbd013e5a841660e9ee2e964e53fb83c0b3",
-			},
-			Dependencies: map[string]*bindown.Dependency{
-				"foo": {
-					URL: &depURL,
-				},
-			},
-		})
+		runner.writeConfigYaml(fmt.Sprintf(`
+dependencies:
+  foo:
+    url: %s
+url_checksums:
+  %s: 27dcce60d1ed72920a84dd4bc01e0bbd013e5a841660e9ee2e964e53fb83c0b3
+`, depURL, depURL))
 		result := runner.run("extract", "foo")
 		assertExtractSuccess(t, result)
 
@@ -202,32 +196,26 @@ func Test_extractCmd(t *testing.T) {
 
 	t.Run("empty cache", func(t *testing.T) {
 		runner := newCmdRunner(t)
-		runner.writeConfig(&bindown.Config{
-			URLChecksums: map[string]string{
-				depURL: "27dcce60d1ed72920a84dd4bc01e0bbd013e5a841660e9ee2e964e53fb83c0b3",
-			},
-			Dependencies: map[string]*bindown.Dependency{
-				"foo": {
-					URL: &depURL,
-				},
-			},
-		})
+		runner.writeConfigYaml(fmt.Sprintf(`
+dependencies:
+  foo:
+    url: %s
+url_checksums:
+  %s: 27dcce60d1ed72920a84dd4bc01e0bbd013e5a841660e9ee2e964e53fb83c0b3
+`, depURL, depURL))
 		result := runner.run("extract", "foo")
 		assertExtractSuccess(t, result)
 	})
 
 	t.Run("valid cache", func(t *testing.T) {
 		runner := newCmdRunner(t)
-		runner.writeConfig(&bindown.Config{
-			URLChecksums: map[string]string{
-				depURL: "27dcce60d1ed72920a84dd4bc01e0bbd013e5a841660e9ee2e964e53fb83c0b3",
-			},
-			Dependencies: map[string]*bindown.Dependency{
-				"foo": {
-					URL: &depURL,
-				},
-			},
-		})
+		runner.writeConfigYaml(fmt.Sprintf(`
+dependencies:
+  foo:
+    url: %s
+url_checksums:
+  %s: 27dcce60d1ed72920a84dd4bc01e0bbd013e5a841660e9ee2e964e53fb83c0b3
+`, depURL, depURL))
 		result := runner.run("extract", "foo")
 		assertExtractSuccess(t, result)
 		result = runner.run("extract", "foo")
@@ -236,16 +224,13 @@ func Test_extractCmd(t *testing.T) {
 
 	t.Run("does not overwrite invalid cache", func(t *testing.T) {
 		runner := newCmdRunner(t)
-		runner.writeConfig(&bindown.Config{
-			URLChecksums: map[string]string{
-				depURL: "27dcce60d1ed72920a84dd4bc01e0bbd013e5a841660e9ee2e964e53fb83c0b3",
-			},
-			Dependencies: map[string]*bindown.Dependency{
-				"foo": {
-					URL: &depURL,
-				},
-			},
-		})
+		runner.writeConfigYaml(fmt.Sprintf(`
+dependencies:
+  foo:
+    url: %s
+url_checksums:
+  %s: 27dcce60d1ed72920a84dd4bc01e0bbd013e5a841660e9ee2e964e53fb83c0b3
+`, depURL, depURL))
 		result := runner.run("extract", "foo")
 		assertExtractSuccess(t, result)
 
@@ -297,27 +282,23 @@ func Test_downloadCmd(t *testing.T) {
 
 	t.Run("success", func(t *testing.T) {
 		runner := newCmdRunner(t)
-		runner.writeConfig(&bindown.Config{
-			URLChecksums: map[string]string{
-				depURL: "27dcce60d1ed72920a84dd4bc01e0bbd013e5a841660e9ee2e964e53fb83c0b3",
-			},
-			Dependencies: map[string]*bindown.Dependency{
-				"foo": {
-					URL: &depURL,
-				},
-			},
-		})
+		runner.writeConfigYaml(fmt.Sprintf(`
+url_checksums:
+  %s: 27dcce60d1ed72920a84dd4bc01e0bbd013e5a841660e9ee2e964e53fb83c0b3
+dependencies:
+  foo:
+    url: %s
+`, depURL, depURL))
 		result := runner.run("download", "foo")
 		assertDownloadSuccess(t, result)
 	})
 
 	t.Run("no url", func(t *testing.T) {
 		runner := newCmdRunner(t)
-		runner.writeConfig(&bindown.Config{
-			Dependencies: map[string]*bindown.Dependency{
-				"foo": {},
-			},
-		})
+		runner.writeConfigYaml(`
+dependencies:
+  foo: {}
+`)
 		result := runner.run("download", "foo")
 		result.assertState(resultState{
 			stderr: `cmd: error: dependency "foo" has no URL`,
@@ -327,13 +308,11 @@ func Test_downloadCmd(t *testing.T) {
 
 	t.Run("missing var", func(t *testing.T) {
 		runner := newCmdRunner(t)
-		runner.writeConfig(&bindown.Config{
-			Dependencies: map[string]*bindown.Dependency{
-				"foo": {
-					URL: ptr("https://localhost/{{ .MISSING_VAR }}"),
-				},
-			},
-		})
+		runner.writeConfigYaml(`
+dependencies:
+  foo:
+    url: https://localhost/{{ .MISSING_VAR }}
+`)
 		result := runner.run("download", "foo")
 		result.assertState(resultState{
 			stderr: `cmd: error: error applying template`,
@@ -343,13 +322,11 @@ func Test_downloadCmd(t *testing.T) {
 
 	t.Run("missing checksum", func(t *testing.T) {
 		runner := newCmdRunner(t)
-		runner.writeConfig(&bindown.Config{
-			Dependencies: map[string]*bindown.Dependency{
-				"foo": {
-					URL: &depURL,
-				},
-			},
-		})
+		runner.writeConfigYaml(fmt.Sprintf(`
+dependencies:
+  foo:
+    url: %s
+`, depURL))
 		result := runner.run("download", "foo")
 		result.assertState(resultState{
 			stderr: `cmd: error: no checksum configured for foo`,
@@ -359,26 +336,22 @@ func Test_downloadCmd(t *testing.T) {
 
 	t.Run("--allow-missing-checksum", func(t *testing.T) {
 		runner := newCmdRunner(t)
-		runner.writeConfig(&bindown.Config{
-			Dependencies: map[string]*bindown.Dependency{
-				"foo": {
-					URL: &depURL,
-				},
-			},
-		})
+		runner.writeConfigYaml(fmt.Sprintf(`
+dependencies:
+  foo:
+    url: %s
+`, depURL))
 		result := runner.run("download", "foo", "--allow-missing-checksum")
 		assertDownloadSuccess(t, result)
 	})
 
 	t.Run("--allow-missing-checksum with dl error", func(t *testing.T) {
 		runner := newCmdRunner(t)
-		runner.writeConfig(&bindown.Config{
-			Dependencies: map[string]*bindown.Dependency{
-				"foo": {
-					URL: &errURL,
-				},
-			},
-		})
+		runner.writeConfigYaml(fmt.Sprintf(`
+dependencies:
+  foo:
+    url: %s
+`, errURL))
 		result := runner.run("download", "foo", "--allow-missing-checksum")
 		result.assertState(resultState{
 			stderr: `cmd: error: failed downloading`,
@@ -388,16 +361,13 @@ func Test_downloadCmd(t *testing.T) {
 
 	t.Run("already exists", func(t *testing.T) {
 		runner := newCmdRunner(t)
-		runner.writeConfig(&bindown.Config{
-			URLChecksums: map[string]string{
-				depURL: "27dcce60d1ed72920a84dd4bc01e0bbd013e5a841660e9ee2e964e53fb83c0b3",
-			},
-			Dependencies: map[string]*bindown.Dependency{
-				"foo": {
-					URL: &depURL,
-				},
-			},
-		})
+		runner.writeConfigYaml(fmt.Sprintf(`
+dependencies:
+  foo:
+    url: %s
+url_checksums:
+  %s: 27dcce60d1ed72920a84dd4bc01e0bbd013e5a841660e9ee2e964e53fb83c0b3
+`, depURL, depURL))
 		// download to put it in the cache
 		result := runner.run("download", "foo")
 		assertDownloadSuccess(t, result)
@@ -408,13 +378,11 @@ func Test_downloadCmd(t *testing.T) {
 
 	t.Run("already exists with --allow-missing-checksum", func(t *testing.T) {
 		runner := newCmdRunner(t)
-		runner.writeConfig(&bindown.Config{
-			Dependencies: map[string]*bindown.Dependency{
-				"foo": {
-					URL: &depURL,
-				},
-			},
-		})
+		runner.writeConfigYaml(fmt.Sprintf(`
+dependencies:
+  foo:
+    url: %s
+`, depURL))
 		// download to put it in the cache
 		result := runner.run("download", "foo", "--allow-missing-checksum")
 		assertDownloadSuccess(t, result)
@@ -430,16 +398,13 @@ func Test_installCmd(t *testing.T) {
 		servePath := testdataPath("downloadables/rawfile/foo")
 		ts := serveFile(t, servePath, "/foo/foo", "")
 		depURL := ts.URL + "/foo/foo"
-		runner.writeConfig(&bindown.Config{
-			URLChecksums: map[string]string{
-				depURL: "f044ff8b6007c74bcc1b5a5c92776e5d49d6014f5ff2d551fab115c17f48ac41",
-			},
-			Dependencies: map[string]*bindown.Dependency{
-				"foo": {
-					URL: &depURL,
-				},
-			},
-		})
+		runner.writeConfigYaml(fmt.Sprintf(`
+dependencies:
+  foo:
+    url: %s
+url_checksums:
+  %s: f044ff8b6007c74bcc1b5a5c92776e5d49d6014f5ff2d551fab115c17f48ac41
+`, depURL, depURL))
 		result := runner.run("install", "foo")
 		require.Equal(t, 0, result.exitVal)
 		wantBin := filepath.Join(runner.tmpDir, "bin", "foo")
@@ -454,17 +419,14 @@ func Test_installCmd(t *testing.T) {
 		servePath := testdataPath("downloadables/rawfile/foo")
 		ts := serveFile(t, servePath, "/foo/foo", "")
 		depURL := ts.URL + "/foo/foo"
-		runner.writeConfig(&bindown.Config{
-			URLChecksums: map[string]string{
-				depURL: "f044ff8b6007c74bcc1b5a5c92776e5d49d6014f5ff2d551fab115c17f48ac41",
-			},
-			Dependencies: map[string]*bindown.Dependency{
-				"foo": {
-					URL:  &depURL,
-					Link: ptr(true),
-				},
-			},
-		})
+		runner.writeConfigYaml(fmt.Sprintf(`
+dependencies:
+  foo:
+    url: %s
+    link: true
+url_checksums:
+  %s: f044ff8b6007c74bcc1b5a5c92776e5d49d6014f5ff2d551fab115c17f48ac41
+`, depURL, depURL))
 		result := runner.run("install", "foo")
 		require.Equal(t, 0, result.exitVal)
 		wantBin := filepath.Join(runner.tmpDir, "bin", "foo")
@@ -480,16 +442,13 @@ func Test_installCmd(t *testing.T) {
 		servePath := testdataPath("downloadables/fooinroot.tar.gz")
 		ts := serveFile(t, servePath, "/foo/fooinroot.tar.gz", "")
 		depURL := ts.URL + "/foo/fooinroot.tar.gz"
-		runner.writeConfig(&bindown.Config{
-			URLChecksums: map[string]string{
-				depURL: "27dcce60d1ed72920a84dd4bc01e0bbd013e5a841660e9ee2e964e53fb83c0b3",
-			},
-			Dependencies: map[string]*bindown.Dependency{
-				"foo": {
-					URL: &depURL,
-				},
-			},
-		})
+		runner.writeConfigYaml(fmt.Sprintf(`
+dependencies:
+  foo:
+    url: %s
+url_checksums:
+  %s: 27dcce60d1ed72920a84dd4bc01e0bbd013e5a841660e9ee2e964e53fb83c0b3
+`, depURL, depURL))
 		result := runner.run("install", "foo")
 		require.Equal(t, 0, result.exitVal)
 		wantBin := filepath.Join(runner.tmpDir, "bin", "foo")
@@ -504,14 +463,13 @@ func Test_installCmd(t *testing.T) {
 		servePath := testdataPath("downloadables/fooinroot.tar.gz")
 		ts := serveFile(t, servePath, "/foo/fooinroot.tar.gz", "")
 		depURL := ts.URL + "/foo/fooinroot.tar.gz"
-		runner.writeConfig(&bindown.Config{
-			URLChecksums: map[string]string{
-				depURL: "0000000000000000000000000000000000000000000000000000000000000000",
-			},
-			Dependencies: map[string]*bindown.Dependency{
-				"foo": {URL: &depURL},
-			},
-		})
+		runner.writeConfigYaml(fmt.Sprintf(`
+dependencies:
+  foo:
+    url: %q
+url_checksums:
+  %q: "0000000000000000000000000000000000000000000000000000000000000000"
+`, depURL, depURL))
 		result := runner.run("install", "foo")
 		require.Equal(t, 1, result.exitVal)
 		require.True(t, strings.HasPrefix(result.stdErr.String(), `cmd: error: checksum mismatch in downloaded file`))

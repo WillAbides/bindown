@@ -154,7 +154,10 @@ func (c *Config) BuildDependency(depName string, system System) (*Dependency, er
 	if err != nil {
 		return nil, err
 	}
-	dep.applyOverrides(system, 0)
+	err = dep.applyOverrides(system, 0)
+	if err != nil {
+		return nil, err
+	}
 	if dep.Vars == nil {
 		dep.Vars = map[string]string{}
 	}
@@ -635,7 +638,7 @@ func NewConfig(ctx context.Context, cfgSrc string, noDefaultDirs bool) (*Config,
 	if err != nil {
 		return nil, err
 	}
-	cfg, err := configFromYAML(ctx, data)
+	cfg, err := ConfigFromYAML(ctx, data)
 	if err != nil {
 		return nil, err
 	}
@@ -668,10 +671,10 @@ func configFromHTTP(ctx context.Context, src string) (*Config, error) {
 	if err != nil {
 		return nil, err
 	}
-	return configFromYAML(ctx, data)
+	return ConfigFromYAML(ctx, data)
 }
 
-func configFromYAML(ctx context.Context, data []byte) (*Config, error) {
+func ConfigFromYAML(ctx context.Context, data []byte) (*Config, error) {
 	err := validateConfig(ctx, data)
 	if err != nil {
 		return nil, err

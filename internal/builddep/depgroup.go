@@ -133,16 +133,18 @@ func (g *depGroup) regroupByArchivePath(ctx context.Context, binName, version st
 
 func (g *depGroup) dependency() *bindown.Dependency {
 	dep := bindown.Dependency{
-		URL:          &g.url,
-		BinName:      &g.binName,
-		ArchivePath:  &g.archivePath,
-		RequiredVars: []string{"version"},
-		Vars: map[string]string{
-			"urlSuffix":         g.urlSuffix,
-			"archivePathSuffix": g.archivePathSuffix,
+		Overrideable: bindown.Overrideable{
+			URL:         &g.url,
+			ArchivePath: &g.archivePath,
+			BinName:     &g.binName,
+			Vars: map[string]string{
+				"urlSuffix":         g.urlSuffix,
+				"archivePathSuffix": g.archivePathSuffix,
+			},
+			Substitutions: map[string]map[string]string{},
 		},
-		Substitutions: map[string]map[string]string{},
-		Systems:       slices.Clone(g.systems),
+		RequiredVars: []string{"version"},
+		Systems:      slices.Clone(g.systems),
 	}
 	if g.substitutions != nil {
 		if len(g.substitutions["os"]) > 0 {
@@ -188,7 +190,7 @@ func (g *depGroup) overrides(otherGroups []*depGroup) []bindown.DependencyOverri
 		}
 		overrides = append(overrides, bindown.DependencyOverride{
 			OverrideMatcher: matcher,
-			Dependency:      *dep,
+			Dependency:      dep.Overrideable,
 		})
 	}
 	return overrides

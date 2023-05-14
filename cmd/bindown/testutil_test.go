@@ -71,16 +71,17 @@ func (c *cmdRunner) run(commandLine ...string) *runCmdResult {
 	return &result
 }
 
+func mustConfigFromYAML(t *testing.T, yml string) *bindown.Config {
+	t.Helper()
+	got, err := bindown.ConfigFromYAML(context.Background(), []byte(yml))
+	require.NoError(t, err)
+	return got
+}
+
 func (c *cmdRunner) writeConfigYaml(content string) {
 	c.t.Helper()
 	err := os.WriteFile(c.configFile, []byte(content), 0o600)
 	assert.NoError(c.t, err)
-}
-
-func (c *cmdRunner) writeConfig(config *bindown.Config) {
-	c.t.Helper()
-	config.Filename = c.configFile
-	assert.NoError(c.t, config.WriteFile(false))
 }
 
 func (c *cmdRunner) getConfigFile() *bindown.Config {
@@ -196,10 +197,6 @@ func serveErr(t *testing.T, errCode int) *httptest.Server {
 	}))
 	t.Cleanup(ts.Close)
 	return ts
-}
-
-func ptr[T any](val T) *T {
-	return &val
 }
 
 func assertEqualOrMatch(t testing.TB, want, got string) {
