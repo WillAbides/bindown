@@ -283,7 +283,7 @@ func TestConfig_InstallDependency(t *testing.T) {
 				},
 			},
 		}
-		t.Cleanup(func() { require.NoError(t, config.ClearCache()) })
+		//t.Cleanup(func() { require.NoError(t, config.ClearCache()) })
 		wantBin := filepath.Join(binDir, "foo")
 		_, err := config.InstallDependency("foo", newSystemInfo("darwin", "amd64"), &ConfigInstallDependencyOpts{})
 		require.Error(t, err)
