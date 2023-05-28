@@ -140,6 +140,7 @@ func copyFile(src, dst string) (errOut error) {
 	if err != nil {
 		return err
 	}
+	defer deferErr(&errOut, rdr.Close)
 
 	dstMode := srcStat.Mode()
 	writer, err := os.OpenFile(dst, os.O_RDWR|os.O_CREATE|os.O_TRUNC, dstMode)
