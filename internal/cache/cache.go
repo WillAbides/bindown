@@ -95,7 +95,7 @@ func (c *Cache) Evict(key string) (errOut error) {
 	if err != nil {
 		return fmt.Errorf("failed to remove dir: %w", err)
 	}
-	// Unlock early to get around a Windows issue where you can't delete a directory that's locked.
+	// Unlock early to get around a Windows issue where you can't delete a locked file.
 	err = lock.Close()
 	unlocked = true
 	if err != nil {
