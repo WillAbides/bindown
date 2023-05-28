@@ -4,7 +4,4 @@ set -e
 
 CDPATH="" cd -- "$(dirname -- "$(dirname -- "$0")")"
 
-go mod tidy
-go mod download
-script/bindown version
-#go test -race -covermode=atomic ./...
+go test -race -covermode=atomic ./...
