@@ -2,6 +2,7 @@ package cache
 
 import (
 	"errors"
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
@@ -229,21 +230,25 @@ func RemoveRoot(root string) (errOut error) {
 	c := &Cache{Root: root}
 	rootLock, err := c.lockRoot()
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to lock root: %w", err)
 	}
 	defer func() {
 		closeErr := rootLock.Close()
 		if errOut == nil {
-			errOut = closeErr
+			errOut = fmt.Errorf("failed to unlock root: %w", closeErr)
 		}
 	}()
 	if c.ReadOnly {
 		err = unsealDir(root)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to unseal root: %w", err)
 		}
 	}
-	return os.RemoveAll(root)
+	err = os.RemoveAll(root)
+	if err != nil {
+		return fmt.Errorf("failed to remove root: %w", err)
+	}
+	return nil
 }
 
 type writeLock struct {
