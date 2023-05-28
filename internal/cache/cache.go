@@ -234,7 +234,7 @@ func RemoveRoot(root string) (errOut error) {
 	}
 	defer func() {
 		closeErr := rootLock.Close()
-		if errOut == nil {
+		if errOut == nil && closeErr != nil {
 			errOut = fmt.Errorf("failed to unlock root: %w", closeErr)
 		}
 	}()
