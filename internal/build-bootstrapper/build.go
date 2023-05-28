@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"embed"
+	"errors"
 	"flag"
 	"fmt"
 	"os"
@@ -21,6 +22,10 @@ func execBindown(repoRoot string, arg ...string) error {
 	makeCmd.Dir = repoRoot
 	err := makeCmd.Run()
 	if err != nil {
+		var execErr *exec.ExitError
+		if errors.As(err, &execErr) {
+			err = fmt.Errorf("stderr: %s\nerr: %w", string(execErr.Stderr), err)
+		}
 		return fmt.Errorf("failed to build bindown: %w", err)
 	}
 	bindownCmd := exec.Command(bindownPath, arg...)
