@@ -67,14 +67,17 @@ func (c *Cache) Evict(key string) (errOut error) {
 	var err error
 	key, err = parseKey(key)
 	if err != nil {
-		return err
+		return fmt.Errorf("invalid key: %w", err)
 	}
 	lock, err := c.lock(key)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to acquire lock: %w", err)
 	}
 	defer func() {
-		errOut = errors.Join(errOut, lock.Close())
+		closeErr := lock.Close()
+		if closeErr != nil {
+			errOut = errors.Join(errOut, fmt.Errorf("failed to close lock: %w", closeErr))
+		}
 	}()
 	dir := filepath.Join(c.Root, key)
 	info, err := os.Stat(dir)
@@ -82,16 +85,20 @@ func (c *Cache) Evict(key string) (errOut error) {
 		if os.IsNotExist(err) {
 			return nil
 		}
-		return err
+		return fmt.Errorf("failed to stat dir: %w", err)
 	}
 	if !info.IsDir() {
 		return errors.New("not a directory")
 	}
 	err = os.RemoveAll(dir)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to remove dir: %w", err)
 	}
-	return os.Remove(c.lockfile(key))
+	err = os.Remove(c.lockfile(key))
+	if err != nil {
+		return fmt.Errorf("failed to remove lock: %w", err)
+	}
+	return nil
 }
 
 func (c *Cache) lockfile(key string) string {
