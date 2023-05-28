@@ -67,7 +67,7 @@ func (c *Cache) Evict(key string) (errOut error) {
 	var err error
 	key, err = parseKey(key)
 	if err != nil {
-		return fmt.Errorf("invalid key: %w", err)
+		return err
 	}
 	lock, err := c.lock(key)
 	if err != nil {
