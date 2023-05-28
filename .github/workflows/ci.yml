@@ -20,6 +20,7 @@ jobs:
           key: ${{ runner.os }}-go-test-${{ hashFiles('**/go.sum') }}
           restore-keys: ${{ runner.os }}-go-test
       - run: script/test
+        shell: sh
   lint:
     runs-on: ubuntu-20.04
     steps:
