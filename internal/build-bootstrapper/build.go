@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"text/template"
 )
@@ -116,6 +117,10 @@ func build(tag, repoRoot string) (_ string, errOut error) {
 	})
 	if err != nil {
 		return "", fmt.Errorf("failed to execute template: %w", err)
+	}
+	// TODO: make shfmt and shellcheck work on windows
+	if runtime.GOOS == "windows" {
+		return tmplOut.String(), nil
 	}
 	shfmtCmd := exec.Command(filepath.Join(repoRoot, "bin", "shfmt"), "-i", "2", "-ci", "-sr", "-")
 	shfmtCmd.Stdin = &tmplOut
