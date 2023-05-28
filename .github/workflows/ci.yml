@@ -4,7 +4,7 @@ jobs:
   test:
     strategy:
       matrix:
-        platform: [ ubuntu-20.04, macos-11, windows-2019, windows-2022 ]
+        platform: [ ubuntu-20.04, macos-11, windows-2019 ]
       fail-fast: false
     runs-on: ${{ matrix.platform }}
     steps:
@@ -18,8 +18,8 @@ jobs:
           path: |
             ${{ steps.setup-go.outputs.GOCACHE }}
             ${{ steps.setup-go.outputs.GOMODCACHE }}
-          key: ${{ matrix.platform }}-go-test-${{ hashFiles('**/go.sum') }}
-          restore-keys: ${{matrix.platform }}-go-test
+          key: ${{ runner.os }}-go-test-${{ hashFiles('**/go.sum') }}
+          restore-keys: ${{ runner.os }}-go-test
       - run: script/test
         shell: sh
   lint:
