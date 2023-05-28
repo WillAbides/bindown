@@ -232,17 +232,20 @@ func RemoveRoot(root string) (errOut error) {
 	if err != nil {
 		return fmt.Errorf("failed to lock root: %w", err)
 	}
-	defer func() {
-		closeErr := rootLock.Close()
-		if errOut == nil && closeErr != nil {
-			errOut = fmt.Errorf("failed to unlock root: %w", closeErr)
-		}
-	}()
 	if c.ReadOnly {
 		err = unsealDir(root)
 		if err != nil {
+			closeErr := rootLock.Close()
+			if closeErr != nil {
+				err = errors.Join(err, fmt.Errorf("failed to unlock root: %w", closeErr))
+			}
 			return fmt.Errorf("failed to unseal root: %w", err)
 		}
+	}
+	// Unlock root early to get around a Windows issue where you can't delete a directory that's locked.
+	err = rootLock.Close()
+	if err != nil {
+		return fmt.Errorf("failed to unlock root: %w", err)
 	}
 	err = os.RemoveAll(root)
 	if err != nil {
