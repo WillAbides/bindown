@@ -73,11 +73,12 @@ func (c *Cache) Evict(key string) (errOut error) {
 	if err != nil {
 		return fmt.Errorf("failed to acquire lock: %w", err)
 	}
+	unlocked := false
 	defer func() {
-		closeErr := lock.Close()
-		if closeErr != nil {
-			errOut = errors.Join(errOut, fmt.Errorf("failed to close lock: %w", closeErr))
+		if unlocked {
+			return
 		}
+		errOut = errors.Join(errOut, lock.Close())
 	}()
 	dir := filepath.Join(c.Root, key)
 	info, err := os.Stat(dir)
@@ -93,6 +94,12 @@ func (c *Cache) Evict(key string) (errOut error) {
 	err = os.RemoveAll(dir)
 	if err != nil {
 		return fmt.Errorf("failed to remove dir: %w", err)
+	}
+	// Unlock early to get around a Windows issue where you can't delete a directory that's locked.
+	err = lock.Close()
+	unlocked = true
+	if err != nil {
+		return err
 	}
 	err = os.Remove(c.lockfile(key))
 	if err != nil {
