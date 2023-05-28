@@ -126,8 +126,9 @@ func Test_initCmd(t *testing.T) {
 		testInDir(t, runner.tmpDir)
 		result := runner.run("init", "--configfile", "foo/bar.yaml")
 		result.assertState(resultState{
-			exit:   1,
-			stderr: `cmd: error: open .+: no such file or directory`,
+			exit:      1,
+			stderr:    `cmd: error: open .+: no such file or directory`,
+			winStderr: `The system cannot find the path specified`,
 		})
 	})
 }

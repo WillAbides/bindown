@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -113,9 +114,13 @@ func (r *runCmdResult) assertStdOut(want string) {
 	assertEqualOrMatch(r.t, want, r.stdOut.String())
 }
 
-func (r *runCmdResult) assertStdErr(want string) {
+func (r *runCmdResult) assertStdErr(state resultState) {
 	r.t.Helper()
-	assertEqualOrMatch(r.t, want, r.stdErr.String())
+	if state.winStderr != "" && isWindows() {
+		assertEqualOrMatch(r.t, state.winStderr, r.stdErr.String())
+		return
+	}
+	assertEqualOrMatch(r.t, state.stderr, r.stdErr.String())
 }
 
 func (r *runCmdResult) getExtractDir() string {
@@ -132,13 +137,15 @@ func (r *runCmdResult) getExtractDir() string {
 type resultState struct {
 	stdout string
 	stderr string
-	exit   int
+	// for instances where windows and linux have different error messages
+	winStderr string
+	exit      int
 }
 
 func (r *runCmdResult) assertState(state resultState) {
 	r.t.Helper()
 	r.assertStdOut(state.stdout)
-	r.assertStdErr(state.stderr)
+	r.assertStdErr(state)
 	assert.Equal(r.t, state.exit, r.exitVal)
 	assert.Equal(r.t, state.exit != 0, r.exited)
 }
@@ -228,4 +235,8 @@ func testdataPath(f string) string {
 		filepath.FromSlash("../../internal/bindown/testdata"),
 		filepath.FromSlash(f),
 	)
+}
+
+func isWindows() bool {
+	return runtime.GOOS == "windows"
 }

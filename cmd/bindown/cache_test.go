@@ -43,8 +43,9 @@ func Test_cacheClearCmd(t *testing.T) {
 		runner := newCmdRunner(t)
 		result := runner.run("cache", "clear")
 		result.assertState(resultState{
-			exit:   1,
-			stderr: `no such file or directory`,
+			exit:      1,
+			stderr:    `no such file or directory`,
+			winStderr: `The system cannot find the file specified`,
 		})
 	})
 }
