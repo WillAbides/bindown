@@ -17,7 +17,7 @@ import (
 var assets embed.FS
 
 func execBindown(repoRoot string, arg ...string) error {
-	bindownPath := filepath.FromSlash("bin/bootstrapped/bindown")
+	bindownPath := "bin/bootstrapped/bindown"
 	makeCmd := exec.Command("make", bindownPath)
 	makeCmd.Dir = repoRoot
 	err := makeCmd.Run()
