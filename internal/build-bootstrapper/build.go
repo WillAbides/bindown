@@ -21,31 +21,35 @@ func execBindown(repoRoot string, arg ...string) error {
 	makeCmd.Dir = repoRoot
 	err := makeCmd.Run()
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to build bindown: %w", err)
 	}
 	bindownCmd := exec.Command(bindownPath, arg...)
 	bindownCmd.Dir = repoRoot
-	return bindownCmd.Run()
+	err = bindownCmd.Run()
+	if err != nil {
+		return fmt.Errorf("failed to run bindown: %w", err)
+	}
+	return nil
 }
 
 func build(tag, repoRoot string) (_ string, errOut error) {
 	tmpDir, err := os.MkdirTemp("", "")
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("failed to create temp dir: %w", err)
 	}
 	defer func() {
 		rmErr := os.RemoveAll(tmpDir)
-		if errOut == nil {
-			errOut = rmErr
+		if errOut == nil && rmErr != nil {
+			errOut = fmt.Errorf("failed to remove temp dir: %w", rmErr)
 		}
 	}()
 	err = execBindown(repoRoot, "install", "shfmt")
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("failed to install shfmt: %w", err)
 	}
 	err = execBindown(repoRoot, "install", "shellcheck")
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("failed to install shellcheck: %w", err)
 	}
 	err = execBindown(
 		repoRoot,
@@ -58,12 +62,12 @@ func build(tag, repoRoot string) (_ string, errOut error) {
 		"--skipchecksums",
 	)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("failed to add dependency bindown-checksums: %w", err)
 	}
 	defer func() {
 		removeErr := execBindown(repoRoot, "dependency", "remove", "bindown-checksums")
-		if errOut != nil {
-			errOut = removeErr
+		if errOut != nil && removeErr != nil {
+			errOut = fmt.Errorf("failed to remove dependency: %w", removeErr)
 		}
 	}()
 	checksumsDir := filepath.Join(tmpDir, "checksums")
@@ -76,27 +80,27 @@ func build(tag, repoRoot string) (_ string, errOut error) {
 		checksumsDir,
 	)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("failed to extract bindown-checksums: %w", err)
 	}
 	checksums, err := os.ReadFile(filepath.Join(checksumsDir, "checksums.txt"))
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("failed to read checksums: %w", err)
 	}
 	shlibContent, err := assets.ReadFile("assets/shlib.sh")
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("failed to read shlib: %w", err)
 	}
 	mainContent, err := assets.ReadFile("assets/main.sh")
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("failed to read main: %w", err)
 	}
 	tmplContent, err := assets.ReadFile("assets/bootstrap-bindown.gotmpl")
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("failed to read template: %w", err)
 	}
 	tmpl, err := template.New("").Parse(string(tmplContent))
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("failed to parse template: %w", err)
 	}
 	var tmplOut bytes.Buffer
 	err = tmpl.Execute(&tmplOut, map[string]string{
@@ -106,19 +110,19 @@ func build(tag, repoRoot string) (_ string, errOut error) {
 		"main":      string(mainContent),
 	})
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("failed to execute template: %w", err)
 	}
 	shfmtCmd := exec.Command(filepath.Join(repoRoot, "bin", "shfmt"), "-i", "2", "-ci", "-sr", "-")
 	shfmtCmd.Stdin = &tmplOut
 	formatted, err := shfmtCmd.Output()
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("failed to format: %w", err)
 	}
 	shellcheckCmd := exec.Command(filepath.Join(repoRoot, "bin", "shellcheck"), "--shell", "sh", "-")
 	shellcheckCmd.Stdin = bytes.NewReader(formatted)
 	err = shellcheckCmd.Run()
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("failed to shellcheck: %w", err)
 	}
 	return string(formatted), nil
 }
