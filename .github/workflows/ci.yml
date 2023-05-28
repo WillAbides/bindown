@@ -18,8 +18,8 @@ jobs:
           path: |
             ${{ steps.setup-go.outputs.GOCACHE }}
             ${{ steps.setup-go.outputs.GOMODCACHE }}
-          key: ${{ runner.os }}-go-test-${{ hashFiles('**/go.sum') }}
-          restore-keys: ${{ runner.os }}-go-test
+          key: ${{ matrix.platform }}-go-test-${{ hashFiles('**/go.sum') }}
+          restore-keys: ${{matrix.platform }}-go-test
       - run: script/test
         shell: sh
   lint:
