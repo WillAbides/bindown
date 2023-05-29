@@ -45,16 +45,18 @@ func executeTemplate(tmplString, goos, arch string, vars map[string]string) (str
 // directoryChecksum returns a hash of directory contents.
 func directoryChecksum(inputDir string) (string, error) {
 	hasher := fnv.New64a()
-	err := filepath.Walk(inputDir, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-		linfo, err := os.Lstat(path)
+	err := filepath.WalkDir(inputDir, func(path string, dirEntry os.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
 
-		hPath := strings.TrimPrefix(strings.TrimPrefix(path, inputDir), string(filepath.Separator))
+		linfo, err := dirEntry.Info()
+		if err != nil {
+			return err
+		}
+
+		hPath := strings.TrimPrefix(path, inputDir)
+		hPath = strings.TrimPrefix(filepath.ToSlash(hPath), "/")
 		_, err = hasher.Write([]byte(hPath))
 		if err != nil {
 			return err
@@ -67,25 +69,22 @@ func directoryChecksum(inputDir string) (string, error) {
 			if err != nil {
 				return err
 			}
+			linkPath = filepath.ToSlash(linkPath)
 			_, err = hasher.Write([]byte(linkPath))
 			return err
 		}
 
-		if !info.Mode().IsRegular() {
+		if !linfo.Mode().IsRegular() {
 			return nil
 		}
 
-		fi, err := os.Open(path)
+		content, err := os.ReadFile(path)
 		if err != nil {
 			return err
 		}
-
-		_, err = io.Copy(hasher, fi)
-		if err != nil {
-			return err
-		}
-
-		return fi.Close()
+		content = bytes.ReplaceAll(content, []byte("\r\n"), []byte("\n"))
+		mustWriteToHash(hasher, content)
+		return nil
 	})
 	if err != nil {
 		return "", err
@@ -147,6 +146,7 @@ func copyFile(src, dst string) (errOut error) {
 	if err != nil {
 		return err
 	}
+	defer deferErr(&errOut, rdr.Close)
 
 	dstMode := srcStat.Mode()
 	writer, err := os.OpenFile(dst, os.O_RDWR|os.O_CREATE|os.O_TRUNC, dstMode)

@@ -4,12 +4,14 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/willabides/bindown/v4/internal/cache"
+	"github.com/willabides/bindown/v4/internal/testutil"
 )
 
 func Test_fmtCmd(t *testing.T) {
@@ -125,16 +127,20 @@ func Test_initCmd(t *testing.T) {
 		runner.configFile = ""
 		testInDir(t, runner.tmpDir)
 		result := runner.run("init", "--configfile", "foo/bar.yaml")
+		wantStderr := `no such file or directory`
+		if runtime.GOOS == "windows" {
+			wantStderr = `The system cannot find the path specified.`
+		}
 		result.assertState(resultState{
 			exit:   1,
-			stderr: `cmd: error: open .+: no such file or directory`,
+			stderr: wantStderr,
 		})
 	})
 }
 
 func Test_extractCmd(t *testing.T) {
 	servePath := testdataPath("downloadables/fooinroot.tar.gz")
-	successServer := serveFile(t, servePath, "/foo/fooinroot.tar.gz", "")
+	successServer := testutil.ServeFile(t, servePath, "/foo/fooinroot.tar.gz", "")
 	depURL := successServer.URL + "/foo/fooinroot.tar.gz"
 
 	assertExtractSuccess := func(t *testing.T, result *runCmdResult) {
@@ -260,7 +266,7 @@ url_checksums:
 
 func Test_downloadCmd(t *testing.T) {
 	servePath := testdataPath("downloadables/fooinroot.tar.gz")
-	successServer := serveFile(t, servePath, "/foo/fooinroot.tar.gz", "")
+	successServer := testutil.ServeFile(t, servePath, "/foo/fooinroot.tar.gz", "")
 	depURL := successServer.URL + "/foo/fooinroot.tar.gz"
 
 	errServer := serveErr(t, 400)
@@ -396,7 +402,7 @@ func Test_installCmd(t *testing.T) {
 	t.Run("raw file", func(t *testing.T) {
 		runner := newCmdRunner(t)
 		servePath := testdataPath("downloadables/rawfile/foo")
-		ts := serveFile(t, servePath, "/foo/foo", "")
+		ts := testutil.ServeFile(t, servePath, "/foo/foo", "")
 		depURL := ts.URL + "/foo/foo"
 		runner.writeConfigYaml(fmt.Sprintf(`
 dependencies:
@@ -406,18 +412,20 @@ url_checksums:
   %s: f044ff8b6007c74bcc1b5a5c92776e5d49d6014f5ff2d551fab115c17f48ac41
 `, depURL, depURL))
 		result := runner.run("install", "foo")
-		require.Equal(t, 0, result.exitVal)
+		result.assertState(resultState{
+			stdout: `installed foo to`,
+		})
 		wantBin := filepath.Join(runner.tmpDir, "bin", "foo")
 		require.FileExists(t, wantBin)
 		stat, err := os.Stat(wantBin)
 		require.NoError(t, err)
-		require.EqualValues(t, os.FileMode(0o750), stat.Mode().Perm()&0o750)
+		testutil.AssertExecutable(t, stat.Mode())
 	})
 
 	t.Run("link raw file", func(t *testing.T) {
 		runner := newCmdRunner(t)
 		servePath := testdataPath("downloadables/rawfile/foo")
-		ts := serveFile(t, servePath, "/foo/foo", "")
+		ts := testutil.ServeFile(t, servePath, "/foo/foo", "")
 		depURL := ts.URL + "/foo/foo"
 		runner.writeConfigYaml(fmt.Sprintf(`
 dependencies:
@@ -428,19 +436,21 @@ url_checksums:
   %s: f044ff8b6007c74bcc1b5a5c92776e5d49d6014f5ff2d551fab115c17f48ac41
 `, depURL, depURL))
 		result := runner.run("install", "foo")
-		require.Equal(t, 0, result.exitVal)
+		result.assertState(resultState{
+			stdout: `installed foo to`,
+		})
 		wantBin := filepath.Join(runner.tmpDir, "bin", "foo")
 		require.FileExists(t, wantBin)
 		stat, err := os.Lstat(wantBin)
 		require.NoError(t, err)
-		require.EqualValues(t, os.FileMode(0o750), stat.Mode().Perm()&0o750)
+		testutil.AssertExecutable(t, stat.Mode())
 		require.True(t, stat.Mode()&os.ModeSymlink != 0)
 	})
 
 	t.Run("bin in root", func(t *testing.T) {
 		runner := newCmdRunner(t)
 		servePath := testdataPath("downloadables/fooinroot.tar.gz")
-		ts := serveFile(t, servePath, "/foo/fooinroot.tar.gz", "")
+		ts := testutil.ServeFile(t, servePath, "/foo/fooinroot.tar.gz", "")
 		depURL := ts.URL + "/foo/fooinroot.tar.gz"
 		runner.writeConfigYaml(fmt.Sprintf(`
 dependencies:
@@ -450,18 +460,20 @@ url_checksums:
   %s: 27dcce60d1ed72920a84dd4bc01e0bbd013e5a841660e9ee2e964e53fb83c0b3
 `, depURL, depURL))
 		result := runner.run("install", "foo")
-		require.Equal(t, 0, result.exitVal)
+		result.assertState(resultState{
+			stdout: `installed foo to`,
+		})
 		wantBin := filepath.Join(runner.tmpDir, "bin", "foo")
 		require.FileExists(t, wantBin)
 		stat, err := os.Stat(wantBin)
 		require.NoError(t, err)
-		require.EqualValues(t, os.FileMode(0o750), stat.Mode().Perm()&0o750)
+		testutil.AssertExecutable(t, stat.Mode())
 	})
 
 	t.Run("wrong checksum", func(t *testing.T) {
 		runner := newCmdRunner(t)
 		servePath := testdataPath("downloadables/fooinroot.tar.gz")
-		ts := serveFile(t, servePath, "/foo/fooinroot.tar.gz", "")
+		ts := testutil.ServeFile(t, servePath, "/foo/fooinroot.tar.gz", "")
 		depURL := ts.URL + "/foo/fooinroot.tar.gz"
 		runner.writeConfigYaml(fmt.Sprintf(`
 dependencies:

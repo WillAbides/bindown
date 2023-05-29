@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"github.com/willabides/bindown/v4/internal/testutil"
 )
 
 func Test_templateUpdateVarCmd(t *testing.T) {
@@ -153,7 +154,7 @@ templates:
 	})
 
 	t.Run("remote with http url", func(t *testing.T) {
-		server := serveFile(t, srcFile, "/template-source.yaml", "")
+		server := testutil.ServeFile(t, srcFile, "/template-source.yaml", "")
 		runner := newCmdRunner(t)
 		runner.writeConfigYaml(`template_sources: {source1: ` + server.URL + `/template-source.yaml}`)
 		result := runner.run("template", "list", "--source", "source1")
@@ -175,7 +176,7 @@ templates:
 	srcFile := filepath.Join(t.TempDir(), "template-source.yaml")
 	err := os.WriteFile(srcFile, []byte(remoteConfig), 0o600)
 	require.NoError(t, err)
-	server := serveFile(t, srcFile, "/template-source.yaml", "")
+	server := testutil.ServeFile(t, srcFile, "/template-source.yaml", "")
 	remoteURL := server.URL + "/template-source.yaml"
 
 	t.Run("new template", func(t *testing.T) {

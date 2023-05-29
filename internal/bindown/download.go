@@ -61,7 +61,7 @@ func downloadDependency(
 			if checksum != gotSum {
 				return fmt.Errorf(`checksum mismatch in downloaded file %q 
 wanted: %s
-got: %s`, cachedFile, checksum, gotSum)
+got: %s`, dlFile, checksum, gotSum)
 			}
 			return nil
 		}

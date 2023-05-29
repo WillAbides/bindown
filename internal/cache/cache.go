@@ -72,7 +72,11 @@ func (c *Cache) Evict(key string) (errOut error) {
 	if err != nil {
 		return err
 	}
+	unlocked := false
 	defer func() {
+		if unlocked {
+			return
+		}
 		errOut = errors.Join(errOut, lock.Close())
 	}()
 	dir := filepath.Join(c.Root, key)
@@ -87,6 +91,12 @@ func (c *Cache) Evict(key string) (errOut error) {
 		return errors.New("not a directory")
 	}
 	err = os.RemoveAll(dir)
+	if err != nil {
+		return err
+	}
+	// Unlock early to get around a Windows issue where you can't delete a locked file.
+	unlocked = true
+	err = lock.Close()
 	if err != nil {
 		return err
 	}
@@ -231,17 +241,24 @@ func RemoveRoot(root string) (errOut error) {
 	if err != nil {
 		return err
 	}
+	unlocked := false
 	defer func() {
-		closeErr := rootLock.Close()
-		if errOut == nil {
-			errOut = closeErr
+		if unlocked {
+			return
 		}
+		errOut = errors.Join(errOut, rootLock.Close())
 	}()
 	if c.ReadOnly {
 		err = unsealDir(root)
 		if err != nil {
 			return err
 		}
+	}
+	// Unlock early to get around a Windows issue where you can't delete a locked file.
+	unlocked = true
+	err = rootLock.Close()
+	if err != nil {
+		return err
 	}
 	return os.RemoveAll(root)
 }
