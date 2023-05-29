@@ -64,16 +64,15 @@ else
 fi
 
 # pre-build so there isn't such a long time between creating the release and adding the assets
-if [ -f ".goreleaser.yaml" ]; then
-  script/bindown -q install goreleaser
-  bin/goreleaser release --snapshot --clean
-fi
+script/bindown -q install goreleaser
+bin/goreleaser release --snapshot --clean
 
 bin/gh release create "v$NEXT_VERSION" -t "v$NEXT_VERSION" --generate-notes
-
-# If there's no .goreleaser.yaml, there's nothing left to do.
-[ -f ".goreleaser.yaml" ] || exit 0
 
 # now build for real
 git fetch --tags
 bin/goreleaser release --clean
+
+# create bootstrap-bindown.sh
+go run ./internal/build-bootstrapper -tag "v$NEXT_VERSION" >bootstrap-bindown.sh
+bin/gh release upload "$TAG" bootstrap-bindown.sh
