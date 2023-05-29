@@ -1,5 +1,10 @@
 cache: ./bin/.bindown
 install_dir: ./bin
+systems:
+  - darwin/amd64
+  - darwin/arm64
+  - linux/amd64
+  - windows/amd64
 dependencies:
   gh:
     template: origin#gh
@@ -411,11 +416,6 @@ templates:
       - version
 template_sources:
   origin: https://raw.githubusercontent.com/WillAbides/bindown-templates/main/bindown.yml
-systems:
-  - darwin/amd64
-  - darwin/arm64
-  - linux/amd64
-  - windows/amd64
 url_checksums:
   https://dl.google.com/go/go1.20.2.darwin-amd64.tar.gz: c93b8ced9517d07e1cd4c362c6e2d5242cb139e29b417a328fbf19aded08764c
   https://dl.google.com/go/go1.20.2.darwin-arm64.tar.gz: 7343c87f19e79c0063532e82e1c4d6f42175a32d99f7a4d15e658e88bf97f885
