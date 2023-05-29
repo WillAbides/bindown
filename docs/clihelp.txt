@@ -35,6 +35,8 @@ Commands:
   supported-system remove             remove a supported system
   checksums add                       add checksums to the config file
   checksums prune                     remove unnecessary checksums from the config file
+  checksums sync                      add checksums to the config file and remove unnecessary
+                                      checksums
   init                                create an empty config file
   cache clear                         clear the cache
   version                             show bindown version
