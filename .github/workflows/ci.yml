@@ -64,7 +64,6 @@ jobs:
     needs:
       - test
       - lint
-      - make-bindown
       - generate
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     env:
