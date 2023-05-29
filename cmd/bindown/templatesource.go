@@ -48,7 +48,7 @@ func (c *templateSourceAddCmd) Run(ctx *runContext) error {
 		return fmt.Errorf("template source already exists")
 	}
 	cfg.TemplateSources[c.Name] = c.Source
-	return cfg.Write(ctx.rootCmd.JSONConfig)
+	return cfg.WriteFile(ctx.rootCmd.JSONConfig)
 }
 
 type templateSourceRemoveCmd struct {
@@ -68,5 +68,5 @@ func (c *templateSourceRemoveCmd) Run(ctx *runContext) error {
 		return fmt.Errorf("no template source named %q", c.Name)
 	}
 	delete(cfg.TemplateSources, c.Name)
-	return cfg.Write(ctx.rootCmd.JSONConfig)
+	return cfg.WriteFile(ctx.rootCmd.JSONConfig)
 }

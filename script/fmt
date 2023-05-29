@@ -6,10 +6,8 @@ CDPATH="" cd -- "$(dirname -- "$(dirname -- "$0")")"
 
 . script/goenv
 
-make -s bin/gofumpt bin/handcrafted bin/shfmt
+make -s bin/gofumpt bin/shfmt
 
-git ls-files -o -c --exclude-standard -- *.go **/*.go |
-  bin/handcrafted |
-  xargs bin/gofumpt -w
+bin/gofumpt -w internal/*/*.go cmd/*/*.go
 
 find script -type f -not -name 'bootstrap-bindown.sh' -print0 | xargs -0 bin/shfmt -w -i 2 -ci -sr

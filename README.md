@@ -1,8 +1,10 @@
 # bindown
 
-**bindown** is a command-line utility to download and install binary dependencies. It is intended to be used in
-development and ci environments where it is important to guarantee the same version of the same binary is downloaded
-every time.
+**bindown** is a declarative dependency manager for binary files. It is designed to be used in development and ci
+environments where it is important to guarantee the same version of the same binary is used by everyone. 
+
+Configuration and binaries are localized within the project directory so that it is easy to use different versions of 
+the same dependency in different projects and you won't pollute your system path with binaries you don't need.
 
 ## Installation
 
@@ -28,10 +30,10 @@ Usage: ./bootstrap-bindown.sh [-b bindir] [-d]
 If you happen to already have go installed on your system, you can install bindown with:
 
 ```
-go install github.com/willabides/bindown/v3/cmd/bindown@latest 
+go install github.com/willabides/bindown/v4/cmd/bindown@latest 
 ```
 
-Note the lowercase `willabides`. Pro tip: Your life will be easier with a lowercase GitHub username.
+Note the lowercase `willabides`. Pro-tip: Your life will be easier with a lowercase GitHub username.
 
 ## Quick Start
 
@@ -198,17 +200,17 @@ Defaults to `<path to config file>/bin`
 
 Dependencies are all the dependencies that bindown can install. It is a map where the key is the dependency's name.
 
-Property        | Description
-----------------|----------------
-`url`           | The url to download a dependency from.
-`archive_path`  | The path in the downloaded archive where the binary is located. Default is `./<dependency name>`.
-`bin`           | The name of the binary to be installed. Default is the name of the dependency.
-`link`          | Whether to create a symlink to the bin instead of copying it.
-`template`      | The name of a template to provide default values for this dependency. See [templates](#templates).
-`vars`          | A map of variables that will be interpolated in the `url`, `archive_path` and `bin` values. See [vars](#vars)
-`overrides`     | A list of value overrides for certain systems. See [overrides](#overrides)
-`substitutions` | Values that will be substituted for one variable. See [substitutions](#substitutions)
-`systems`       | A list of systems that this dependency is compatible with in format `os/arch`. For example `linux/amd64` or `darwin/arm64`.
+| Property        | Description                                                                                                                 |
+|-----------------|-----------------------------------------------------------------------------------------------------------------------------|
+| `url`           | The url to download a dependency from.                                                                                      |
+| `archive_path`  | The path in the downloaded archive where the binary is located. Default is `./<dependency name>`.                           |
+| `bin`           | The name of the binary to be installed. Default is the name of the dependency.                                              |
+| `link`          | Whether to create a symlink to the bin instead of copying it.                                                               |
+| `template`      | The name of a template to provide default values for this dependency. See [templates](#templates).                          |
+| `vars`          | A map of variables that will be interpolated in the `url`, `archive_path` and `bin` values. See [vars](#vars)               |
+| `overrides`     | A list of value overrides for certain systems. See [overrides](#overrides)                                                  |
+| `substitutions` | Values that will be substituted for one variable. See [substitutions](#substitutions)                                       |
+| `systems`       | A list of systems that this dependency is compatible with in format `os/arch`. For example `linux/amd64` or `darwin/arm64`. |
 
 ### vars
 
@@ -294,15 +296,13 @@ overrides:
 Usage: bindown <command>
 
 Flags:
-  -h, --help                       Show context-sensitive help.
-      --json                       treat config file as json instead of yaml
-      --configfile=STRING          file with bindown config. default is the first one of
-                                   bindown.yml, bindown.yaml, bindown.json, .bindown.yml,
-                                   .bindown.yaml or .bindown.json ($BINDOWN_CONFIG_FILE)
-      --cache=STRING               directory downloads will be cached ($BINDOWN_CACHE)
-      --trust-cache=TRUST-CACHE    trust the cache contents and do not recheck existing downloads
-                                   and extracts in the cache ($BINDOWN_TRUST_CACHE)
-  -q, --quiet                      suppress output to stdout
+  -h, --help                 Show context-sensitive help.
+      --json                 treat config file as json instead of yaml
+      --configfile=STRING    file with bindown config. default is the first one of bindown.yml,
+                             bindown.yaml, bindown.json, .bindown.yml, .bindown.yaml or
+                             .bindown.json ($BINDOWN_CONFIG_FILE)
+      --cache=STRING         directory downloads will be cached ($BINDOWN_CACHE)
+  -q, --quiet                suppress output to stdout
 
 Commands:
   download                            download a dependency but don't extract or install it

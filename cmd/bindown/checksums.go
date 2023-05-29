@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/willabides/bindown/v3"
+	"github.com/willabides/bindown/v4/internal/bindown"
 )
 
 type checksumsCmd struct {
@@ -10,8 +10,8 @@ type checksumsCmd struct {
 }
 
 type addChecksumsCmd struct {
-	Dependency []string             `kong:"help=${checksums_dep_help},predictor=bin"`
-	Systems    []bindown.SystemInfo `kong:"name=system,help=${systems_help},predictor=allSystems"`
+	Dependency []string         `kong:"help=${checksums_dep_help},predictor=bin"`
+	Systems    []bindown.System `kong:"name=system,help=${systems_help},predictor=allSystems"`
 }
 
 func (d *addChecksumsCmd) Run(ctx *runContext) error {
@@ -23,7 +23,7 @@ func (d *addChecksumsCmd) Run(ctx *runContext) error {
 	if err != nil {
 		return err
 	}
-	return config.Write(ctx.rootCmd.JSONConfig)
+	return config.WriteFile(ctx.rootCmd.JSONConfig)
 }
 
 type pruneChecksumsCmd struct{}
@@ -37,5 +37,5 @@ func (d *pruneChecksumsCmd) Run(ctx *runContext) error {
 	if err != nil {
 		return err
 	}
-	return config.Write(ctx.rootCmd.JSONConfig)
+	return config.WriteFile(ctx.rootCmd.JSONConfig)
 }

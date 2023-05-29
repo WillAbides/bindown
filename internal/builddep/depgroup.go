@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"path"
 
-	"github.com/willabides/bindown/v3"
+	"github.com/willabides/bindown/v4/internal/bindown"
 	"golang.org/x/exp/maps"
 	"golang.org/x/exp/slices"
 	"golang.org/x/sync/errgroup"
@@ -17,7 +17,7 @@ type depGroup struct {
 	archivePathSuffix string
 	archivePath       string
 	binName           string
-	systems           []string
+	systems           []bindown.System
 	files             []*dlFile
 	substitutions     map[string]map[string]string
 	overrideMatcher   map[string][]string
@@ -132,25 +132,19 @@ func (g *depGroup) regroupByArchivePath(ctx context.Context, binName, version st
 }
 
 func (g *depGroup) dependency() *bindown.Dependency {
-	var systems []bindown.SystemInfo
-	for _, system := range g.systems {
-		o, a := parseDist(system)
-		systems = append(systems, bindown.SystemInfo{
-			OS:   o,
-			Arch: a,
-		})
-	}
 	dep := bindown.Dependency{
-		URL:          &g.url,
-		BinName:      &g.binName,
-		ArchivePath:  &g.archivePath,
-		RequiredVars: []string{"version"},
-		Vars: map[string]string{
-			"urlSuffix":         g.urlSuffix,
-			"archivePathSuffix": g.archivePathSuffix,
+		Overrideable: bindown.Overrideable{
+			URL:         &g.url,
+			ArchivePath: &g.archivePath,
+			BinName:     &g.binName,
+			Vars: map[string]string{
+				"urlSuffix":         g.urlSuffix,
+				"archivePathSuffix": g.archivePathSuffix,
+			},
+			Substitutions: map[string]map[string]string{},
 		},
-		Substitutions: map[string]map[string]string{},
-		Systems:       systems,
+		RequiredVars: []string{"version"},
+		Systems:      slices.Clone(g.systems),
 	}
 	if g.substitutions != nil {
 		if len(g.substitutions["os"]) > 0 {
@@ -160,9 +154,7 @@ func (g *depGroup) dependency() *bindown.Dependency {
 			dep.Substitutions["arch"] = maps.Clone(g.substitutions["arch"])
 		}
 	}
-	slices.SortFunc(dep.Systems, func(a, b bindown.SystemInfo) bool {
-		return a.String() < b.String()
-	})
+	slices.Sort(dep.Systems)
 	return &dep
 }
 
@@ -190,15 +182,15 @@ func (g *depGroup) overrides(otherGroups []*depGroup) []bindown.DependencyOverri
 		matcher := m.matcher
 		systems := m.systems
 		for normalized := range dep.Substitutions["os"] {
-			if !slices.ContainsFunc(systems, func(system string) bool {
-				return systemOs(system) == normalized
+			if !slices.ContainsFunc(systems, func(system bindown.System) bool {
+				return system.OS() == normalized
 			}) {
 				delete(dep.Substitutions["os"], normalized)
 			}
 		}
 		overrides = append(overrides, bindown.DependencyOverride{
 			OverrideMatcher: matcher,
-			Dependency:      *dep,
+			Dependency:      dep.Overrideable,
 		})
 	}
 	return overrides
@@ -206,10 +198,10 @@ func (g *depGroup) overrides(otherGroups []*depGroup) []bindown.DependencyOverri
 
 func (g *depGroup) matchers(otherGroups []*depGroup) (result []struct {
 	matcher map[string][]string
-	systems []string
+	systems []bindown.System
 },
 ) {
-	var otherSystems []string
+	var otherSystems []bindown.System
 	for _, other := range otherGroups {
 		otherSystems = append(otherSystems, other.systems...)
 	}
@@ -217,7 +209,7 @@ func (g *depGroup) matchers(otherGroups []*depGroup) (result []struct {
 	for len(systems) > 0 {
 		r := struct {
 			matcher map[string][]string
-			systems []string
+			systems []bindown.System
 		}{}
 		r.matcher, r.systems, systems = systemsMatcher(systems, otherSystems)
 		result = append(result, r)

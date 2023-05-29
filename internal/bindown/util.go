@@ -3,6 +3,7 @@ package bindown
 import (
 	"bytes"
 	"crypto/sha256"
+	_ "embed"
 	"encoding/hex"
 	"fmt"
 	"hash"
@@ -14,7 +15,13 @@ import (
 	"text/template"
 
 	"golang.org/x/exp/maps"
+	"gopkg.in/yaml.v3"
 )
+
+//go:generate sh -c "go tool dist list > go_dist_list.txt"
+
+//go:embed go_dist_list.txt
+var GoDists string
 
 // executeTemplate executes a template
 func executeTemplate(tmplString, goos, arch string, vars map[string]string) (string, error) {
@@ -38,16 +45,18 @@ func executeTemplate(tmplString, goos, arch string, vars map[string]string) (str
 // directoryChecksum returns a hash of directory contents.
 func directoryChecksum(inputDir string) (string, error) {
 	hasher := fnv.New64a()
-	err := filepath.Walk(inputDir, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-		linfo, err := os.Lstat(path)
+	err := filepath.WalkDir(inputDir, func(path string, dirEntry os.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
 
-		hPath := strings.TrimPrefix(strings.TrimPrefix(path, inputDir), string(filepath.Separator))
+		linfo, err := dirEntry.Info()
+		if err != nil {
+			return err
+		}
+
+		hPath := strings.TrimPrefix(path, inputDir)
+		hPath = strings.TrimPrefix(filepath.ToSlash(hPath), "/")
 		_, err = hasher.Write([]byte(hPath))
 		if err != nil {
 			return err
@@ -60,25 +69,22 @@ func directoryChecksum(inputDir string) (string, error) {
 			if err != nil {
 				return err
 			}
+			linkPath = filepath.ToSlash(linkPath)
 			_, err = hasher.Write([]byte(linkPath))
 			return err
 		}
 
-		if !info.Mode().IsRegular() {
+		if !linfo.Mode().IsRegular() {
 			return nil
 		}
 
-		fi, err := os.Open(path)
+		content, err := os.ReadFile(path)
 		if err != nil {
 			return err
 		}
-
-		_, err = io.Copy(hasher, fi)
-		if err != nil {
-			return err
-		}
-
-		return fi.Close()
+		content = bytes.ReplaceAll(content, []byte("\r\n"), []byte("\n"))
+		mustWriteToHash(hasher, content)
+		return nil
 	})
 	if err != nil {
 		return "", err
@@ -140,6 +146,7 @@ func copyFile(src, dst string) (errOut error) {
 	if err != nil {
 		return err
 	}
+	defer deferErr(&errOut, rdr.Close)
 
 	dstMode := srcStat.Mode()
 	writer, err := os.OpenFile(dst, os.O_RDWR|os.O_CREATE|os.O_TRUNC, dstMode)
@@ -175,24 +182,9 @@ func overrideValue[T comparable](p, override *T) *T {
 	return clonePointer(override)
 }
 
-func TransformSlice[T, V any](s []T, fn func(T) V) []V {
-	if s == nil {
-		return nil
-	}
-	out := make([]V, len(s))
-	for i, v := range s {
-		out[i] = fn(v)
-	}
-	return out
-}
-
-func TransformMap[K comparable, V, W any](m map[K]V, fn func(V) W) map[K]W {
-	if m == nil {
-		return nil
-	}
-	out := make(map[K]W, len(m))
-	for k, v := range m {
-		out[k] = fn(v)
-	}
-	return out
+func EncodeYaml(w io.Writer, v any) (errOut error) {
+	encoder := yaml.NewEncoder(w)
+	defer deferErr(&errOut, encoder.Close)
+	encoder.SetIndent(2)
+	return encoder.Encode(v)
 }

@@ -5,7 +5,10 @@ import (
 	"path/filepath"
 )
 
-func install(dep *builtDependency, targetPath, extractDir string) (string, error) {
+func install(dep *Dependency, targetPath, extractDir string) (string, error) {
+	if !dep.built {
+		panic("install called on non-built dependency")
+	}
 	var binName string
 	if dep.BinName != nil {
 		binName = *dep.BinName

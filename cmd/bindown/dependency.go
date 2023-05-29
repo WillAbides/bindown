@@ -7,9 +7,8 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/willabides/bindown/v3"
-	"github.com/willabides/bindown/v3/internal/builddep"
-	"gopkg.in/yaml.v2"
+	"github.com/willabides/bindown/v4/internal/bindown"
+	"github.com/willabides/bindown/v4/internal/builddep"
 )
 
 type dependencyCmd struct {
@@ -58,7 +57,7 @@ func (c *dependencyUpdateVarsCmd) Run(ctx *runContext) error {
 			return err
 		}
 	}
-	return config.Write(ctx.rootCmd.JSONConfig)
+	return config.WriteFile(ctx.rootCmd.JSONConfig)
 }
 
 type dependencyShowConfigCmd struct {
@@ -78,13 +77,13 @@ func (c *dependencyShowConfigCmd) Run(ctx *runContext) error {
 		encoder.SetIndent("", "  ")
 		return encoder.Encode(cfg.Dependencies[c.Dependency])
 	}
-	return yaml.NewEncoder(ctx.stdout).Encode(cfg.Dependencies[c.Dependency])
+	return bindown.EncodeYaml(ctx.stdout, cfg.Dependencies[c.Dependency])
 }
 
 type dependencyInfoCmd struct {
-	Dependency string               `kong:"arg,predictor=bin"`
-	Systems    []bindown.SystemInfo `kong:"name=system,help=${systems_help},predictor=allSystems"`
-	Vars       bool                 `kong:"help='include vars'"`
+	Dependency string           `kong:"arg,predictor=bin"`
+	Systems    []bindown.System `kong:"name=system,help=${systems_help},predictor=allSystems"`
+	Vars       bool             `kong:"help='include vars'"`
 }
 
 func (c *dependencyInfoCmd) Run(ctx *runContext) error {
@@ -92,16 +91,18 @@ func (c *dependencyInfoCmd) Run(ctx *runContext) error {
 	if err != nil {
 		return err
 	}
-	systems := c.Systems
+	var systems []bindown.System
+	systems = append(systems, c.Systems...)
 	if len(systems) == 0 {
 		systems, err = cfg.DependencySystems(c.Dependency)
 		if err != nil {
 			return err
 		}
 	}
-	result := map[string]*bindown.Dependency{}
+	result := map[bindown.System]*bindown.Dependency{}
 	for _, system := range systems {
-		dep, err := cfg.BuildDependency(c.Dependency, system)
+		var dep *bindown.Dependency
+		dep, err = cfg.BuildDependency(c.Dependency, system)
 		if err != nil {
 			return err
 		}
@@ -113,7 +114,7 @@ func (c *dependencyInfoCmd) Run(ctx *runContext) error {
 			dep.Vars = nil
 			dep.RequiredVars = nil
 		}
-		result[system.String()] = dep
+		result[system] = dep
 	}
 
 	if ctx.rootCmd.JSONConfig {
@@ -121,7 +122,7 @@ func (c *dependencyInfoCmd) Run(ctx *runContext) error {
 		encoder.SetIndent("", "  ")
 		return encoder.Encode(result)
 	}
-	return yaml.NewEncoder(ctx.stdout).Encode(result)
+	return bindown.EncodeYaml(ctx.stdout, result)
 }
 
 type dependencyListCmd struct{}
@@ -151,7 +152,7 @@ func (c *dependencyRemoveCmd) Run(ctx *runContext) error {
 		return fmt.Errorf("no dependency named %q", c.Dependency)
 	}
 	delete(cfg.Dependencies, c.Dependency)
-	return cfg.Write(ctx.rootCmd.JSONConfig)
+	return cfg.WriteFile(ctx.rootCmd.JSONConfig)
 }
 
 type dependencyAddCmd struct {
@@ -214,7 +215,7 @@ func (c *dependencyAddCmd) Run(ctx *runContext) error {
 			return err
 		}
 	}
-	return config.Write(ctx.rootCmd.JSONConfig)
+	return config.WriteFile(ctx.rootCmd.JSONConfig)
 }
 
 type dependencyAddByUrlsCmd struct {
@@ -235,11 +236,11 @@ func (c *dependencyAddByUrlsCmd) Run(ctx *runContext) error {
 	if config.Dependencies != nil && config.Dependencies[c.Name] != nil && !c.Force {
 		return fmt.Errorf("dependency %q already exists", c.Name)
 	}
-	err = builddep.AddDependency(ctx, &config.Config, c.Name, c.Version, c.Homepage, c.Description, c.URL)
+	err = builddep.AddDependency(ctx, config, c.Name, c.Version, c.Homepage, c.Description, c.URL)
 	if err != nil {
 		return err
 	}
-	return config.Write(ctx.rootCmd.JSONConfig)
+	return config.WriteFile(ctx.rootCmd.JSONConfig)
 }
 
 type dependencyAddByGithubReleaseCmd struct {
@@ -297,16 +298,16 @@ func (c *dependencyAddByGithubReleaseCmd) Run(ctx *runContext) error {
 	if config.Dependencies != nil && config.Dependencies[name] != nil && !c.Force {
 		return fmt.Errorf("dependency %q already exists", name)
 	}
-	err = builddep.AddDependency(ctx, &config.Config, name, ver, homepage, description, urls)
+	err = builddep.AddDependency(ctx, config, name, ver, homepage, description, urls)
 	if err != nil {
 		return err
 	}
-	return config.Write(ctx.rootCmd.JSONConfig)
+	return config.WriteFile(ctx.rootCmd.JSONConfig)
 }
 
 type dependencyValidateCmd struct {
-	Dependency string               `kong:"arg,predictor=bin"`
-	Systems    []bindown.SystemInfo `kong:"name=system,predictor=allSystems"`
+	Dependency string           `kong:"arg,predictor=bin"`
+	Systems    []bindown.System `kong:"name=system,predictor=allSystems"`
 }
 
 func (d dependencyValidateCmd) Run(ctx *runContext) error {
@@ -314,5 +315,5 @@ func (d dependencyValidateCmd) Run(ctx *runContext) error {
 	if err != nil {
 		return err
 	}
-	return config.Validate([]string{d.Dependency}, d.Systems)
+	return config.Validate(d.Dependency, d.Systems)
 }

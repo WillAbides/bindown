@@ -1,191 +1,217 @@
 {
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://willabides.github.io/bindown/bindown.schema.json",
   "$defs": {
-    "dependency": {
+    "Dependency": {
       "properties": {
-        "archive_path": {
-          "description": "The path in the downloaded archive where the binary is located. Default is ./\u003cbin\u003e",
-          "type": "string"
-        },
-        "bin": {
-          "description": "The name of the binary to be installed. Default is the name of the dependency.",
-          "type": "string"
+        "homepage": {
+          "type": "string",
+          "description": "The homepage for this dependency. Informational only."
         },
         "description": {
-          "description": "A description of this dependency",
-          "type": "string"
-        },
-        "homepage": {
-          "description": "The homepage for this dependency",
-          "type": "string"
-        },
-        "link": {
-          "description": "Whether to create a symlink to the bin instead of copying it.",
-          "type": "boolean"
-        },
-        "overrides": {
-          "additionalItems": false,
-          "description": "Overrides allows you to override values depending on the os and architecture of the target system.",
-          "items": {
-            "$ref": "#/$defs/override"
-          },
-          "type": "array"
-        },
-        "required_vars": {
-          "additionalItems": {
-            "type": "string"
-          },
-          "description": "A list of variables that must be present for an install to succeed",
-          "type": "array"
-        },
-        "substitutions": {
-          "additionalProperties": {
-            "additionalProperties": {
-              "type": "string"
-            },
-            "type": "object"
-          },
-          "description": "Substitutions will substitute values from vars.",
-          "examples": [
-            {
-              "arch": {
-                "386": "i386",
-                "amd64": "x86_64"
-              },
-              "os": {
-                "darwin": "Darwin",
-                "linux": "Linux",
-                "windows": "Windows"
-              }
-            }
-          ],
-          "type": "object"
-        },
-        "systems": {
-          "additionalItems": {
-            "type": "string"
-          },
-          "description": "List of systems this dependency is known to support",
-          "type": "array"
+          "type": "string",
+          "description": "A description of the dependency. Informational only."
         },
         "template": {
-          "description": "A template for this dependency. Any unset fields in this dependency will be set by values from the template. Overrides in the dependency and its template are concatenated with the template's overrides coming first. Vars and substitutions are both combined with the dependency's value taking precedence.\n",
-          "type": "string"
+          "type": "string",
+          "description": "A template for this dependency. Value is the name of a template in the templates section of this config.\nAny unset fields in this dependency will be set by values from the template. Overrides in the dependency\nand its template are concatenated with the template's overrides coming first. Vars and substitutions\nare both combined with the dependency's value taking precedence."
         },
         "url": {
-          "description": "The url to download a dependency from.",
-          "type": "string"
+          "type": "string",
+          "description": "The url to download a dependency from."
+        },
+        "archive_path": {
+          "type": "string",
+          "description": "The path in the downloaded archive where the binary is located. Default is ./\u003cbin\u003e"
+        },
+        "bin": {
+          "type": "string",
+          "description": "The name of the binary to be installed. Default is the name of the dependency."
+        },
+        "link": {
+          "type": "boolean",
+          "description": "Whether to create a symlink to the bin instead of copying it."
         },
         "vars": {
-          "additionalProperties": {
-            "oneOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "number"
-              }
-            ]
+          "patternProperties": {
+            ".*": {
+              "type": "string"
+            }
           },
-          "description": "A list of variables that can be used in 'url', 'archive_path' and 'bin'.\nTwo variables are always added based on the current environment: 'os' and 'arch'. Those are the operating system and architecture as defined by go's GOOS and GOARCH variables. I should document what those are somewhere.\nYou can reference a variable using golang template syntax. For example, you could have a url set to `https://example.org/mydependency/v{{.version}}/mydependency-{{.os}}-{{.arch}}.tar.gz`.  If you define the var 'version: 1.2.3' and run bindown on a 64 bit Linux system, it will download `https://example.org/mydependency/v1.2.3/mydependency-linux-amd64.tar.gz`.\n",
-          "type": "object"
+          "type": "object",
+          "description": "A list of variables that can be used in 'url', 'archive_path' and 'bin'.\n\nTwo variables are always added based on the current environment: 'os' and 'arch'. Those are the operating\nsystem and architecture as defined by go's GOOS and GOARCH variables. I should document what those are\nsomewhere.\n\nYou can reference a variable using golang template syntax. For example, you could have a url set to\n`https://example.org/mydependency/v{{.version}}/mydependency-{{.os}}-{{.arch}}.tar.gz`.  If you define the var\n'version: 1.2.3' and run bindown on a 64-bit Linux system, it will download\n`https://example.org/mydependency/v1.2.3/mydependency-linux-amd64.tar.gz`."
+        },
+        "overrides": {
+          "items": {
+            "$ref": "#/$defs/DependencyOverride"
+          },
+          "type": "array",
+          "description": "Overrides allows you to override values depending on the os and architecture of the target system."
+        },
+        "substitutions": {
+          "patternProperties": {
+            ".*": {
+              "patternProperties": {
+                ".*": {
+                  "type": "string"
+                }
+              },
+              "type": "object"
+            }
+          },
+          "type": "object",
+          "description": "Substitutions will substitute values from vars. The key is the name of the variable to substitute. The value is\na map of substitutions. { \"os\": { \"linux\": \"Linux\", \"darwin\": \"MacOS\" } } is an example of a substitution that\nwill update the os variable."
+        },
+        "systems": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array",
+          "description": "List of systems this dependency supports. Systems are in the form of os/architecture."
+        },
+        "required_vars": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array",
+          "description": "A list of variables that must be present for an install to succeed"
         }
       },
+      "additionalProperties": false,
       "type": "object"
     },
-    "override": {
-      "additionalProperties": false,
+    "DependencyOverride": {
       "properties": {
-        "dependency": {
-          "$ref": "#/$defs/dependency",
-          "description": "Values to override the parent dependency"
-        },
         "matcher": {
-          "additionalProperties": {
-            "description": "List of values to match. Any matching value will match. If a value can be interpreted as a SemVer, it will be treated as such.",
-            "items": {
-              "type": "string"
-            },
-            "type": "array"
-          },
-          "description": "Limits the override to configurations matching all of the matchers. Keys may be \"os\", \"arch\" or any variable name.",
-          "examples": [
-            {
-              "archivepathsuffix": [
-                ".zip"
-              ],
-              "os": [
-                "darwin",
-                "linux"
-              ],
-              "version": [
-                "\u003e=1.0.0 \u003c2.0.0"
-              ]
+          "patternProperties": {
+            ".*": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
             }
-          ],
-          "type": "object"
+          },
+          "type": "object",
+          "description": "Limits the override to configurations matching all of the matchers. Keys may be \"os\", \"arch\" or any variable name.\nValues are an array of values to match. Any matching value will match. If a value can be interpreted as a\nsemantic version it will be treated as such."
+        },
+        "dependency": {
+          "$ref": "#/$defs/Overrideable",
+          "description": "Values to override the parent dependency"
         }
       },
+      "additionalProperties": false,
+      "type": "object",
       "required": [
         "matcher",
         "dependency"
-      ],
+      ]
+    },
+    "Overrideable": {
+      "properties": {
+        "url": {
+          "type": "string",
+          "description": "The url to download a dependency from."
+        },
+        "archive_path": {
+          "type": "string",
+          "description": "The path in the downloaded archive where the binary is located. Default is ./\u003cbin\u003e"
+        },
+        "bin": {
+          "type": "string",
+          "description": "The name of the binary to be installed. Default is the name of the dependency."
+        },
+        "link": {
+          "type": "boolean",
+          "description": "Whether to create a symlink to the bin instead of copying it."
+        },
+        "vars": {
+          "patternProperties": {
+            ".*": {
+              "type": "string"
+            }
+          },
+          "type": "object",
+          "description": "A list of variables that can be used in 'url', 'archive_path' and 'bin'.\n\nTwo variables are always added based on the current environment: 'os' and 'arch'. Those are the operating\nsystem and architecture as defined by go's GOOS and GOARCH variables. I should document what those are\nsomewhere.\n\nYou can reference a variable using golang template syntax. For example, you could have a url set to\n`https://example.org/mydependency/v{{.version}}/mydependency-{{.os}}-{{.arch}}.tar.gz`.  If you define the var\n'version: 1.2.3' and run bindown on a 64-bit Linux system, it will download\n`https://example.org/mydependency/v1.2.3/mydependency-linux-amd64.tar.gz`."
+        },
+        "overrides": {
+          "items": {
+            "$ref": "#/$defs/DependencyOverride"
+          },
+          "type": "array",
+          "description": "Overrides allows you to override values depending on the os and architecture of the target system."
+        },
+        "substitutions": {
+          "patternProperties": {
+            ".*": {
+              "patternProperties": {
+                ".*": {
+                  "type": "string"
+                }
+              },
+              "type": "object"
+            }
+          },
+          "type": "object",
+          "description": "Substitutions will substitute values from vars. The key is the name of the variable to substitute. The value is\na map of substitutions. { \"os\": { \"linux\": \"Linux\", \"darwin\": \"MacOS\" } } is an example of a substitution that\nwill update the os variable."
+        }
+      },
+      "additionalProperties": false,
       "type": "object"
     }
   },
-  "$id": "https://willabides.github.io/bindown/bindown.schema.json",
-  "$schema": "http://json-schema.org/draft-07/schema#",
   "properties": {
     "cache": {
-      "default": "./.bindown",
-      "description": "The directory where bindown will cache downloads and extracted files. This is relative to the directory where the configuration file resides. cache paths should always use / as a delimiter even on Windows or other operating systems where the native delimiter isn't /.\n",
-      "type": "string"
+      "type": "string",
+      "description": "The directory where bindown will cache downloads and extracted files. This is relative to the directory where\nthe configuration file resides. cache paths should always use / as a delimiter even on Windows or other\noperating systems where the native delimiter isn't /."
+    },
+    "install_dir": {
+      "type": "string",
+      "description": "The directory that bindown installs files to. This is relative to the directory where the configuration file\nresides. install_directory paths should always use / as a delimiter even on Windows or other operating systems\nwhere the native delimiter isn't /."
     },
     "dependencies": {
-      "additionalProperties": {
-        "$ref": "#/$defs/dependency"
+      "patternProperties": {
+        ".*": {
+          "$ref": "#/$defs/Dependency"
+        }
       },
-      "description": "Dependencies available for bindown to install.",
-      "type": "object"
-    },
-    "install_directory": {
-      "default": "./bin",
-      "description": "The directory that bindown installs files to. This is relative to the directory where the configuration file resides. install_directory paths should always use / as a delimiter even on Windows or other operating systems where the native delimiter isn't /.\n",
-      "type": "string"
-    },
-    "systems": {
-      "additionalItems": {
-        "type": "string"
-      },
-      "description": "list of systems dependencies should support",
-      "type": "array"
-    },
-    "template_sources": {
-      "additionalProperties": {
-        "type": "string"
-      },
-      "description": "Upstream sources for templates.",
-      "type": "object"
+      "type": "object",
+      "description": "Dependencies available for bindown to install."
     },
     "templates": {
-      "additionalProperties": {
-        "$ref": "#/$defs/dependency"
+      "patternProperties": {
+        ".*": {
+          "$ref": "#/$defs/Dependency"
+        }
       },
-      "description": "Templates that can be used by dependencies in this file.",
-      "type": "object"
+      "type": "object",
+      "description": "Templates that can be used by dependencies in this file."
     },
-    "trust_cache": {
-      "default": false,
-      "description": "If true, bindown will trust the contents of the cache and not recheck checksums or verify that the files in the cache are the same as the files that were downloaded.\n",
-      "type": "boolean"
+    "template_sources": {
+      "patternProperties": {
+        ".*": {
+          "type": "string"
+        }
+      },
+      "type": "object",
+      "description": "Upstream sources for templates."
     },
-    "url_checksums": {
-      "additionalProperties": {
+    "systems": {
+      "items": {
         "type": "string"
       },
-      "description": "Checksums of downloaded files.",
-      "type": "object"
+      "type": "array",
+      "description": "List of systems supported by this config. Systems are in the form of os/architecture."
+    },
+    "url_checksums": {
+      "patternProperties": {
+        ".*": {
+          "type": "string"
+        }
+      },
+      "type": "object",
+      "description": "Checksums of downloaded files."
     }
   },
-  "title": "bindown configuration file",
+  "additionalProperties": false,
   "type": "object"
 }

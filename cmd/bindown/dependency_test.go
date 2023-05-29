@@ -4,114 +4,79 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"github.com/willabides/bindown/v3"
+	"github.com/willabides/bindown/v4/internal/testutil"
 )
 
 func Test_dependencyUpdateVarCmd(t *testing.T) {
 	for _, td := range []struct {
 		name      string
-		config    bindown.Config
+		config    string
 		args      []string
 		wantVars  map[string]string
 		wantState resultState
 	}{
 		{
 			name: "no changes",
-			config: bindown.Config{
-				Dependencies: map[string]*bindown.Dependency{
-					"dep1": {URL: ptr("foo")},
-				},
-				URLChecksums: map[string]string{"foo": "0000"},
-			},
+			config: `
+dependencies: {dep1: {url: foo}}
+url_checksums: {foo: "0000"}
+`,
 			args: []string{"dependency", "update-vars", "dep1"},
 		},
 		{
 			name: "create var",
-			config: bindown.Config{
-				Dependencies: map[string]*bindown.Dependency{
-					"dep1": {
-						URL:          ptr("foo"),
-						RequiredVars: []string{"foo"},
-					},
-				},
-				URLChecksums: map[string]string{"foo": "0000"},
-			},
+			config: `
+dependencies: {dep1: {url: foo, required_vars: [foo]}}
+url_checksums: {foo: "0000"}
+`,
 			args:     []string{"dependency", "update-vars", "dep1", "--set", "foo=bar"},
 			wantVars: map[string]string{"foo": "bar"},
 		},
 		{
 			name: "update var",
-			config: bindown.Config{
-				Dependencies: map[string]*bindown.Dependency{
-					"dep1": {
-						URL: ptr("foo"),
-						Vars: map[string]string{
-							"foo": "bar",
-						},
-					},
-				},
-				URLChecksums: map[string]string{"foo": "0000"},
-			},
+			config: `
+dependencies: {dep1: {url: foo, vars: {foo: bar}}}
+url_checksums: {foo: "0000"}
+`,
 			args:     []string{"dependency", "update-vars", "dep1", "--set", "foo=baz"},
 			wantVars: map[string]string{"foo": "baz"},
 		},
 		{
 			name: "unset var",
-			config: bindown.Config{
-				Dependencies: map[string]*bindown.Dependency{
-					"dep1": {
-						URL: ptr("foo"),
-						Vars: map[string]string{
-							"foo": "bar",
-							"baz": "qux",
-						},
-					},
-				},
-				URLChecksums: map[string]string{"foo": "0000"},
-			},
+			config: `
+dependencies: {dep1: {url: foo, vars: {foo: bar, baz: qux}}}
+url_checksums: {foo: "0000"}
+`,
 			args:     []string{"dependency", "update-vars", "dep1", "--unset", "foo"},
 			wantVars: map[string]string{"baz": "qux"},
 		},
 		{
 			name: "unset all vars",
-			config: bindown.Config{
-				Dependencies: map[string]*bindown.Dependency{
-					"dep1": {
-						URL: ptr("foo"),
-						Vars: map[string]string{
-							"foo": "bar",
-							"baz": "qux",
-						},
-					},
-				},
-				URLChecksums: map[string]string{"foo": "0000"},
-			},
+			config: `
+dependencies: {dep1: {url: foo, vars: {foo: bar, baz: qux}}}
+url_checksums: {foo: "0000"}
+`,
 			args: []string{"dependency", "update-vars", "dep1", "--unset", "foo,baz"},
 		},
 		{
 			name: "unset on empty vars",
-			config: bindown.Config{
-				Dependencies: map[string]*bindown.Dependency{
-					"dep1": {
-						URL: ptr("foo"),
-					},
-				},
-				URLChecksums: map[string]string{"foo": "0000"},
-			},
+			config: `
+dependencies: {dep1: {url: foo}}
+url_checksums: {foo: "0000"}
+`,
 			args: []string{"dependency", "update-vars", "dep1", "--unset", "foo"},
 		},
 		{
 			name: "no-op on non-existent dependency",
-			config: bindown.Config{
-				Dependencies: map[string]*bindown.Dependency{
-					"dep1": {URL: ptr("foo")},
-				},
-				URLChecksums: map[string]string{"foo": "0000"},
-			},
+			config: `
+dependencies: {dep1: {url: foo}}
+url_checksums: {foo: "0000"}
+`,
 			args: []string{"dependency", "update-vars", "fake"},
 			wantState: resultState{
 				stderr: `cmd: error: no dependency configured with the name "fake"`,
@@ -120,12 +85,10 @@ func Test_dependencyUpdateVarCmd(t *testing.T) {
 		},
 		{
 			name: "set var on non-existent dependency",
-			config: bindown.Config{
-				Dependencies: map[string]*bindown.Dependency{
-					"dep1": {URL: ptr("foo")},
-				},
-				URLChecksums: map[string]string{"foo": "0000"},
-			},
+			config: `
+dependencies: {dep1: {url: foo}}
+url_checksums: {foo: "0000"}
+`,
 			args: []string{"dependency", "update-vars", "fake", "--set", "foo=bar"},
 			wantState: resultState{
 				stderr: `cmd: error: dependency "fake" does not exist`,
@@ -134,12 +97,10 @@ func Test_dependencyUpdateVarCmd(t *testing.T) {
 		},
 		{
 			name: "set var on non-existent dependency",
-			config: bindown.Config{
-				Dependencies: map[string]*bindown.Dependency{
-					"dep1": {URL: ptr("foo")},
-				},
-				URLChecksums: map[string]string{"foo": "0000"},
-			},
+			config: `
+dependencies: {dep1: {url: foo}}
+url_checksums: {foo: "0000"}
+`,
 			args: []string{"dependency", "update-vars", "fake", "--unset", "foo"},
 			wantState: resultState{
 				stderr: `cmd: error: dependency "fake" does not exist`,
@@ -147,50 +108,32 @@ func Test_dependencyUpdateVarCmd(t *testing.T) {
 			},
 		},
 		{
-			name: "error adding checksums",
-			config: bindown.Config{
-				Dependencies: map[string]*bindown.Dependency{
-					"dep1": {URL: ptr("https://")},
-				},
-			},
-			args: []string{"dependency", "update-vars", "dep1", "--set", "foo=bar"},
+			name:   "error adding checksums",
+			config: `dependencies: {dep1: {url: "https://"}}`,
+			args:   []string{"dependency", "update-vars", "dep1", "--set", "foo=bar"},
 			wantState: resultState{
 				stderr: `cmd: error: Get "https:": http: no Host in request URL`,
 				exit:   1,
 			},
 		},
 		{
-			name: "--skipchecksums",
-			config: bindown.Config{
-				Dependencies: map[string]*bindown.Dependency{
-					"dep1": {URL: ptr("foo")},
-				},
-			},
-			args: []string{"dependency", "update-vars", "dep1", "--set", "foo=bar", "--skipchecksums"},
+			name:   "--skipchecksums",
+			config: `dependencies: {dep1: {url: foo}}`,
+			args:   []string{"dependency", "update-vars", "dep1", "--set", "foo=bar", "--skipchecksums"},
 			wantVars: map[string]string{
 				"foo": "bar",
 			},
 		},
 		{
-			name: "missing required vars",
-			config: bindown.Config{
-				Dependencies: map[string]*bindown.Dependency{
-					"dep1": {
-						URL: ptr("foo"),
-						Vars: map[string]string{
-							"foo": "bar",
-						},
-						RequiredVars: []string{"qux"},
-					},
-				},
-			},
+			name:     "missing required vars",
+			config:   `dependencies: {dep1: {url: foo, vars: {foo: bar}, required_vars: [qux]}}`,
 			args:     []string{"dependency", "update-vars", "dep1", "--set", "foo=baz"},
 			wantVars: map[string]string{"foo": "baz"},
 		},
 	} {
 		t.Run(td.name, func(t *testing.T) {
 			runner := newCmdRunner(t)
-			runner.writeConfig(&td.config)
+			runner.writeConfigYaml(td.config)
 			result := runner.run(td.args...)
 			result.assertState(td.wantState)
 			if td.wantVars != nil {
@@ -203,27 +146,22 @@ func Test_dependencyUpdateVarCmd(t *testing.T) {
 }
 
 func Test_dependencyShowConfigCmd(t *testing.T) {
-	baseCfg := bindown.Config{
-		Dependencies: map[string]*bindown.Dependency{
-			"dep1": {
-				URL: ptr("foo"),
-				Vars: map[string]string{
-					"foo": "bar",
-					"baz": "qux",
-				},
-			},
-		},
-	}
+	baseCfg := `
+dependencies:
+  dep1:
+    url: foo
+    vars:
+      foo: bar
+      baz: qux
+`
 	for _, td := range []struct {
 		name      string
-		config    bindown.Config
 		args      []string
 		wantState resultState
 	}{
 		{
-			name:   "json output",
-			config: baseCfg,
-			args:   []string{"dependency", "show-config", "dep1", "--json"},
+			name: "json output",
+			args: []string{"dependency", "show-config", "dep1", "--json"},
 			wantState: resultState{
 				stdout: `
 {
@@ -237,9 +175,8 @@ func Test_dependencyShowConfigCmd(t *testing.T) {
 			},
 		},
 		{
-			name:   "yaml output",
-			config: baseCfg,
-			args:   []string{"dependency", "show-config", "dep1"},
+			name: "yaml output",
+			args: []string{"dependency", "show-config", "dep1"},
 			wantState: resultState{
 				stdout: `
 url: foo
@@ -250,9 +187,8 @@ vars:
 			},
 		},
 		{
-			name:   "non-existent dependency",
-			config: baseCfg,
-			args:   []string{"dependency", "show-config", "fake"},
+			name: "non-existent dependency",
+			args: []string{"dependency", "show-config", "fake"},
 			wantState: resultState{
 				stderr: `cmd: error: no dependency named "fake"`,
 				exit:   1,
@@ -261,7 +197,7 @@ vars:
 	} {
 		t.Run(td.name, func(t *testing.T) {
 			runner := newCmdRunner(t)
-			runner.writeConfig(&td.config)
+			runner.writeConfigYaml(baseCfg)
 			result := runner.run(td.args...)
 			result.assertState(td.wantState)
 		})
@@ -269,50 +205,32 @@ vars:
 }
 
 func Test_dependencyInfoCmd(t *testing.T) {
-	baseCfg := bindown.Config{
-		Systems: []bindown.SystemInfo{
-			{OS: "darwin", Arch: "amd64"},
-			{OS: "linux", Arch: "386"},
-			{OS: "linux", Arch: "arm64"},
-		},
-		Dependencies: map[string]*bindown.Dependency{
-			"dep1": {
-				Link: ptr(true),
-				URL:  ptr("foo-{{ .foo }}-{{ .version }}-{{ .os }}-{{ .arch }}"),
-				Vars: map[string]string{
-					"foo":     "bar",
-					"baz":     "qux",
-					"version": "1.2.3",
-				},
-				ArchivePath: ptr("{{ .version }}-{{ .os }}-{{ .arch }}/bin/foo"),
-				Systems: []bindown.SystemInfo{
-					{OS: "darwin", Arch: "amd64"},
-					{OS: "linux", Arch: "386"},
-					{OS: "windows", Arch: "386"},
-				},
-				Overrides: []bindown.DependencyOverride{
-					{
-						OverrideMatcher: bindown.OverrideMatcher{
-							"os": []string{"darwin"},
-						},
-						Dependency: bindown.Dependency{
-							Link: ptr(false),
-						},
-					},
-				},
-			},
-		},
-	}
+	baseCfg := `
+systems: [darwin/amd64, linux/386, linux/arm64]
+dependencies:
+  dep1:
+    link: true
+    url: "foo-{{ .foo }}-{{ .version }}-{{ .os }}-{{ .arch }}"
+    vars:
+      foo: bar
+      baz: qux
+      version: 1.2.3
+    archive_path: "{{ .version }}-{{ .os }}-{{ .arch }}/bin/foo"
+    systems: [darwin/amd64, linux/386, windows/386]
+    overrides:
+      - matcher:
+          os: [darwin]
+        dependency:
+          link: false
+`
 	for _, td := range []struct {
 		name      string
-		config    bindown.Config
 		args      []string
 		wantState resultState
 	}{
 		{
-			name:   "json output",
-			config: baseCfg,
-			args:   []string{"dependency", "info", "dep1", "--json"},
+			name: "json output",
+			args: []string{"dependency", "info", "dep1", "--json"},
 			wantState: resultState{
 				stdout: `
 {
@@ -333,9 +251,8 @@ func Test_dependencyInfoCmd(t *testing.T) {
 			},
 		},
 		{
-			name:   "yaml output",
-			config: baseCfg,
-			args:   []string{"dependency", "info", "dep1"},
+			name: "yaml output",
+			args: []string{"dependency", "info", "dep1"},
 			wantState: resultState{
 				stdout: `
 darwin/amd64:
@@ -354,7 +271,7 @@ linux/386:
 	} {
 		t.Run(td.name, func(t *testing.T) {
 			runner := newCmdRunner(t)
-			runner.writeConfig(&td.config)
+			runner.writeConfigYaml(baseCfg)
 			result := runner.run(td.args...)
 			result.assertState(td.wantState)
 		})
@@ -362,70 +279,45 @@ linux/386:
 }
 
 func Test_dependencyListCmd(t *testing.T) {
-	baseCfg := bindown.Config{
-		Dependencies: map[string]*bindown.Dependency{
-			"dep1": {
-				URL: ptr("foo"),
-			},
-			"dep2": {
-				URL: ptr("bar"),
-			},
-		},
-	}
-	for _, td := range []struct {
-		name      string
-		config    bindown.Config
-		args      []string
-		wantState resultState
-	}{
-		{
-			config: baseCfg,
-			args:   []string{"dependency", "list", "--json"},
-			wantState: resultState{
-				stdout: `
+	runner := newCmdRunner(t)
+	runner.writeConfigYaml(`
+dependencies:
+  dep1:
+    url: foo
+  dep2:
+    url: bar
+`)
+	result := runner.run("dependency", "list", "--json")
+	result.assertState(resultState{
+		stdout: `
 dep1
 dep2
 `,
-			},
-		},
-	} {
-		t.Run(td.name, func(t *testing.T) {
-			runner := newCmdRunner(t)
-			runner.writeConfig(&td.config)
-			result := runner.run(td.args...)
-			result.assertState(td.wantState)
-		})
-	}
+	})
 }
 
 func Test_dependencyRemoveCmd(t *testing.T) {
-	baseCfg := bindown.Config{
-		Dependencies: map[string]*bindown.Dependency{
-			"dep1": {
-				URL: ptr("foo"),
-			},
-			"dep2": {
-				URL: ptr("bar"),
-			},
-		},
-	}
+	baseCfg := `
+dependencies:
+  dep1:
+    url: foo
+  dep2:
+    url: bar
+`
 	for _, td := range []struct {
 		name      string
-		config    bindown.Config
 		args      []string
 		wantState resultState
 		wantDeps  []string
 	}{
 		{
 			name:     "remove one",
-			config:   baseCfg,
 			args:     []string{"dependency", "remove", "dep1"},
 			wantDeps: []string{"dep2"},
 		},
 		{
-			name:   "non-existent",
-			config: baseCfg,
-			args:   []string{"dependency", "remove", "dep3"},
+			name: "non-existent",
+			args: []string{"dependency", "remove", "dep3"},
 			wantState: resultState{
 				stderr: `cmd: error: no dependency named "dep3"`,
 				exit:   1,
@@ -435,7 +327,7 @@ func Test_dependencyRemoveCmd(t *testing.T) {
 	} {
 		t.Run(td.name, func(t *testing.T) {
 			runner := newCmdRunner(t)
-			runner.writeConfig(&td.config)
+			runner.writeConfigYaml(baseCfg)
 			result := runner.run(td.args...)
 			result.assertState(td.wantState)
 			cfg := runner.getConfigFile()
@@ -472,12 +364,12 @@ url_checksums:
 		result := runner.run("dependency", "add", "dep1", "tmpl", "--var=version=1.2.3")
 		result.assertState(resultState{})
 		cfg := runner.getConfigFile()
-		wantDep := &bindown.Dependency{
-			Template: ptr("tmpl"),
-			Vars: map[string]string{
-				"version": "1.2.3",
-			},
-		}
+		wantDep := mustConfigFromYAML(t, `
+dependencies:
+  dep1:
+    template: tmpl
+    vars: {version: "1.2.3"}
+`).Dependencies["dep1"]
 		require.Equal(t, wantDep, cfg.Dependencies["dep1"])
 	})
 
@@ -495,9 +387,13 @@ url_checksums:
 		runner := newCmdRunner(t)
 		runner.writeConfigYaml(`{}`)
 		result := runner.run("dependency", "add", "dep1", "tmpl", "--source=foo")
+		wantStderr := `no such file or directory`
+		if runtime.GOOS == "windows" {
+			wantStderr = `The system cannot find the file specified`
+		}
 		result.assertState(resultState{
 			exit:   1,
-			stderr: `cmd: error: open foo: no such file or directory`,
+			stderr: wantStderr,
 		})
 	})
 
@@ -508,6 +404,7 @@ url_checksums:
 url_checksums:
   foo-linux-amd64-1.2.3: deadbeef
   foo-darwin-amd64-1.2.3: deadbeef
+  foo-windows-amd64-1.2.3: deadbeef
 template_sources:
   origin: %q
 `, srcFile))
@@ -521,12 +418,12 @@ templates:
 		require.NoError(t, err)
 		result := runner.run("dependency", "add", "dep1", "tmpl", "--var=version=1.2.3", "--source=origin")
 		result.assertState(resultState{})
-		wantDep := &bindown.Dependency{
-			Template: ptr("origin#tmpl"),
-			Vars: map[string]string{
-				"version": "1.2.3",
-			},
-		}
+		wantDep := mustConfigFromYAML(t, `
+dependencies:
+  dep1:
+    template: origin#tmpl
+    vars: {version: "1.2.3"}
+`).Dependencies["dep1"]
 		cfg := runner.getConfigFile()
 		require.Equal(t, wantDep, cfg.Dependencies["dep1"])
 	})
@@ -538,6 +435,7 @@ templates:
 url_checksums:
   foo-linux-amd64-1.2.3: deadbeef
   foo-darwin-amd64-1.2.3: deadbeef
+  foo-windows-amd64-1.2.3: deadbeef
 template_sources:
   origin: %q
 `, srcFile))
@@ -551,12 +449,12 @@ templates:
 		require.NoError(t, err)
 		result := runner.run("dependency", "add", "dep1", "origin#tmpl", "--var=version=1.2.3")
 		result.assertState(resultState{})
-		wantDep := &bindown.Dependency{
-			Template: ptr("origin#tmpl"),
-			Vars: map[string]string{
-				"version": "1.2.3",
-			},
-		}
+		wantDep := mustConfigFromYAML(t, `
+dependencies:
+  dep1:
+    template: origin#tmpl
+    vars: {version: "1.2.3"}
+`).Dependencies["dep1"]
 		cfg := runner.getConfigFile()
 		require.Equal(t, wantDep, cfg.Dependencies["dep1"])
 	})
@@ -572,6 +470,7 @@ templates:
 url_checksums:
   foo-linux-amd64-1.2.3: deadbeef
   foo-darwin-amd64-1.2.3: deadbeef
+  foo-windows-amd64-1.2.3: deadbeef
 `)
 		runner.stdin = strings.NewReader("1.2.3\nbar")
 		result := runner.run("dependency", "add", "dep1", "tmpl")
@@ -579,13 +478,12 @@ url_checksums:
 			stdout: `Please enter a value for required variable "version":	Please enter a value for required variable "foo":`,
 		})
 		cfg := runner.getConfigFile()
-		wantDep := &bindown.Dependency{
-			Template: ptr("tmpl"),
-			Vars: map[string]string{
-				"version": "1.2.3",
-				"foo":     "bar",
-			},
-		}
+		wantDep := mustConfigFromYAML(t, `
+dependencies:
+  dep1:
+    template: tmpl
+    vars: {version: "1.2.3", foo: bar}
+`).Dependencies["dep1"]
 		require.Equal(t, wantDep, cfg.Dependencies["dep1"])
 	})
 
@@ -594,7 +492,7 @@ url_checksums:
 		tar := filepath.Join(downloadablesDir, "runnable.tar.gz")
 		zip := filepath.Join(downloadablesDir, "runnable_windows.zip")
 
-		server := serveFiles(t, map[string]string{
+		server := testutil.ServeFiles(t, map[string]string{
 			"/foo/v1.2.3/foo-darwin-amd64.tar.gz": tar,
 			"/foo/v1.2.3/foo-darwin-arm64.tar.gz": tar,
 			"/foo/v1.2.3/foo-linux-amd64.tar.gz":  tar,
@@ -603,30 +501,23 @@ url_checksums:
 
 		srcPath := testdataPath("configs/dep-add-source.yaml")
 		runner := newCmdRunner(t)
-		runner.writeConfig(&bindown.Config{
-			Systems: []bindown.SystemInfo{
-				{OS: "darwin", Arch: "amd64"},
-				{OS: "darwin", Arch: "arm64"},
-				{OS: "linux", Arch: "amd64"},
-				{OS: "windows", Arch: "amd64"},
-			},
-			TemplateSources: map[string]string{
-				"origin": srcPath,
-			},
-		})
+		runner.writeConfigYaml(fmt.Sprintf(`
+systems: ["darwin/amd64", "darwin/arm64", "linux/amd64", "windows/amd64"]
+template_sources:
+  origin: %q
+`, srcPath))
 		wantStdout := `Please enter a value for required variable "version":	Please enter a value for required variable "addr":	`
 		runner.stdin = strings.NewReader(fmt.Sprintf("%s\n%s", "1.2.3", server.URL))
 		result := runner.run("dependency", "add", "foo", "tmpl1", "--source", "origin")
 		require.Equal(t, 0, result.exitVal)
 		require.Equal(t, wantStdout, result.stdOut.String())
 		gotCfg := runner.getConfigFile()
-		wantDep := &bindown.Dependency{
-			Template: ptr("origin#tmpl1"),
-			Vars: map[string]string{
-				"version": "1.2.3",
-				"addr":    server.URL,
-			},
-		}
+		wantDep := mustConfigFromYAML(t, fmt.Sprintf(`
+dependencies:
+  foo:
+    template: origin#tmpl1
+    vars: {version: "1.2.3", addr: %q}
+`, server.URL)).Dependencies["foo"]
 		wantChecksums := map[string]string{
 			fmt.Sprintf("%s/foo/v1.2.3/foo-darwin-amd64.tar.gz", server.URL): "fb2fe41a34b77ee180def0cb9a222d8776a6e581106009b64f35983da291ab6e",
 			fmt.Sprintf("%s/foo/v1.2.3/foo-darwin-arm64.tar.gz", server.URL): "fb2fe41a34b77ee180def0cb9a222d8776a6e581106009b64f35983da291ab6e",
@@ -645,7 +536,7 @@ func Test_dependencyValidateCmd(t *testing.T) {
 		tar := filepath.Join(downloadablesDir, "runnable.tar.gz")
 		zip := filepath.Join(downloadablesDir, "runnable_windows.zip")
 
-		server := serveFiles(t, map[string]string{
+		server := testutil.ServeFiles(t, map[string]string{
 			"/foo/v1.2.3/foo-darwin-amd64.tar.gz": tar,
 			"/foo/v1.2.3/foo-darwin-arm64.tar.gz": tar,
 			"/foo/v1.2.3/foo-linux-amd64.tar.gz":  tar,
@@ -653,45 +544,35 @@ func Test_dependencyValidateCmd(t *testing.T) {
 		})
 
 		runner := newCmdRunner(t)
-		runner.writeConfig(&bindown.Config{
-			Systems: []bindown.SystemInfo{
-				{OS: "darwin", Arch: "amd64"},
-				{OS: "darwin", Arch: "arm64"},
-				{OS: "linux", Arch: "amd64"},
-				{OS: "windows", Arch: "amd64"},
-			},
-			Dependencies: map[string]*bindown.Dependency{
-				"foo": {
-					URL:         ptr("{{ .addr }}/foo/v{{ .version }}/foo-{{ .os }}-{{ .arch }}{{ .urlsuffix }}"),
-					ArchivePath: ptr("bin/runnable{{ .archivepathsuffix }}"),
-					Vars: map[string]string{
-						"version":           "1.2.3",
-						"addr":              server.URL,
-						"archivepathsuffix": ".sh",
-						"urlsuffix":         ".tar.gz",
-					},
-					Overrides: []bindown.DependencyOverride{
-						{
-							OverrideMatcher: bindown.OverrideMatcher{
-								"os": []string{"windows"},
-							},
-							Dependency: bindown.Dependency{
-								Vars: map[string]string{
-									"archivepathsuffix": ".bat",
-									"urlsuffix":         ".zip",
-								},
-							},
-						},
-					},
-				},
-			},
-			URLChecksums: map[string]string{
-				fmt.Sprintf("%s/foo/v1.2.3/foo-darwin-amd64.tar.gz", server.URL): "fb2fe41a34b77ee180def0cb9a222d8776a6e581106009b64f35983da291ab6e",
-				fmt.Sprintf("%s/foo/v1.2.3/foo-darwin-arm64.tar.gz", server.URL): "fb2fe41a34b77ee180def0cb9a222d8776a6e581106009b64f35983da291ab6e",
-				fmt.Sprintf("%s/foo/v1.2.3/foo-linux-amd64.tar.gz", server.URL):  "fb2fe41a34b77ee180def0cb9a222d8776a6e581106009b64f35983da291ab6e",
-				fmt.Sprintf("%s/foo/v1.2.3/foo-windows-amd64.zip", server.URL):   "141aad02bfacdd9e9e0460459d572fbabda2b47c39c26ad82b4ea3b4f1548545",
-			},
-		})
+		runner.writeConfigYaml(fmt.Sprintf(`
+systems:
+- darwin/amd64
+- darwin/arm64
+- linux/amd64
+- windows/amd64
+dependencies:
+  foo:
+    url: "{{ .addr }}/foo/v{{ .version }}/foo-{{ .os }}-{{ .arch }}{{ .urlsuffix }}"
+    archive_path: bin/runnable{{ .archivepathsuffix }}
+    vars:
+      version: 1.2.3
+      addr: %q
+      archivepathsuffix: .sh
+      urlsuffix: .tar.gz
+    overrides:
+    - matcher:
+        os:
+        - windows
+      dependency:
+        vars:
+          archivepathsuffix: .bat
+          urlsuffix: .zip
+url_checksums:
+  "%s/foo/v1.2.3/foo-darwin-amd64.tar.gz": fb2fe41a34b77ee180def0cb9a222d8776a6e581106009b64f35983da291ab6e
+  "%s/foo/v1.2.3/foo-darwin-arm64.tar.gz": fb2fe41a34b77ee180def0cb9a222d8776a6e581106009b64f35983da291ab6e
+  "%s/foo/v1.2.3/foo-linux-amd64.tar.gz": fb2fe41a34b77ee180def0cb9a222d8776a6e581106009b64f35983da291ab6e
+  "%s/foo/v1.2.3/foo-windows-amd64.zip": 141aad02bfacdd9e9e0460459d572fbabda2b47c39c26ad82b4ea3b4f1548545
+  `, server.URL, server.URL, server.URL, server.URL, server.URL))
 		result := runner.run("dependency", "validate", "foo")
 		result.assertState(resultState{})
 	})

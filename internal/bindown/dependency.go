@@ -10,93 +10,99 @@ import (
 	"golang.org/x/exp/slices"
 )
 
-// DependencyOverride overrides a dependency's configuration
 type DependencyOverride struct {
-	OverrideMatcher OverrideMatcher `json:"matcher" yaml:"matcher,omitempty"`
-	Dependency      Dependency      `json:"dependency" yaml:",omitempty"`
+	// Limits the override to configurations matching all of the matchers. Keys may be "os", "arch" or any variable name.
+	// Values are an array of values to match. Any matching value will match. If a value can be interpreted as a
+	// semantic version it will be treated as such.
+	OverrideMatcher map[string][]string `json:"matcher" yaml:"matcher,omitempty"`
+
+	// Values to override the parent dependency
+	Dependency Overrideable `json:"dependency" yaml:"dependency,omitempty"`
 }
 
-func (o *DependencyOverride) Clone() *DependencyOverride {
-	return &DependencyOverride{
-		Dependency:      *(o.Dependency.Clone()),
-		OverrideMatcher: o.OverrideMatcher.Clone(),
-	}
+type Overrideable struct {
+	// The url to download a dependency from.
+	URL *string `json:"url,omitempty" yaml:",omitempty"`
+
+	// The path in the downloaded archive where the binary is located. Default is ./<bin>
+	ArchivePath *string `json:"archive_path,omitempty" yaml:"archive_path,omitempty"`
+
+	// The name of the binary to be installed. Default is the name of the dependency.
+	BinName *string `json:"bin,omitempty" yaml:"bin,omitempty"`
+
+	// Whether to create a symlink to the bin instead of copying it.
+	Link *bool `json:"link,omitempty" yaml:",omitempty"`
+
+	// A list of variables that can be used in 'url', 'archive_path' and 'bin'.
+	//
+	// Two variables are always added based on the current environment: 'os' and 'arch'. Those are the operating
+	// system and architecture as defined by go's GOOS and GOARCH variables. I should document what those are
+	// somewhere.
+	//
+	// You can reference a variable using golang template syntax. For example, you could have a url set to
+	// `https://example.org/mydependency/v{{.version}}/mydependency-{{.os}}-{{.arch}}.tar.gz`.  If you define the var
+	// 'version: 1.2.3' and run bindown on a 64-bit Linux system, it will download
+	// `https://example.org/mydependency/v1.2.3/mydependency-linux-amd64.tar.gz`.
+	Vars map[string]string `json:"vars,omitempty" yaml:",omitempty"`
+
+	// Overrides allows you to override values depending on the os and architecture of the target system.
+	Overrides []DependencyOverride `json:"overrides,omitempty" yaml:",omitempty"`
+
+	// Substitutions will substitute values from vars. The key is the name of the variable to substitute. The value is
+	// a map of substitutions. { "os": { "linux": "Linux", "darwin": "MacOS" } } is an example of a substitution that
+	// will update the os variable.
+	Substitutions map[string]map[string]string `json:"substitutions,omitempty" yaml:",omitempty"`
 }
 
-// OverrideMatcher contains a list or oses and arches to match an override. If either os or arch is empty, all oses and arches match.
-type OverrideMatcher map[string][]string
-
-func (o OverrideMatcher) matches(info SystemInfo, vars map[string]string) bool {
-	if vars == nil {
-		vars = map[string]string{}
-	}
-	for varName, patterns := range o {
-		val, ok := vars[varName]
-		if !ok {
-			if varName == "os" {
-				val = info.OS
-			}
-			if varName == "arch" {
-				val = info.Arch
-			}
+func (d *Overrideable) clone() *Overrideable {
+	overrides := slices.Clone(d.Overrides)
+	for i, override := range overrides {
+		matcher := maps.Clone(override.OverrideMatcher)
+		for k, v := range matcher {
+			matcher[k] = slices.Clone(v)
 		}
-		match := false
-		for _, pattern := range patterns {
-			if pattern == val {
-				match = true
-				break
-			}
-			// If pattern can be parsed as a semver constraint and val can be parsed as a semver version, check if val meets the constraint
-			constraint, err := semver.NewConstraint(pattern)
-			if err != nil {
-				continue
-			}
-			version, err := semver.NewVersion(val)
-			if err != nil {
-				continue
-			}
-			if constraint.Check(version) {
-				match = true
-				break
-			}
-		}
-		if !match {
-			return false
+		overrides[i] = DependencyOverride{
+			OverrideMatcher: matcher,
+			Dependency:      *(override.Dependency.clone()),
 		}
 	}
-	return true
-}
-
-func (o OverrideMatcher) Clone() OverrideMatcher {
-	clone := maps.Clone(o)
-	for i := range clone {
-		clone[i] = slices.Clone(clone[i])
+	return &Overrideable{
+		URL:           clonePointer(d.URL),
+		ArchivePath:   clonePointer(d.ArchivePath),
+		BinName:       clonePointer(d.BinName),
+		Link:          clonePointer(d.Link),
+		Vars:          maps.Clone(d.Vars),
+		Overrides:     overrides,
+		Substitutions: cloneSubstitutions(d.Substitutions),
 	}
-	return clone
 }
 
-type builtDependency struct {
-	Dependency
+type Dependency struct {
+	// The homepage for this dependency. Informational only.
+	Homepage *string `json:"homepage,omitempty" yaml:",omitempty"`
+
+	// A description of the dependency. Informational only.
+	Description *string `json:"description,omitempty" yaml:",omitempty"`
+
+	// A template for this dependency. Value is the name of a template in the templates section of this config.
+	// Any unset fields in this dependency will be set by values from the template. Overrides in the dependency
+	// and its template are concatenated with the template's overrides coming first. Vars and substitutions
+	// are both combined with the dependency's value taking precedence.
+	Template *string `json:"template,omitempty" yaml:",omitempty"`
+
+	Overrideable `json:",inline" yaml:",inline"`
+
+	// List of systems this dependency supports. Systems are in the form of os/architecture.
+	Systems []System `json:"systems,omitempty" yaml:"systems,omitempty"`
+
+	// A list of variables that must be present for an install to succeed
+	RequiredVars []string `json:"required_vars,omitempty" yaml:"required_vars,omitempty"`
+
+	built    bool
 	name     string
 	checksum string
 	url      string
-	system   SystemInfo
-}
-
-// Dependency is something to download, extract and install
-type Dependency struct {
-	Homepage      *string                      `json:"homepage,omitempty" yaml:",omitempty"`
-	Description   *string                      `json:"description,omitempty" yaml:",omitempty"`
-	Template      *string                      `json:"template,omitempty" yaml:",omitempty"`
-	URL           *string                      `json:"url,omitempty" yaml:",omitempty"`
-	ArchivePath   *string                      `json:"archive_path,omitempty" yaml:"archive_path,omitempty"`
-	BinName       *string                      `json:"bin,omitempty" yaml:"bin,omitempty"`
-	Link          *bool                        `json:"link,omitempty" yaml:",omitempty"`
-	Vars          map[string]string            `json:"vars,omitempty" yaml:",omitempty"`
-	RequiredVars  []string                     `json:"required_vars,omitempty" yaml:"required_vars,omitempty"`
-	Overrides     []DependencyOverride         `json:"overrides,omitempty" yaml:",omitempty"`
-	Substitutions map[string]map[string]string `json:"substitutions,omitempty" yaml:",omitempty"`
-	Systems       []SystemInfo                 `json:"systems,omitempty" yaml:"systems,omitempty"`
+	system   System
 }
 
 func cloneSubstitutions(subs map[string]map[string]string) map[string]map[string]string {
@@ -121,35 +127,26 @@ func varsWithSubstitutions(vars map[string]string, subs map[string]map[string]st
 	return vars
 }
 
-func (d *Dependency) Clone() *Dependency {
-	dep := Dependency{
-		Homepage:      clonePointer(d.Homepage),
-		Description:   clonePointer(d.Description),
-		Vars:          maps.Clone(d.Vars),
-		URL:           clonePointer(d.URL),
-		ArchivePath:   clonePointer(d.ArchivePath),
-		Template:      clonePointer(d.Template),
-		BinName:       clonePointer(d.BinName),
-		Link:          clonePointer(d.Link),
-		Overrides:     slices.Clone(d.Overrides),
-		Substitutions: cloneSubstitutions(d.Substitutions),
-		Systems:       slices.Clone(d.Systems),
-		RequiredVars:  slices.Clone(d.RequiredVars),
+func (d *Dependency) clone() *Dependency {
+	dd := &Dependency{
+		Overrideable: *(d.Overrideable.clone()),
+		Homepage:     clonePointer(d.Homepage),
+		Description:  clonePointer(d.Description),
+		Template:     clonePointer(d.Template),
+		Systems:      slices.Clone(d.Systems),
+		RequiredVars: slices.Clone(d.RequiredVars),
 	}
-	for i, override := range dep.Overrides {
-		dep.Overrides[i] = *override.Clone()
-	}
-	return &dep
+	return dd
 }
 
 // interpolateVars executes go templates in values
-func (d *Dependency) interpolateVars(system SystemInfo) error {
+func (d *Dependency) interpolateVars(system System) error {
 	for _, p := range []*string{d.URL, d.ArchivePath, d.BinName} {
 		if p == nil {
 			continue
 		}
 		var err error
-		*p, err = executeTemplate(*p, system.OS, system.Arch, d.Vars)
+		*p, err = executeTemplate(*p, system.OS(), system.Arch(), d.Vars)
 		if err != nil {
 			return err
 		}
@@ -157,24 +154,27 @@ func (d *Dependency) interpolateVars(system SystemInfo) error {
 	return nil
 }
 
-const maxTemplateDepth = 2
+const maxTemplateDepth = 10
 
 func (d *Dependency) applyTemplate(templates map[string]*Dependency, depth int) error {
-	if depth > maxTemplateDepth {
+	if d.Template == nil {
 		return nil
 	}
-	templateName := d.Template
-	if templateName == nil || *templateName == "" {
+	templateName := *d.Template
+	if templateName == "" {
 		return nil
+	}
+	if depth >= maxTemplateDepth {
+		return fmt.Errorf("max template depth of %d exceeded", maxTemplateDepth)
 	}
 	if templates == nil {
 		templates = map[string]*Dependency{}
 	}
-	tmpl, ok := templates[*templateName]
+	tmpl, ok := templates[templateName]
 	if !ok {
-		return fmt.Errorf("no template named %s", *templateName)
+		return fmt.Errorf("no template named %s", templateName)
 	}
-	newDL := tmpl.Clone()
+	newDL := tmpl.clone()
 	err := newDL.applyTemplate(templates, depth+1)
 	if err != nil {
 		return err
@@ -192,33 +192,60 @@ func (d *Dependency) applyTemplate(templates map[string]*Dependency, depth int) 
 		newDL.RequiredVars = append(newDL.RequiredVars, d.RequiredVars...)
 	}
 	newDL.Systems = slices.Clone(newDL.Systems)
-	newDL.addOverrides(d.Overrides)
+
+	if len(d.Overrides) > 0 {
+		newDL.Overrides = append(newDL.Overrides, d.Overrides...)
+	}
 	*d = *newDL
 	return nil
 }
 
-func (d *Dependency) addOverrides(overrides []DependencyOverride) {
-	if len(overrides) == 0 {
-		return
-	}
-	if d.Overrides == nil {
-		d.Overrides = make([]DependencyOverride, 0, len(overrides))
-	}
-	for i := range overrides {
-		d.Overrides = append(d.Overrides, *overrides[i].Clone())
-	}
-}
+const maxOverrideDepth = 10
 
-const maxOverrideDepth = 2
-
-func (d *Dependency) applyOverrides(info SystemInfo, depth int) {
+func (d *Overrideable) applyOverrides(system System, depth int) error {
+	if depth >= maxOverrideDepth && len(d.Overrides) > 0 {
+		return fmt.Errorf("max override depth of %d exceeded", maxOverrideDepth)
+	}
 	for i := range d.Overrides {
-		if !d.Overrides[i].OverrideMatcher.matches(info, d.Vars) {
+		systemVars := maps.Clone(d.Vars)
+		if systemVars == nil {
+			systemVars = make(map[string]string)
+		}
+		if _, ok := systemVars["os"]; !ok {
+			systemVars["os"] = system.OS()
+		}
+		if _, ok := systemVars["arch"]; !ok {
+			systemVars["arch"] = system.Arch()
+		}
+		match := !slices.ContainsFunc(maps.Keys(d.Overrides[i].OverrideMatcher), func(varName string) bool {
+			overridePatterns := d.Overrides[i].OverrideMatcher[varName]
+			val := systemVars[varName]
+			// A match is found if the value is an exact match for a pattern or if the
+			// pattern is a valid semver constraint and the value is a valid semver that
+			// satisfies the constraint.
+			matcher := func(pattern string) bool {
+				if pattern == val {
+					return true
+				}
+				constraint, err := semver.NewConstraint(pattern)
+				if err != nil {
+					return false
+				}
+				version, err := semver.NewVersion(val)
+				if err != nil {
+					return false
+				}
+				return constraint.Check(version)
+			}
+			return !slices.ContainsFunc(overridePatterns, matcher)
+		})
+		if !match {
 			continue
 		}
 		dependency := &d.Overrides[i].Dependency
-		if depth <= maxOverrideDepth {
-			dependency.applyOverrides(info, depth+1)
+		err := dependency.applyOverrides(system, depth+1)
+		if err != nil {
+			return err
 		}
 		for subType, mp := range dependency.Substitutions {
 			if d.Substitutions == nil {
@@ -238,6 +265,7 @@ func (d *Dependency) applyOverrides(info SystemInfo, depth int) {
 		maps.Copy(d.Vars, dependency.Vars)
 	}
 	d.Overrides = nil
+	return nil
 }
 
 func linkBin(link, src string) error {

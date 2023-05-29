@@ -1,0 +1,13 @@
+#!/bin/bash
+
+set -e
+
+CDPATH="" cd -- "$(dirname -- "$(dirname -- "$0")")"
+
+. script/goenv
+
+make -s bin/yq
+
+go run ./internal/genjsonschema > bindown.schema.json
+cp bindown.schema.json ./internal/bindown/bindown.schema.json
+bin/yq -P . < bindown.schema.json > bindown.schema.yml

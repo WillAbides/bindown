@@ -25,7 +25,7 @@ If you happen to already have go installed on your system, you can install
 bindown with:
 
 ```
-GO111MODULE=on go get -u github.com/willabides/bindown/v3/cmd/bindown 
+GO111MODULE=on go get -u github.com/willabides/bindown/v4/cmd/bindown 
 ```
 
 Note the lowercase `willabides`. Pro tip: Your life will be easier with a

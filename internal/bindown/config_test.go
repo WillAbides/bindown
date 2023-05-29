@@ -2,27 +2,19 @@ package bindown
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
+	"runtime"
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"gopkg.in/yaml.v3"
+	"github.com/willabides/bindown/v4/internal/testutil"
 )
-
-func configFromYaml(t *testing.T, yml string) *Config {
-	t.Helper()
-	got := new(Config)
-	decoder := yaml.NewDecoder(strings.NewReader(yml))
-	decoder.KnownFields(true)
-	require.NoError(t, decoder.Decode(got))
-	return got
-}
 
 func TestConfig_UnsetDependencyVars(t *testing.T) {
 	t.Run("deletes", func(t *testing.T) {
-		cfg := configFromYaml(t, `
+		cfg := mustConfigFromYAML(t, `
 dependencies:
   foo:
     vars:
@@ -38,7 +30,7 @@ dependencies:
 	})
 
 	t.Run("nil vars", func(t *testing.T) {
-		cfg := configFromYaml(t, `
+		cfg := mustConfigFromYAML(t, `
 dependencies:
   foo: {}
 `)
@@ -50,7 +42,7 @@ dependencies:
 
 func TestConfig_UnsetTemplateVars(t *testing.T) {
 	t.Run("deletes", func(t *testing.T) {
-		cfg := configFromYaml(t, `
+		cfg := mustConfigFromYAML(t, `
 templates:
   foo:
     vars:
@@ -66,7 +58,7 @@ templates:
 	})
 
 	t.Run("nil vars", func(t *testing.T) {
-		cfg := configFromYaml(t, `
+		cfg := mustConfigFromYAML(t, `
 templates:
   foo: {}
 `)
@@ -78,7 +70,7 @@ templates:
 
 func TestConfig_SetDependencyVars(t *testing.T) {
 	t.Run("replaces and adds", func(t *testing.T) {
-		cfg := configFromYaml(t, `
+		cfg := mustConfigFromYAML(t, `
 dependencies:
   foo:
     vars:
@@ -99,7 +91,7 @@ dependencies:
 	})
 
 	t.Run("nil vars", func(t *testing.T) {
-		cfg := configFromYaml(t, `
+		cfg := mustConfigFromYAML(t, `
 dependencies:
   foo: {}
 `)
@@ -118,7 +110,7 @@ dependencies:
 
 func TestConfig_SetTemplateVars(t *testing.T) {
 	t.Run("replaces and adds", func(t *testing.T) {
-		cfg := configFromYaml(t, `
+		cfg := mustConfigFromYAML(t, `
 templates:
   foo:
     vars:
@@ -139,7 +131,7 @@ templates:
 	})
 
 	t.Run("nil vars", func(t *testing.T) {
-		cfg := configFromYaml(t, `
+		cfg := mustConfigFromYAML(t, `
 templates:
   foo: {}
 `)
@@ -162,7 +154,7 @@ func TestConfig_addTemplateFromSource(t *testing.T) {
 		t.Run("success", func(t *testing.T) {
 			cfg := new(Config)
 			src := filepath.Join("testdata", "configs", "ex1.yaml")
-			srcCfg, err := LoadConfigFile(ctx, src, true)
+			srcCfg, err := NewConfig(ctx, src, true)
 			require.NoError(t, err)
 			err = cfg.addTemplateFromSource(ctx, src, "goreleaser", "mygoreleaser")
 			require.NoError(t, err)
@@ -187,10 +179,10 @@ func TestConfig_addTemplateFromSource(t *testing.T) {
 
 	t.Run("http", func(t *testing.T) {
 		srcFile := filepath.Join("testdata", "configs", "ex1.yaml")
-		ts := serveFile(t, srcFile, "/ex1.yaml", "")
+		ts := testutil.ServeFile(t, srcFile, "/ex1.yaml", "")
 		cfg := new(Config)
 		src := ts.URL + "/ex1.yaml"
-		srcCfg, err := LoadConfigFile(ctx, srcFile, true)
+		srcCfg, err := NewConfig(ctx, srcFile, true)
 		require.NoError(t, err)
 		err = cfg.addTemplateFromSource(ctx, src, "goreleaser", "mygoreleaser")
 		require.NoError(t, err)
@@ -201,137 +193,118 @@ func TestConfig_addTemplateFromSource(t *testing.T) {
 func TestConfig_InstallDependency(t *testing.T) {
 	t.Run("raw file", func(t *testing.T) {
 		dir := t.TempDir()
-		servePath := filepath.Join("testdata", "downloadables", filepath.FromSlash("rawfile/foo"))
-		ts := serveFile(t, servePath, "/foo/foo", "")
+		servePath := filepath.Join("testdata", "downloadables", "rawfile", "foo")
+		ts := testutil.ServeFile(t, servePath, "/foo/foo", "")
 		depURL := ts.URL + "/foo/foo"
 		binDir := filepath.Join(dir, "bin")
 		require.NoError(t, os.MkdirAll(binDir, 0o755))
 		cacheDir := filepath.Join(dir, ".bindown")
-		config := &Config{
-			InstallDir: binDir,
-			Cache:      cacheDir,
-			URLChecksums: map[string]string{
-				depURL: "f044ff8b6007c74bcc1b5a5c92776e5d49d6014f5ff2d551fab115c17f48ac41",
-			},
-			Dependencies: map[string]*Dependency{
-				"foo": {
-					URL: &depURL,
-				},
-			},
-		}
+		config := mustConfigFromYAML(t, fmt.Sprintf(`
+install_dir: %q
+cache: %q
+url_checksums:
+  "%s": f044ff8b6007c74bcc1b5a5c92776e5d49d6014f5ff2d551fab115c17f48ac41
+dependencies:
+  foo:
+    url: %q
+`, binDir, cacheDir, depURL, depURL))
 		t.Cleanup(func() { require.NoError(t, config.ClearCache()) })
 		wantBin := filepath.Join(binDir, "foo")
-		gotPath, err := config.InstallDependency("foo", newSystemInfo("darwin", "amd64"), &ConfigInstallDependencyOpts{})
+		gotPath, err := config.InstallDependency("foo", "darwin/amd64", &ConfigInstallDependencyOpts{})
 		require.NoError(t, err)
 		require.Equal(t, wantBin, gotPath)
 		require.True(t, fileExists(wantBin))
 		stat, err := os.Stat(wantBin)
 		require.NoError(t, err)
 		require.False(t, stat.IsDir())
-		require.Equal(t, os.FileMode(0o750), stat.Mode().Perm()&0o750)
+		testutil.AssertExecutable(t, stat.Mode())
 	})
 
 	t.Run("bin in root", func(t *testing.T) {
 		dir := t.TempDir()
 		servePath := filepath.Join("testdata", "downloadables", "fooinroot.tar.gz")
-		ts := serveFile(t, servePath, "/foo/fooinroot.tar.gz", "")
+		ts := testutil.ServeFile(t, servePath, "/foo/fooinroot.tar.gz", "")
 		depURL := ts.URL + "/foo/fooinroot.tar.gz"
 		binDir := filepath.Join(dir, "bin")
 		require.NoError(t, os.MkdirAll(binDir, 0o755))
 		cacheDir := filepath.Join(dir, ".bindown")
-		config := &Config{
-			InstallDir: binDir,
-			Cache:      cacheDir,
-			URLChecksums: map[string]string{
-				depURL: "27dcce60d1ed72920a84dd4bc01e0bbd013e5a841660e9ee2e964e53fb83c0b3",
-			},
-			Dependencies: map[string]*Dependency{
-				"foo": {
-					URL: &depURL,
-				},
-			},
-		}
+		config := mustConfigFromYAML(t, fmt.Sprintf(`
+install_dir: %q
+cache: %q
+url_checksums:
+  "%s": 27dcce60d1ed72920a84dd4bc01e0bbd013e5a841660e9ee2e964e53fb83c0b3
+dependencies:
+  foo:
+    url: %q
+`, binDir, cacheDir, depURL, depURL))
 		t.Cleanup(func() { require.NoError(t, config.ClearCache()) })
 		wantBin := filepath.Join(binDir, "foo")
-		gotPath, err := config.InstallDependency("foo", newSystemInfo("darwin", "amd64"), &ConfigInstallDependencyOpts{})
+		gotPath, err := config.InstallDependency("foo", "darwin/amd64", &ConfigInstallDependencyOpts{})
 		require.NoError(t, err)
 		require.Equal(t, wantBin, gotPath)
 		require.True(t, fileExists(wantBin))
 		stat, err := os.Stat(wantBin)
 		require.NoError(t, err)
 		require.False(t, stat.IsDir())
-		require.Equal(t, os.FileMode(0o750), stat.Mode().Perm()&0o750)
+		wantMode := os.FileMode(0o750)
+		if runtime.GOOS == "windows" {
+			wantMode = 0o640
+		}
+		require.Equal(t, wantMode, stat.Mode().Perm()&0o750)
 	})
 
 	t.Run("wrong checksum", func(t *testing.T) {
 		dir := t.TempDir()
 		servePath := filepath.Join("testdata", "downloadables", "fooinroot.tar.gz")
-		ts := serveFile(t, servePath, "/foo/fooinroot.tar.gz", "")
+		ts := testutil.ServeFile(t, servePath, "/foo/fooinroot.tar.gz", "")
 		depURL := ts.URL + "/foo/fooinroot.tar.gz"
 		binDir := filepath.Join(dir, "bin")
 		require.NoError(t, os.MkdirAll(binDir, 0o755))
 		cacheDir := filepath.Join(dir, ".bindown")
-		config := &Config{
-			InstallDir: binDir,
-			Cache:      cacheDir,
-			URLChecksums: map[string]string{
-				depURL: "0000000000000000000000000000000000000000000000000000000000000000",
-			},
-			Dependencies: map[string]*Dependency{
-				"foo": {
-					URL: &depURL,
-				},
-			},
-		}
+		config := mustConfigFromYAML(t, fmt.Sprintf(`
+install_dir: %q
+cache: %q
+url_checksums:
+  "%s": "0000000000000000000000000000000000000000000000000000000000000000"
+dependencies:
+  foo:
+    url: %q
+`, binDir, cacheDir, depURL, depURL))
 		t.Cleanup(func() { require.NoError(t, config.ClearCache()) })
 		wantBin := filepath.Join(binDir, "foo")
-		_, err := config.InstallDependency("foo", newSystemInfo("darwin", "amd64"), &ConfigInstallDependencyOpts{})
+		_, err := config.InstallDependency("foo", "darwin/amd64", &ConfigInstallDependencyOpts{})
 		require.Error(t, err)
 		require.False(t, fileExists(wantBin))
 	})
 }
 
 func TestConfig_addChecksums(t *testing.T) {
-	ts1 := serveFile(t, filepath.Join("testdata", "downloadables", "foo.tar.gz"), "/foo/foo.tar.gz", "")
-	ts2 := serveFile(t, filepath.Join("testdata", "downloadables", "foo.tar.gz"), "/foo/foo.tar.gz", "")
-	ts3 := serveFile(t, filepath.Join("testdata", "downloadables", "foo.tar.gz"), "/foo/foo.tar.gz", "")
-	ts4 := serveFile(t, filepath.Join("testdata", "downloadables", "foo.tar.gz"), "/foo/foo.tar.gz", "")
-	ts5 := serveFile(t, filepath.Join("testdata", "downloadables", "foo.tar.gz"), "/foo/foo.tar.gz", "")
+	ts1 := testutil.ServeFile(t, filepath.Join("testdata", "downloadables", "foo.tar.gz"), "/foo/foo.tar.gz", "")
+	ts2 := testutil.ServeFile(t, filepath.Join("testdata", "downloadables", "foo.tar.gz"), "/foo/foo.tar.gz", "")
+	ts3 := testutil.ServeFile(t, filepath.Join("testdata", "downloadables", "foo.tar.gz"), "/foo/foo.tar.gz", "")
+	ts4 := testutil.ServeFile(t, filepath.Join("testdata", "downloadables", "foo.tar.gz"), "/foo/foo.tar.gz", "")
+	ts5 := testutil.ServeFile(t, filepath.Join("testdata", "downloadables", "foo.tar.gz"), "/foo/foo.tar.gz", "")
 	dl1 := ts1.URL + "/foo/foo.tar.gz"
 	dl2 := ts2.URL + "/foo/foo.tar.gz"
 	dl3 := ts3.URL + "/foo/foo.tar.gz"
 	dl4 := ts4.URL + "/foo/foo.tar.gz"
 	dl5 := ts5.URL + "/foo/foo.tar.gz"
-	cfg := &Config{
-		Dependencies: map[string]*Dependency{
-			"d1": {
-				URL: &dl1,
-				Overrides: []DependencyOverride{
-					{
-						Dependency:      Dependency{URL: &dl2},
-						OverrideMatcher: OverrideMatcher{"os": []string{"darwin"}},
-					},
-					{
-						Dependency:      Dependency{URL: &dl5},
-						OverrideMatcher: OverrideMatcher{"os": []string{"windows"}},
-					},
-				},
-			},
-			"d2": {
-				URL: &dl3,
-				Overrides: []DependencyOverride{
-					{
-						Dependency:      Dependency{URL: &dl4},
-						OverrideMatcher: OverrideMatcher{"os": []string{"darwin"}},
-					},
-				},
-			},
-		},
-	}
-	err := cfg.AddChecksums(nil, []SystemInfo{
-		newSystemInfo("darwin", "amd64"),
-		newSystemInfo("linux", "amd64"),
-	})
+	cfg := mustConfigFromYAML(t, fmt.Sprintf(`
+dependencies:
+  d1:
+    url: %q
+    overrides:
+      - matcher: {os: [darwin]}
+        dependency: {url: %q}
+      - matcher: {os: [windows]}
+        dependency: {url: %q}
+  d2:
+    url: %q
+    overrides:
+      - matcher: {os: [darwin]}
+        dependency: {url: %q}
+`, dl1, dl2, dl5, dl3, dl4))
+	err := cfg.AddChecksums(nil, []System{"darwin/amd64", "linux/amd64"})
 	require.NoError(t, err)
 	require.Len(t, cfg.URLChecksums, 4)
 	require.Equal(t, map[string]string{
@@ -343,104 +316,50 @@ func TestConfig_addChecksums(t *testing.T) {
 }
 
 func TestConfig_BuildDependency(t *testing.T) {
-	cfg := &Config{
-		Dependencies: map[string]*Dependency{
-			"dut": {
-				URL: ptr("https://{{.os}}"),
-				Overrides: []DependencyOverride{
-					{
-						OverrideMatcher: OverrideMatcher{
-							"arch": []string{"testArch"},
-							"os":   []string{"testOS"},
-						},
-						Dependency: Dependency{
-							URL: ptr("https://{{.os}}-{{.var1}}-{{.var2}}"),
-							Vars: map[string]string{
-								"var1": "overrideV1",
-								"var2": "overrideV2",
-							},
-						},
-					},
-				},
-				Vars: map[string]string{
-					"var1": "v1",
-					"var2": "v2",
-				},
-			},
-		},
-	}
-	dep, err := cfg.BuildDependency("dut", newSystemInfo("testOS", "testArch"))
+	cfg := mustConfigFromYAML(t, `
+dependencies:
+  dut:
+    url: https://{{.os}}
+    vars:
+      var1: v1
+      var2: v2
+    overrides:
+      - matcher: {arch: [testArch], os: [testOS]}
+        dependency:
+          url: https://{{.os}}-{{.var1}}-{{.var2}}
+          vars:
+            var1: overrideV1
+            var2: overrideV2
+`)
+	dep, err := cfg.BuildDependency("dut", "testOS/testArch")
 	require.NoError(t, err)
 	require.Equal(t, "https://testOS-overrideV1-overrideV2", *dep.URL)
 	require.Equal(t, "https://{{.os}}-{{.var1}}-{{.var2}}", *cfg.Dependencies["dut"].Overrides[0].Dependency.URL)
 }
 
 func TestConfig_addChecksum(t *testing.T) {
-	ts1 := serveFile(t, filepath.Join("testdata", "downloadables", "foo.tar.gz"), "/testOS2-v1-v2", "")
-	ts2 := serveFile(t, filepath.Join("testdata", "downloadables", "foo.tar.gz"), "/testOS-overrideV1-overrideV2", "")
+	ts1 := testutil.ServeFile(t, filepath.Join("testdata", "downloadables", "foo.tar.gz"), "/testOS2-v1-v2", "")
+	ts2 := testutil.ServeFile(t, filepath.Join("testdata", "downloadables", "foo.tar.gz"), "/testOS-overrideV1-overrideV2", "")
 	dlURL := ts1.URL + "/{{.os}}-{{.var1}}-{{.var2}}"
 	dlURL2 := ts2.URL + "/{{.os}}-{{.var1}}-{{.var2}}"
 	overrideCheckedURL := ts2.URL + "/testOS-overrideV1-overrideV2"
 	checkedURL := ts1.URL + "/testOS2-v1-v2"
-	cfg := &Config{
-		Dependencies: map[string]*Dependency{
-			"dut": {
-				URL: &dlURL,
-				Overrides: []DependencyOverride{
-					{
-						OverrideMatcher: OverrideMatcher{
-							"arch": []string{"testArch"},
-							"os":   []string{"testOS"},
-						},
-						Dependency: Dependency{
-							URL: &dlURL2,
-							Vars: map[string]string{
-								"var1": "overrideV1",
-								"var2": "overrideV2",
-							},
-						},
-					},
-				},
-				Vars: map[string]string{
-					"var1": "v1",
-					"var2": "v2",
-				},
-			},
-		},
-	}
-	want := &Config{
-		Dependencies: map[string]*Dependency{
-			"dut": {
-				URL: &dlURL,
-				Overrides: []DependencyOverride{
-					{
-						OverrideMatcher: OverrideMatcher{
-							"arch": []string{"testArch"},
-							"os":   []string{"testOS"},
-						},
-						Dependency: Dependency{
-							URL: &dlURL2,
-							Vars: map[string]string{
-								"var1": "overrideV1",
-								"var2": "overrideV2",
-							},
-						},
-					},
-				},
-				Vars: map[string]string{
-					"var1": "v1",
-					"var2": "v2",
-				},
-			},
-		},
-		URLChecksums: map[string]string{
-			checkedURL:         fooChecksum,
-			overrideCheckedURL: fooChecksum,
-		},
-	}
-	err := cfg.addChecksum("dut", newSystemInfo("testOS", "testArch"))
+	cfg := mustConfigFromYAML(t, fmt.Sprintf(`
+dependencies:
+  dut:
+    url: %q
+    overrides:
+      - matcher: {arch: [testArch], os: [testOS]}
+        dependency: {url: %q, vars: {var1: overrideV1, var2: overrideV2}}
+    vars: {var1: v1, var2: v2}
+
+`, dlURL, dlURL2))
+	err := cfg.addChecksum("dut", "testOS/testArch")
 	require.NoError(t, err)
-	err = cfg.addChecksum("dut", newSystemInfo("testOS2", "foo"))
+	err = cfg.addChecksum("dut", "testOS2/foo")
 	require.NoError(t, err)
-	require.Equal(t, want, cfg)
+	require.Equal(t, cfg.URLChecksums, map[string]string{
+		checkedURL:         fooChecksum,
+		overrideCheckedURL: fooChecksum,
+	})
 }

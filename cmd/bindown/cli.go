@@ -5,11 +5,10 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"runtime"
 	"time"
 
 	"github.com/alecthomas/kong"
-	"github.com/willabides/bindown/v3"
+	"github.com/willabides/bindown/v4/internal/bindown"
 	"github.com/willabides/kongplete"
 )
 
@@ -17,7 +16,7 @@ var kongVars = kong.Vars{
 	"configfile_help":                 `file with bindown config. default is the first one of bindown.yml, bindown.yaml, bindown.json, .bindown.yml, .bindown.yaml or .bindown.json`,
 	"cache_help":                      `directory downloads will be cached`,
 	"install_help":                    `download, extract and install a dependency`,
-	"system_default":                  fmt.Sprintf("%s/%s", runtime.GOOS, runtime.GOARCH),
+	"system_default":                  string(bindown.CurrentSystem),
 	"system_help":                     `target system in the format of <os>/<architecture>`,
 	"systems_help":                    `target systems in the format of <os>/<architecture>`,
 	"add_checksums_help":              `add checksums to the config file`,
@@ -45,7 +44,6 @@ type rootCmd struct {
 	JSONConfig bool   `kong:"name=json,help='treat config file as json instead of yaml'"`
 	Configfile string `kong:"type=path,help=${configfile_help},env='BINDOWN_CONFIG_FILE'"`
 	CacheDir   string `kong:"name=cache,type=path,help=${cache_help},env='BINDOWN_CACHE'"`
-	TrustCache *bool  `kong:"help=${trust_cache_help},env='BINDOWN_TRUST_CACHE'"`
 	Quiet      bool   `kong:"short='q',help='suppress output to stdout'"`
 
 	Download        downloadCmd        `kong:"cmd,help=${download_help}"`
@@ -62,9 +60,6 @@ type rootCmd struct {
 
 	Version            versionCmd                   `kong:"cmd,help='show bindown version'"`
 	InstallCompletions kongplete.InstallCompletions `kong:"cmd,help=${config_install_completions_help}"`
-
-	AddChecksums addChecksumsCmd `kong:"cmd,hidden"`
-	Validate     validateCmd     `kong:"cmd,hidden"`
 }
 
 var defaultConfigFilenames = []string{
@@ -76,7 +71,7 @@ var defaultConfigFilenames = []string{
 	".bindown.json",
 }
 
-func loadConfigFile(ctx *runContext, noDefaultDirs bool) (*bindown.ConfigFile, error) {
+func loadConfigFile(ctx *runContext, noDefaultDirs bool) (*bindown.Config, error) {
 	filename := ctx.rootCmd.Configfile
 	if filename == "" {
 		for _, configFilename := range defaultConfigFilenames {
@@ -87,15 +82,12 @@ func loadConfigFile(ctx *runContext, noDefaultDirs bool) (*bindown.ConfigFile, e
 			}
 		}
 	}
-	configFile, err := bindown.LoadConfigFile(ctx, filename, noDefaultDirs)
+	configFile, err := bindown.NewConfig(ctx, filename, noDefaultDirs)
 	if err != nil {
 		return nil, err
 	}
 	if ctx.rootCmd.CacheDir != "" {
 		configFile.Cache = ctx.rootCmd.CacheDir
-	}
-	if ctx.rootCmd.TrustCache != nil {
-		configFile.TrustCache = *ctx.rootCmd.TrustCache
 	}
 	return configFile, nil
 }
@@ -220,10 +212,10 @@ func (c *initCmd) Run(ctx *runContext) error {
 	if err != nil {
 		return err
 	}
-	cfg := &bindown.ConfigFile{
+	cfg := &bindown.Config{
 		Filename: file.Name(),
 	}
-	return cfg.Write(ctx.rootCmd.JSONConfig)
+	return cfg.WriteFile(ctx.rootCmd.JSONConfig)
 }
 
 type fmtCmd struct{}
@@ -234,25 +226,15 @@ func (c fmtCmd) Run(ctx *runContext, cli *rootCmd) error {
 	if err != nil {
 		return err
 	}
-	return config.Write(ctx.rootCmd.JSONConfig)
-}
-
-// validateCmd is a deprecated synonym for dependencyValidateCmd
-type validateCmd struct {
-	Dependency string               `kong:"required=true,arg,predictor=bin"`
-	Systems    []bindown.SystemInfo `kong:"name=system,predictor=allSystems"`
-}
-
-func (d validateCmd) Run(ctx *runContext) error {
-	return dependencyValidateCmd(d).Run(ctx)
+	return config.WriteFile(ctx.rootCmd.JSONConfig)
 }
 
 type installCmd struct {
-	Force                bool               `kong:"help=${install_force_help}"`
-	Dependency           string             `kong:"required=true,arg,help=${download_dependency_help},predictor=bin"`
-	TargetFile           string             `kong:"type=path,name=output,type=file,help=${install_target_file_help}"`
-	System               bindown.SystemInfo `kong:"name=system,default=${system_default},help=${system_help},predictor=allSystems"`
-	AllowMissingChecksum bool               `kong:"name=allow-missing-checksum,help=${allow_missing_checksum}"`
+	Force                bool           `kong:"help=${install_force_help}"`
+	Dependency           string         `kong:"required=true,arg,help=${download_dependency_help},predictor=bin"`
+	TargetFile           string         `kong:"type=path,name=output,type=file,help=${install_target_file_help}"`
+	System               bindown.System `kong:"name=system,default=${system_default},help=${system_help},predictor=allSystems"`
+	AllowMissingChecksum bool           `kong:"name=allow-missing-checksum,help=${allow_missing_checksum}"`
 }
 
 func (d *installCmd) Run(ctx *runContext) error {
@@ -273,11 +255,10 @@ func (d *installCmd) Run(ctx *runContext) error {
 }
 
 type downloadCmd struct {
-	Force                bool               `kong:"help=${download_force_help}"`
-	System               bindown.SystemInfo `kong:"name=system,default=${system_default},help=${system_help},predictor=allSystems"`
-	Dependency           string             `kong:"required=true,arg,help=${download_dependency_help},predictor=bin"`
-	TargetFile           string             `kong:"name=output,help=${download_target_file_help}"`
-	AllowMissingChecksum bool               `kong:"name=allow-missing-checksum,help=${allow_missing_checksum}"`
+	Force                bool           `kong:"help=${download_force_help}"`
+	System               bindown.System `kong:"name=system,default=${system_default},help=${system_help},predictor=allSystems"`
+	Dependency           string         `kong:"required=true,arg,help=${download_dependency_help},predictor=bin"`
+	AllowMissingChecksum bool           `kong:"name=allow-missing-checksum,help=${allow_missing_checksum}"`
 }
 
 func (d *downloadCmd) Run(ctx *runContext) error {
@@ -286,7 +267,6 @@ func (d *downloadCmd) Run(ctx *runContext) error {
 		return err
 	}
 	pth, err := config.DownloadDependency(d.Dependency, d.System, &bindown.ConfigDownloadDependencyOpts{
-		TargetFile:           d.TargetFile,
 		Force:                d.Force,
 		AllowMissingChecksum: d.AllowMissingChecksum,
 	})
@@ -298,10 +278,9 @@ func (d *downloadCmd) Run(ctx *runContext) error {
 }
 
 type extractCmd struct {
-	System               bindown.SystemInfo `kong:"name=system,default=${system_default},help=${system_help},predictor=allSystems"`
-	Dependency           string             `kong:"required=true,arg,help=${extract_dependency_help},predictor=bin"`
-	TargetDir            string             `kong:"name=output,help=${extract_target_dir_help}"`
-	AllowMissingChecksum bool               `kong:"name=allow-missing-checksum,help=${allow_missing_checksum}"`
+	System               bindown.System `kong:"name=system,default=${system_default},help=${system_help},predictor=allSystems"`
+	Dependency           string         `kong:"required=true,arg,help=${extract_dependency_help},predictor=bin"`
+	AllowMissingChecksum bool           `kong:"name=allow-missing-checksum,help=${allow_missing_checksum}"`
 }
 
 func (d *extractCmd) Run(ctx *runContext) error {
@@ -310,7 +289,6 @@ func (d *extractCmd) Run(ctx *runContext) error {
 		return err
 	}
 	pth, err := config.ExtractDependency(d.Dependency, d.System, &bindown.ConfigExtractDependencyOpts{
-		TargetDirectory:      d.TargetDir,
 		Force:                false,
 		AllowMissingChecksum: d.AllowMissingChecksum,
 	})

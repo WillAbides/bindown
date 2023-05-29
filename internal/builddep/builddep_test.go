@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"github.com/willabides/bindown/v3"
+	"github.com/willabides/bindown/v4/internal/bindown"
 	"gopkg.in/yaml.v3"
 )
 
@@ -45,13 +45,9 @@ systems:
 	require.NoError(t, err)
 	got, err := yaml.Marshal(&cfg)
 	require.NoError(t, err)
+	fmt.Println(string(got))
 
 	want := `
-systems:
-    - linux/386
-    - darwin/amd64
-    - windows/amd64
-    - darwin/386
 dependencies:
     bindown:
         template: bindown
@@ -66,8 +62,6 @@ templates:
         vars:
             archivePathSuffix: ""
             urlSuffix: .tar.gz
-        required_vars:
-            - version
         overrides:
             - matcher:
                 os:
@@ -79,6 +73,13 @@ templates:
             - darwin/amd64
             - linux/386
             - windows/amd64
+        required_vars:
+            - version
+systems:
+    - linux/386
+    - darwin/amd64
+    - windows/amd64
+    - darwin/386
 url_checksums:
     https://github.com/WillAbides/bindown/releases/download/v3.16.1/bindown_3.16.1_darwin_amd64.tar.gz: 724502e502dd7929fa717c0aab0bc759d8bf221ccf58b535f16732a574fe560f
     https://github.com/WillAbides/bindown/releases/download/v3.16.1/bindown_3.16.1_linux_386.tar.gz: 35cca77fb8bad4d7a1644a2cd0b61a34ec4ef5d74943077e22faab4aba9fda66

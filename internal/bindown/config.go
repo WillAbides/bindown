@@ -3,6 +3,7 @@ package bindown
 import (
 	"context"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"hash/fnv"
 	"io"
@@ -11,24 +12,40 @@ import (
 	"os"
 	"path"
 	"path/filepath"
-	"runtime"
 	"sort"
 	"strings"
 
-	"github.com/willabides/bindown/v3/internal/cache"
-	"gopkg.in/yaml.v2"
+	"github.com/willabides/bindown/v4/internal/cache"
+	"gopkg.in/yaml.v3"
 )
 
-// Config is our main config
 type Config struct {
-	Cache           string                 `json:"cache,omitempty" yaml:"cache,omitempty"`
-	TrustCache      bool                   `json:"trust_cache,omitempty" yaml:"trust_cache,omitempty"`
-	InstallDir      string                 `json:"install_dir,omitempty" yaml:"install_dir,omitempty"`
-	Systems         []SystemInfo           `json:"systems,omitempty" yaml:"systems,omitempty"`
-	Dependencies    map[string]*Dependency `json:"dependencies,omitempty" yaml:",omitempty"`
-	Templates       map[string]*Dependency `json:"templates,omitempty" yaml:",omitempty"`
-	TemplateSources map[string]string      `json:"template_sources,omitempty" yaml:"template_sources,omitempty"`
-	URLChecksums    map[string]string      `json:"url_checksums,omitempty" yaml:"url_checksums,omitempty"`
+	// The directory where bindown will cache downloads and extracted files. This is relative to the directory where
+	// the configuration file resides. cache paths should always use / as a delimiter even on Windows or other
+	// operating systems where the native delimiter isn't /.
+	Cache string `json:"cache,omitempty" yaml:"cache,omitempty"`
+
+	// The directory that bindown installs files to. This is relative to the directory where the configuration file
+	// resides. install_directory paths should always use / as a delimiter even on Windows or other operating systems
+	// where the native delimiter isn't /.
+	InstallDir string `json:"install_dir,omitempty" yaml:"install_dir,omitempty"`
+
+	// Dependencies available for bindown to install.
+	Dependencies map[string]*Dependency `json:"dependencies,omitempty" yaml:",omitempty"`
+
+	// Templates that can be used by dependencies in this file.
+	Templates map[string]*Dependency `json:"templates,omitempty" yaml:",omitempty"`
+
+	// Upstream sources for templates.
+	TemplateSources map[string]string `json:"template_sources,omitempty" yaml:"template_sources,omitempty"`
+
+	// List of systems supported by this config. Systems are in the form of os/architecture.
+	Systems []System `json:"systems,omitempty" yaml:"systems,omitempty"`
+
+	// Checksums of downloaded files.
+	URLChecksums map[string]string `json:"url_checksums,omitempty" yaml:"url_checksums,omitempty"`
+
+	Filename string `json:"-" yaml:"-"`
 }
 
 // UnsetDependencyVars removes a dependency var. Noop if the var doesn't exist.
@@ -92,8 +109,8 @@ func (c *Config) SetTemplateVars(tmplName string, vars map[string]string) error 
 }
 
 // BinName returns the bin name for a downloader on a given system
-func (c *Config) BinName(depName string, system SystemInfo) (string, error) {
-	dep, err := c.buildDependency(depName, system)
+func (c *Config) BinName(depName string, system System) (string, error) {
+	dep, err := c.BuildDependency(depName, system)
 	if err != nil {
 		return "", err
 	}
@@ -110,7 +127,7 @@ func (c *Config) MissingDependencyVars(depName string) ([]string, error) {
 		return nil, fmt.Errorf("no dependency configured with the name %q", depName)
 	}
 	var result []string
-	dep = dep.Clone()
+	dep = dep.clone()
 	err := dep.applyTemplate(c.Templates, 0)
 	if err != nil {
 		return nil, err
@@ -127,36 +144,31 @@ func (c *Config) MissingDependencyVars(depName string) ([]string, error) {
 }
 
 // BuildDependency returns a dependency with templates and overrides applied and variables interpolated for the given system.
-func (c *Config) BuildDependency(depName string, info SystemInfo) (*Dependency, error) {
-	dep, err := c.buildDependency(depName, info)
-	if err != nil {
-		return nil, err
-	}
-	return &dep.Dependency, nil
-}
-
-func (c *Config) buildDependency(depName string, info SystemInfo) (*builtDependency, error) {
+func (c *Config) BuildDependency(depName string, system System) (*Dependency, error) {
 	dep := c.Dependencies[depName]
 	if dep == nil {
 		return nil, fmt.Errorf("no dependency configured with the name %q", depName)
 	}
-	dep = dep.Clone()
+	dep = dep.clone()
 	err := dep.applyTemplate(c.Templates, 0)
 	if err != nil {
 		return nil, err
 	}
-	dep.applyOverrides(info, 0)
+	err = dep.applyOverrides(system, 0)
+	if err != nil {
+		return nil, err
+	}
 	if dep.Vars == nil {
 		dep.Vars = map[string]string{}
 	}
 	if _, ok := dep.Vars["os"]; !ok {
-		dep.Vars["os"] = info.OS
+		dep.Vars["os"] = system.OS()
 	}
 	if _, ok := dep.Vars["arch"]; !ok {
-		dep.Vars["arch"] = info.Arch
+		dep.Vars["arch"] = system.Arch()
 	}
 	dep.Vars = varsWithSubstitutions(dep.Vars, dep.Substitutions)
-	err = dep.interpolateVars(info)
+	err = dep.interpolateVars(system)
 	if err != nil {
 		return nil, err
 	}
@@ -167,42 +179,25 @@ func (c *Config) buildDependency(depName string, info SystemInfo) (*builtDepende
 	if c.URLChecksums != nil && dep.URL != nil {
 		checksum = c.URLChecksums[*dep.URL]
 	}
-	return &builtDependency{
-		Dependency: *dep,
-		name:       depName,
-		system:     info,
-		checksum:   checksum,
-		url:        *dep.URL,
-	}, nil
+	dep.built = true
+	dep.name = depName
+	dep.system = system
+	dep.checksum = checksum
+	dep.url = *dep.URL
+	return dep, nil
 }
 
-func (c *Config) allDependencyNames() []string {
-	if len(c.Dependencies) == 0 {
-		return []string{}
-	}
-	result := make([]string, 0, len(c.Dependencies))
-	for dl := range c.Dependencies {
-		result = append(result, dl)
-	}
-	return result
-}
-
-// DefaultSystems returns c.Systems if it isn't empty. Otherwise returns the runtime system.
-func (c *Config) DefaultSystems() []SystemInfo {
+// defaultSystems returns c.Systems if it isn't empty. Otherwise returns the runtime system.
+func (c *Config) defaultSystems() []System {
 	if len(c.Systems) > 0 {
 		return c.Systems
 	}
-	return []SystemInfo{
-		{
-			OS:   runtime.GOOS,
-			Arch: runtime.GOARCH,
-		},
-	}
+	return []System{CurrentSystem}
 }
 
 // AddChecksums downloads, calculates checksums and adds them to the config's URLChecksums. AddChecksums skips urls that
 // already exist in URLChecksums.
-func (c *Config) AddChecksums(dependencies []string, systems []SystemInfo) error {
+func (c *Config) AddChecksums(dependencies []string, systems []System) error {
 	if len(dependencies) == 0 && c.Dependencies != nil {
 		dependencies = make([]string, 0, len(c.Dependencies))
 		for dlName := range c.Dependencies {
@@ -241,8 +236,8 @@ func (c *Config) PruneChecksums() error {
 			return err
 		}
 		for _, system := range systems {
-			var dep *builtDependency
-			dep, err = c.buildDependency(depName, system)
+			var dep *Dependency
+			dep, err = c.BuildDependency(depName, system)
 			if err != nil {
 				return err
 			}
@@ -257,8 +252,8 @@ func (c *Config) PruneChecksums() error {
 	return nil
 }
 
-func (c *Config) addChecksum(dependencyName string, sysInfo SystemInfo) error {
-	dep, err := c.buildDependency(dependencyName, sysInfo)
+func (c *Config) addChecksum(dependencyName string, system System) error {
+	dep, err := c.BuildDependency(dependencyName, system)
 	if err != nil {
 		return err
 	}
@@ -278,58 +273,33 @@ func (c *Config) addChecksum(dependencyName string, sysInfo SystemInfo) error {
 }
 
 // Validate installs the downloader to a temporary directory and returns an error if it was unsuccessful.
-func (c *Config) Validate(dependencies []string, systems []SystemInfo) (errOut error) {
-	runtime.Version()
-	if len(dependencies) == 0 {
-		dependencies = c.allDependencyNames()
-	}
-	tmpCacheDir, err := os.MkdirTemp("", "bindown-cache")
+func (c *Config) Validate(depName string, systems []System) (errOut error) {
+	tmpDir, err := os.MkdirTemp("", "bindown-validate")
 	if err != nil {
 		return err
 	}
 	defer deferErr(&errOut, func() error {
-		cleanErr := filepath.WalkDir(tmpCacheDir, func(path string, d os.DirEntry, err error) error {
-			if err != nil {
-				return err
-			}
-			err = os.Chmod(path, 0o777)
-			if err != nil {
-				return err
-			}
-			if d.IsDir() {
-				return nil
-			}
-			return os.Remove(path)
+		return os.RemoveAll(tmpDir)
+	})
+	installDir, cacheDir := c.InstallDir, c.Cache
+	c.InstallDir = filepath.Join(tmpDir, "bin")
+	c.Cache = filepath.Join(tmpDir, "cache")
+	defer func() {
+		c.InstallDir, c.Cache = installDir, cacheDir
+	}()
+	depSystems := systems
+	if len(depSystems) == 0 {
+		depSystems, err = c.DependencySystems(depName)
+		if err != nil {
+			return err
+		}
+	}
+	for _, system := range depSystems {
+		_, err = c.InstallDependency(depName, system, &ConfigInstallDependencyOpts{
+			Force: true,
 		})
-		if cleanErr != nil {
-			return cleanErr
-		}
-		return os.RemoveAll(tmpCacheDir)
-	})
-	tmpBinDir, err := os.MkdirTemp("", "bindown-bin")
-	if err != nil {
-		return err
-	}
-	defer deferErr(&errOut, func() error {
-		return os.RemoveAll(tmpBinDir)
-	})
-	c.InstallDir = tmpBinDir
-	c.Cache = tmpCacheDir
-	for _, depName := range dependencies {
-		depSystems := systems
-		if len(depSystems) == 0 {
-			depSystems, err = c.DependencySystems(depName)
-			if err != nil {
-				return err
-			}
-		}
-		for _, system := range depSystems {
-			_, err = c.InstallDependency(depName, system, &ConfigInstallDependencyOpts{
-				Force: true,
-			})
-			if err != nil {
-				return err
-			}
+		if err != nil {
+			return err
 		}
 	}
 	return nil
@@ -349,7 +319,6 @@ func (c *Config) ClearCache() error {
 
 // ConfigDownloadDependencyOpts options for Config.DownloadDependency
 type ConfigDownloadDependencyOpts struct {
-	TargetFile           string
 	Force                bool
 	AllowMissingChecksum bool
 }
@@ -375,34 +344,25 @@ func cacheKey(hashMaterial string) string {
 // DownloadDependency downloads a dependency
 func (c *Config) DownloadDependency(
 	name string,
-	sysInfo SystemInfo,
+	system System,
 	opts *ConfigDownloadDependencyOpts,
 ) (_ string, errOut error) {
 	if opts == nil {
 		opts = &ConfigDownloadDependencyOpts{}
 	}
-	dep, err := c.buildDependency(name, sysInfo)
+	dep, err := c.BuildDependency(name, system)
 	if err != nil {
 		return "", err
 	}
-	dlFile, _, unlock, err := downloadDependency(dep, c.downloadsCache(), c.TrustCache, opts.AllowMissingChecksum, opts.Force)
+	dlFile, _, unlock, err := downloadDependency(dep, c.downloadsCache(), opts.AllowMissingChecksum, opts.Force)
 	if err != nil {
 		return "", err
 	}
-	defer deferErr(&errOut, unlock)
-	cachedFile := dlFile
-	if opts.TargetFile == "" {
-		return cachedFile, nil
-	}
-	err = os.MkdirAll(filepath.Dir(opts.TargetFile), 0o755)
+	err = unlock()
 	if err != nil {
 		return "", err
 	}
-	err = copyFile(dlFile, opts.TargetFile)
-	if err != nil {
-		return "", err
-	}
-	return opts.TargetFile, nil
+	return dlFile, nil
 }
 
 func urlFilename(dlURL string) (string, error) {
@@ -415,51 +375,33 @@ func urlFilename(dlURL string) (string, error) {
 
 // ConfigExtractDependencyOpts options for Config.ExtractDependency
 type ConfigExtractDependencyOpts struct {
-	TargetDirectory      string
 	Force                bool
 	AllowMissingChecksum bool
 }
 
 // ExtractDependency downloads and extracts a dependency
-func (c *Config) ExtractDependency(dependencyName string, sysInfo SystemInfo, opts *ConfigExtractDependencyOpts) (_ string, errOut error) {
+func (c *Config) ExtractDependency(dependencyName string, system System, opts *ConfigExtractDependencyOpts) (_ string, errOut error) {
 	if opts == nil {
 		opts = &ConfigExtractDependencyOpts{}
 	}
-	dep, err := c.buildDependency(dependencyName, sysInfo)
+	dep, err := c.BuildDependency(dependencyName, system)
 	if err != nil {
 		return "", err
 	}
-	dlFile, key, dlUnlock, err := downloadDependency(
-		dep,
-		c.downloadsCache(),
-		c.TrustCache,
-		opts.AllowMissingChecksum,
-		opts.Force,
-	)
+	dlFile, key, dlUnlock, err := downloadDependency(dep, c.downloadsCache(), opts.AllowMissingChecksum, opts.Force)
 	if err != nil {
 		return "", err
 	}
 	defer deferErr(&errOut, dlUnlock)
 
-	if opts.TargetDirectory != "" {
-		err = extract(dlFile, opts.TargetDirectory)
-		if err != nil {
-			return "", err
-		}
-		return opts.TargetDirectory, nil
-	}
-	outDir, unlock, err := extractDependencyToCache(
-		dlFile,
-		c.Cache,
-		key,
-		c.extractsCache(),
-		c.TrustCache,
-		opts.Force,
-	)
+	outDir, unlock, err := extractDependencyToCache(dlFile, c.Cache, key, c.extractsCache(), opts.Force)
 	if err != nil {
 		return "", err
 	}
-	defer deferErr(&errOut, unlock)
+	err = unlock()
+	if err != nil {
+		return "", err
+	}
 	return outDir, nil
 }
 
@@ -474,34 +416,21 @@ type ConfigInstallDependencyOpts struct {
 }
 
 // InstallDependency downloads, extracts and installs a dependency
-func (c *Config) InstallDependency(dependencyName string, sysInfo SystemInfo, opts *ConfigInstallDependencyOpts) (_ string, errOut error) {
+func (c *Config) InstallDependency(dependencyName string, system System, opts *ConfigInstallDependencyOpts) (_ string, errOut error) {
 	if opts == nil {
 		opts = &ConfigInstallDependencyOpts{}
 	}
-	dep, err := c.buildDependency(dependencyName, sysInfo)
+	dep, err := c.BuildDependency(dependencyName, system)
 	if err != nil {
 		return "", err
 	}
-	dlFile, key, dlUnlock, err := downloadDependency(
-		dep,
-		c.downloadsCache(),
-		c.TrustCache,
-		opts.AllowMissingChecksum,
-		opts.Force,
-	)
+	dlFile, key, dlUnlock, err := downloadDependency(dep, c.downloadsCache(), opts.AllowMissingChecksum, opts.Force)
 	if err != nil {
 		return "", err
 	}
 	defer deferErr(&errOut, dlUnlock)
 
-	extractDir, exUnlock, err := extractDependencyToCache(
-		dlFile,
-		c.Cache,
-		key,
-		c.extractsCache(),
-		c.TrustCache,
-		opts.Force,
-	)
+	extractDir, exUnlock, err := extractDependencyToCache(dlFile, c.Cache, key, c.extractsCache(), opts.Force)
 	if err != nil {
 		return "", err
 	}
@@ -509,7 +438,7 @@ func (c *Config) InstallDependency(dependencyName string, sysInfo SystemInfo, op
 	targetPath := opts.TargetPath
 	if targetPath == "" {
 		var binName string
-		binName, err = c.BinName(dependencyName, sysInfo)
+		binName, err = c.BinName(dependencyName, system)
 		if err != nil {
 			return "", err
 		}
@@ -591,7 +520,7 @@ func (c *Config) CopyTemplateFromSource(ctx context.Context, src, srcTemplate, d
 
 // addTemplateFromSource copies a template from another config file
 func (c *Config) addTemplateFromSource(ctx context.Context, src, srcTemplate, destName string) error {
-	srcCfg, err := ConfigFromURL(ctx, src)
+	srcCfg, err := NewConfig(ctx, src, true)
 	if err != nil {
 		return err
 	}
@@ -631,34 +560,34 @@ func (c *Config) templateSourceConfig(ctx context.Context, name string) (*Config
 	if c.TemplateSources == nil || c.TemplateSources[name] == "" {
 		return nil, fmt.Errorf("no template source named %q", name)
 	}
-	return ConfigFromURL(ctx, c.TemplateSources[name])
+	return NewConfig(ctx, c.TemplateSources[name], true)
 }
 
 // DependencySystems returns the supported systems of either the config or the dependency if one is not empty
 // if both are not empty, it returns the intersection of the lists
-func (c *Config) DependencySystems(depName string) ([]SystemInfo, error) {
+func (c *Config) DependencySystems(depName string) ([]System, error) {
 	if c.Dependencies == nil || c.Dependencies[depName] == nil {
 		return c.Systems, nil
 	}
 	dep := c.Dependencies[depName]
 
-	dep = dep.Clone()
+	dep = dep.clone()
 	err := dep.applyTemplate(c.Templates, 0)
 	if err != nil {
 		return nil, err
 	}
 
 	if len(dep.Systems) == 0 {
-		return c.DefaultSystems(), nil
+		return c.defaultSystems(), nil
 	}
 	if len(c.Systems) == 0 {
 		return dep.Systems, nil
 	}
-	mp := make(map[SystemInfo]bool, len(c.Systems))
+	mp := make(map[System]bool, len(c.Systems))
 	for _, system := range c.Systems {
 		mp[system] = true
 	}
-	result := make([]SystemInfo, 0, len(dep.Systems))
+	result := make([]System, 0, len(dep.Systems))
 	for _, system := range dep.Systems {
 		if mp[system] {
 			result = append(result, system)
@@ -667,24 +596,58 @@ func (c *Config) DependencySystems(depName string) ([]SystemInfo, error) {
 	return result, nil
 }
 
-// ConfigFromURL loads a config from a URL
-func ConfigFromURL(ctx context.Context, cfgSrc string) (*Config, error) {
+func (c *Config) WriteFile(outputJSON bool) (errOut error) {
+	if c.Filename == "" {
+		return fmt.Errorf("no filename specified")
+	}
+	if filepath.Ext(c.Filename) == ".json" {
+		outputJSON = true
+	}
+	file, err := os.Create(c.Filename)
+	if err != nil {
+		return err
+	}
+	defer deferErr(&errOut, file.Close)
+	if len(c.Systems) > 0 {
+		sort.Slice(c.Systems, func(i, j int) bool {
+			return c.Systems[i] < c.Systems[j]
+		})
+	}
+	if outputJSON {
+		encoder := json.NewEncoder(file)
+		encoder.SetIndent("", "  ")
+		return encoder.Encode(c)
+	}
+	return EncodeYaml(file, &c)
+}
+
+// NewConfig loads a config from a URL
+func NewConfig(ctx context.Context, cfgSrc string, noDefaultDirs bool) (*Config, error) {
 	cfgURL, err := url.Parse(cfgSrc)
+	if err == nil {
+		if cfgURL.Scheme == "http" || cfgURL.Scheme == "https" {
+			return configFromHTTP(ctx, cfgSrc)
+		}
+	}
+	data, err := os.ReadFile(cfgSrc)
 	if err != nil {
 		return nil, err
 	}
-	switch cfgURL.Scheme {
-	case "", "file":
-		cfg, err := LoadConfigFile(ctx, cfgURL.Path, true)
-		if err != nil {
-			return nil, err
-		}
-		return &cfg.Config, nil
-	case "http", "https":
-		return configFromHTTP(ctx, cfgSrc)
-	default:
-		return nil, fmt.Errorf("invalid src: %s", cfgSrc)
+	cfg, err := ConfigFromYAML(ctx, data)
+	if err != nil {
+		return nil, err
 	}
+	cfg.Filename = cfgSrc
+	if noDefaultDirs {
+		return cfg, nil
+	}
+	if cfg.Cache == "" {
+		cfg.Cache = filepath.Join(filepath.Dir(cfgSrc), ".cache")
+	}
+	if cfg.InstallDir == "" {
+		cfg.InstallDir = filepath.Join(filepath.Dir(cfgSrc), "bin")
+	}
+	return cfg, nil
 }
 
 func configFromHTTP(ctx context.Context, src string) (*Config, error) {
@@ -703,10 +666,10 @@ func configFromHTTP(ctx context.Context, src string) (*Config, error) {
 	if err != nil {
 		return nil, err
 	}
-	return configFromYAML(ctx, data)
+	return ConfigFromYAML(ctx, data)
 }
 
-func configFromYAML(ctx context.Context, data []byte) (*Config, error) {
+func ConfigFromYAML(ctx context.Context, data []byte) (*Config, error) {
 	err := validateConfig(ctx, data)
 	if err != nil {
 		return nil, err

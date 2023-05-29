@@ -20,16 +20,16 @@ Defaults to `<path to config file>/bin`
 
 Dependencies are all the dependencies that bindown can install. It is a map where the key is the dependency's name.
 
- Property       | Description                                                                                       
-----------------|----------------
-`url`           | The url to download a dependency from.                                                            
-`archive_path`  | The path in the downloaded archive where the binary is located. Default is `./<dependency name>`. 
-`bin`           | The name of the binary to be installed. Default is the name of the dependency.                    
-`link`          | Whether to create a symlink to the bin instead of copying it.                                     
-`template`      | The name of a template to provide default values for this dependency. See [templates](#templates).            
-`vars`          | A map of variables that will be interpolated in the `url`, `archive_path` and `bin` values. See [vars](#vars)
-`overrides`     | A list of value overrides for certain systems. See [overrides](#overrides) 
-`substitutions` | Values that will be substituted for one variable. See [substitutions](#substitutions) 
+| Property        | Description                                                                                                   |
+|-----------------|---------------------------------------------------------------------------------------------------------------|
+| `url`           | The url to download a dependency from.                                                                        |
+| `archive_path`  | The path in the downloaded archive where the binary is located. Default is `./<dependency name>`.             |
+| `bin`           | The name of the binary to be installed. Default is the name of the dependency.                                |
+| `link`          | Whether to create a symlink to the bin instead of copying it.                                                 |
+| `template`      | The name of a template to provide default values for this dependency. See [templates](#templates).            |
+| `vars`          | A map of variables that will be interpolated in the `url`, `archive_path` and `bin` values. See [vars](#vars) |
+| `overrides`     | A list of value overrides for certain systems. See [overrides](#overrides)                                    |
+| `substitutions` | Values that will be substituted for one variable. See [substitutions](#substitutions)                         |
 
 ### vars
 

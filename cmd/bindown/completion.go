@@ -2,21 +2,14 @@ package main
 
 import (
 	"context"
-	_ "embed"
 	"os"
-	"runtime"
 	"sort"
 	"strings"
 
 	"github.com/alecthomas/kong"
 	"github.com/posener/complete"
-	"github.com/willabides/bindown/v3"
+	"github.com/willabides/bindown/v4/internal/bindown"
 )
-
-//go:generate sh -c "go tool dist list > go_dist_list.txt"
-
-//go:embed go_dist_list.txt
-var goDists string
 
 func findConfigFileForCompletion(args []string) string {
 	for i, arg := range args {
@@ -66,26 +59,23 @@ func prepCompletionConfigFile(path string) string {
 	return path
 }
 
-func completionConfig(ctx context.Context, args []string) *bindown.ConfigFile {
+func completionConfig(ctx context.Context, args []string) *bindown.Config {
 	path := findConfigFileForCompletion(args)
 	if path == "" {
 		return nil
 	}
-	configFile, err := bindown.LoadConfigFile(ctx, path, true)
+	configFile, err := bindown.NewConfig(ctx, path, true)
 	if err != nil {
 		return nil
 	}
 	return configFile
 }
 
-func allDependencies(cfg *bindown.ConfigFile) []string {
+func allDependencies(cfg *bindown.Config) []string {
 	if cfg == nil {
 		return []string{}
 	}
-	system := bindown.SystemInfo{
-		OS:   runtime.GOOS,
-		Arch: runtime.GOARCH,
-	}
+	system := bindown.CurrentSystem
 	dependencies := make([]string, 0, len(cfg.Dependencies))
 	for depName := range cfg.Dependencies {
 		bn, err := cfg.BinName(depName, system)
@@ -127,7 +117,7 @@ func templateCompleter(ctx context.Context) complete.PredictFunc {
 		if !ok {
 			return []string{}
 		}
-		srcCfg, err := bindown.ConfigFromURL(ctx, srcURL)
+		srcCfg, err := bindown.NewConfig(ctx, srcURL, true)
 		if err != nil {
 			return []string{}
 		}
@@ -183,12 +173,12 @@ func systemCompleter(ctx context.Context) complete.PredictFunc {
 		cfg := completionConfig(ctx, a.Completed)
 		opts := make([]string, 0, len(cfg.Systems))
 		for _, system := range cfg.Systems {
-			opts = append(opts, system.String())
+			opts = append(opts, string(system))
 		}
 		return complete.PredictSet(opts...).Predict(a)
 	}
 }
 
 var allSystemsCompleter = complete.PredictFunc(func(a complete.Args) []string {
-	return append([]string{"current"}, strings.Split(goDists, "\n")...)
+	return append([]string{"current"}, strings.Split(bindown.GoDists, "\n")...)
 })

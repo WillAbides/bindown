@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 
-	"github.com/willabides/bindown/v3"
+	"github.com/willabides/bindown/v4/internal/bindown"
 	"golang.org/x/exp/slices"
 )
 
@@ -22,13 +22,13 @@ func (c *supportedSystemListCmd) Run(ctx *runContext) error {
 	}
 
 	for _, system := range cfg.Systems {
-		fmt.Fprintln(ctx.stdout, system.String())
+		fmt.Fprintln(ctx.stdout, system)
 	}
 	return nil
 }
 
 type supportedSystemsRemoveCmd struct {
-	System bindown.SystemInfo `kong:"arg,predictor=system,help='system to remove'"`
+	System bindown.System `kong:"arg,predictor=system,help='system to remove'"`
 }
 
 func (c *supportedSystemsRemoveCmd) Run(ctx *runContext) error {
@@ -38,19 +38,19 @@ func (c *supportedSystemsRemoveCmd) Run(ctx *runContext) error {
 	}
 
 	systems := cfg.Systems
-	newSystems := make([]bindown.SystemInfo, 0, len(systems))
+	newSystems := make([]bindown.System, 0, len(systems))
 	for _, system := range systems {
-		if system.String() != c.System.String() {
+		if system != c.System {
 			newSystems = append(newSystems, system)
 		}
 	}
 	cfg.Systems = newSystems
-	return cfg.Write(ctx.rootCmd.JSONConfig)
+	return cfg.WriteFile(ctx.rootCmd.JSONConfig)
 }
 
 type supportedSystemAddCmd struct {
-	System        bindown.SystemInfo `kong:"arg,predictor=allSystems,help='system to add'"`
-	SkipChecksums bool               `kong:"name=skipchecksums,help='do not add checksums for this system'"`
+	System        bindown.System `kong:"arg,predictor=allSystems,help='system to add'"`
+	SkipChecksums bool           `kong:"name=skipchecksums,help='do not add checksums for this system'"`
 }
 
 func (c *supportedSystemAddCmd) Run(ctx *runContext) error {
@@ -60,7 +60,7 @@ func (c *supportedSystemAddCmd) Run(ctx *runContext) error {
 	}
 
 	for _, system := range cfg.Systems {
-		if system.String() == c.System.String() {
+		if system == c.System {
 			return nil
 		}
 	}
@@ -77,11 +77,11 @@ func (c *supportedSystemAddCmd) Run(ctx *runContext) error {
 			}
 		}
 		if len(depsForSystem) > 0 {
-			err = cfg.AddChecksums(depsForSystem, []bindown.SystemInfo{c.System})
+			err = cfg.AddChecksums(depsForSystem, []bindown.System{c.System})
 			if err != nil {
 				return err
 			}
 		}
 	}
-	return cfg.Write(ctx.rootCmd.JSONConfig)
+	return cfg.WriteFile(ctx.rootCmd.JSONConfig)
 }

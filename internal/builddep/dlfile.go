@@ -14,6 +14,7 @@ import (
 	"strings"
 
 	"github.com/mholt/archiver/v4"
+	"github.com/willabides/bindown/v4/internal/bindown"
 	"golang.org/x/exp/slices"
 )
 
@@ -85,7 +86,7 @@ func (f *dlFile) setArchiveFiles(ctx context.Context, binName, version string) e
 	}
 	extractor, ok := format.(archiver.Extractor)
 	if !ok {
-		return fmt.Errorf("format does not support extraction")
+		return errors.New("format does not support extraction")
 	}
 	err = extractor.Extract(ctx, reader, nil, func(_ context.Context, af archiver.File) error {
 		if af.IsDir() {
@@ -111,9 +112,9 @@ func (f *dlFile) setArchiveFiles(ctx context.Context, binName, version string) e
 	return err
 }
 
-func (f *dlFile) system() string {
+func (f *dlFile) system() bindown.System {
 	if f.osSub == nil || f.archSub == nil {
 		panic("system called on dlFile without osSub or archSub")
 	}
-	return f.osSub.normalized + "/" + f.archSub.normalized
+	return bindown.System(f.osSub.normalized + "/" + f.archSub.normalized)
 }

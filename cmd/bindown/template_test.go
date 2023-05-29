@@ -6,105 +6,66 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"github.com/willabides/bindown/v3"
+	"github.com/willabides/bindown/v4/internal/testutil"
 )
 
 func Test_templateUpdateVarCmd(t *testing.T) {
 	for _, td := range []struct {
 		name      string
-		config    bindown.Config
+		config    string
 		args      []string
 		wantVars  map[string]string
 		wantState resultState
 	}{
 		{
-			name: "no changes",
-			config: bindown.Config{
-				Templates: map[string]*bindown.Dependency{
-					"tmpl1": {URL: ptr("foo")},
-				},
-			},
-			args: []string{"template", "update-vars", "tmpl1"},
+			name:   "no changes",
+			config: `templates: {tmpl1: {url: foo}}`,
+			args:   []string{"template", "update-vars", "tmpl1"},
 		},
 		{
-			name: "create var",
-			config: bindown.Config{
-				Templates: map[string]*bindown.Dependency{
-					"tmpl1": {URL: ptr("foo")},
-				},
-			},
-			args: []string{"template", "update-vars", "tmpl1", "--set", "foo=bar"},
+			name:   "create var",
+			config: `templates: {tmpl1: {url: foo}}`,
+			args:   []string{"template", "update-vars", "tmpl1", "--set", "foo=bar"},
 			wantVars: map[string]string{
 				"foo": "bar",
 			},
 		},
 		{
-			name: "update var",
-			config: bindown.Config{
-				Templates: map[string]*bindown.Dependency{
-					"tmpl1": {
-						URL: ptr("foo"),
-						Vars: map[string]string{
-							"foo": "bar",
-						},
-					},
-				},
-			},
-			args: []string{"template", "update-vars", "tmpl1", "--set", "foo=baz"},
+			name:   "update var",
+			config: `templates: {tmpl1: {url: foo, vars: {foo: bar}}}`,
+			args:   []string{"template", "update-vars", "tmpl1", "--set", "foo=baz"},
 			wantVars: map[string]string{
 				"foo": "baz",
 			},
 		},
 		{
-			name: "unset var",
-			config: bindown.Config{
-				Templates: map[string]*bindown.Dependency{
-					"tmpl1": {
-						URL: ptr("foo"),
-						Vars: map[string]string{
-							"foo": "bar",
-						},
-					},
-				},
-			},
-			args: []string{"template", "update-vars", "tmpl1", "--unset", "foo"},
+			name:   "unset var",
+			config: `templates: {tmpl1: {url: foo, vars: {foo: bar}}}`,
+			args:   []string{"template", "update-vars", "tmpl1", "--unset", "foo"},
 		},
 		{
-			name: "unset all vars",
-			config: bindown.Config{
-				Templates: map[string]*bindown.Dependency{
-					"tmpl1": {
-						URL: ptr("foo"),
-						Vars: map[string]string{
-							"foo": "bar",
-							"baz": "qux",
-						},
-					},
-				},
-			},
-			args: []string{"template", "update-vars", "tmpl1", "--unset", "foo", "--unset", "baz"},
+			name:   "unset all vars",
+			config: `templates: {tmpl1: {url: foo, vars: {foo: bar, baz: qux}}}`,
+			args:   []string{"template", "update-vars", "tmpl1", "--unset", "foo", "--unset", "baz"},
 		},
 		{
-			name: "unset on empty vars",
-			config: bindown.Config{
-				Templates: map[string]*bindown.Dependency{
-					"tmpl1": {URL: ptr("foo")},
-				},
-			},
-			args: []string{"template", "update-vars", "tmpl1", "--unset", "foo"},
+			name:   "unset on empty vars",
+			config: `templates: {tmpl1: {url: foo}}`,
+			args:   []string{"template", "update-vars", "tmpl1", "--unset", "foo"},
 		},
 		{
 			name:   "set var on non-existent template",
 			args:   []string{"template", "update-vars", "fake", "--set", "foo=bar"},
-			config: bindown.Config{},
+			config: `{}`,
 			wantState: resultState{
 				stderr: `cmd: error: template "fake" does not exist`,
 				exit:   1,
 			},
 		},
 		{
-			name: "unset var on non-existent template",
-			args: []string{"template", "update-vars", "fake", "--unset", "foo"},
+			name:   "unset var on non-existent template",
+			args:   []string{"template", "update-vars", "fake", "--unset", "foo"},
+			config: `{}`,
 			wantState: resultState{
 				stderr: `cmd: error: template "fake" does not exist`,
 				exit:   1,
@@ -113,7 +74,7 @@ func Test_templateUpdateVarCmd(t *testing.T) {
 	} {
 		t.Run(td.name, func(t *testing.T) {
 			runner := newCmdRunner(t)
-			runner.writeConfig(&td.config)
+			runner.writeConfigYaml(td.config)
 			result := runner.run(td.args...)
 			result.assertState(td.wantState)
 			configFile := runner.getConfigFile()
@@ -133,11 +94,11 @@ func Test_templateUpdateVarCmd(t *testing.T) {
 func Test_templateRemoveCmd(t *testing.T) {
 	t.Run("remove template", func(t *testing.T) {
 		runner := newCmdRunner(t)
-		runner.writeConfig(&bindown.Config{
-			Templates: map[string]*bindown.Dependency{
-				"tmpl1": {URL: ptr("foo")},
-			},
-		})
+		runner.writeConfigYaml(`
+templates:
+  tmpl1:
+    url: foo
+`)
 		result := runner.run("template", "remove", "tmpl1")
 		result.assertState(resultState{})
 		configFile := runner.getConfigFile()
@@ -146,11 +107,11 @@ func Test_templateRemoveCmd(t *testing.T) {
 
 	t.Run("remove non-existent template", func(t *testing.T) {
 		runner := newCmdRunner(t)
-		runner.writeConfig(&bindown.Config{
-			Templates: map[string]*bindown.Dependency{
-				"tmpl1": {URL: ptr("foo")},
-			},
-		})
+		runner.writeConfigYaml(`
+templates:
+  tmpl1:
+    url: foo
+`)
 		result := runner.run("template", "remove", "tmpl2")
 		result.assertState(resultState{
 			stderr: `cmd: error: no template named "tmpl2"`,
@@ -176,12 +137,7 @@ templates:
 
 	t.Run("local", func(t *testing.T) {
 		runner := newCmdRunner(t)
-		runner.writeConfig(&bindown.Config{
-			Templates: map[string]*bindown.Dependency{
-				"tmpl1": {URL: ptr("foo")},
-				"tmpl2": {URL: ptr("bar")},
-			},
-		})
+		runner.writeConfigYaml(`templates: {tmpl1: {url: foo}, tmpl2: {url: bar}}`)
 		result := runner.run("template", "list")
 		result.assertState(resultState{
 			stdout: "tmpl1\ntmpl2\n",
@@ -190,24 +146,7 @@ templates:
 
 	t.Run("remote with path", func(t *testing.T) {
 		runner := newCmdRunner(t)
-		runner.writeConfig(&bindown.Config{
-			TemplateSources: map[string]string{
-				"source1": srcFile,
-			},
-		})
-		result := runner.run("template", "list", "--source", "source1")
-		result.assertState(resultState{
-			stdout: "tmpl1\ntmpl2\n",
-		})
-	})
-
-	t.Run("remote with file url", func(t *testing.T) {
-		runner := newCmdRunner(t)
-		runner.writeConfig(&bindown.Config{
-			TemplateSources: map[string]string{
-				"source1": "file://" + srcFile,
-			},
-		})
+		runner.writeConfigYaml(`template_sources: {source1: ` + srcFile + `}`)
 		result := runner.run("template", "list", "--source", "source1")
 		result.assertState(resultState{
 			stdout: "tmpl1\ntmpl2\n",
@@ -215,13 +154,9 @@ templates:
 	})
 
 	t.Run("remote with http url", func(t *testing.T) {
-		server := serveFile(t, srcFile, "/template-source.yaml", "")
+		server := testutil.ServeFile(t, srcFile, "/template-source.yaml", "")
 		runner := newCmdRunner(t)
-		runner.writeConfig(&bindown.Config{
-			TemplateSources: map[string]string{
-				"source1": server.URL + "/template-source.yaml",
-			},
-		})
+		runner.writeConfigYaml(`template_sources: {source1: ` + server.URL + `/template-source.yaml}`)
 		result := runner.run("template", "list", "--source", "source1")
 		result.assertState(resultState{
 			stdout: "tmpl1\ntmpl2\n",
@@ -241,16 +176,12 @@ templates:
 	srcFile := filepath.Join(t.TempDir(), "template-source.yaml")
 	err := os.WriteFile(srcFile, []byte(remoteConfig), 0o600)
 	require.NoError(t, err)
-	server := serveFile(t, srcFile, "/template-source.yaml", "")
+	server := testutil.ServeFile(t, srcFile, "/template-source.yaml", "")
 	remoteURL := server.URL + "/template-source.yaml"
 
 	t.Run("new template", func(t *testing.T) {
 		runner := newCmdRunner(t)
-		runner.writeConfig(&bindown.Config{
-			TemplateSources: map[string]string{
-				"source1": remoteURL,
-			},
-		})
+		runner.writeConfigYaml(`template_sources: {source1: ` + remoteURL + `}`)
 		result := runner.run("template", "update-from-source", "source1#tmpl1")
 		result.assertState(resultState{})
 		configFile := runner.getConfigFile()
@@ -259,11 +190,7 @@ templates:
 
 	t.Run("new template with --source", func(t *testing.T) {
 		runner := newCmdRunner(t)
-		runner.writeConfig(&bindown.Config{
-			TemplateSources: map[string]string{
-				"source1": remoteURL,
-			},
-		})
+		runner.writeConfigYaml(`template_sources: {source1: ` + remoteURL + `}`)
 		result := runner.run("template", "update-from-source", "my_tmpl", "--source", "source1#tmpl1")
 		result.assertState(resultState{})
 		configFile := runner.getConfigFile()
@@ -272,11 +199,7 @@ templates:
 
 	t.Run("invalid source name", func(t *testing.T) {
 		runner := newCmdRunner(t)
-		runner.writeConfig(&bindown.Config{
-			TemplateSources: map[string]string{
-				"source1": remoteURL,
-			},
-		})
+		runner.writeConfigYaml(`template_sources: {source1: ` + remoteURL + `}`)
 		result := runner.run("template", "update-from-source", "invalid")
 		result.assertState(resultState{
 			stderr: `cmd: error: source must be formatted as source#name (with the #)`,
@@ -288,11 +211,7 @@ templates:
 
 	t.Run("source not found", func(t *testing.T) {
 		runner := newCmdRunner(t)
-		runner.writeConfig(&bindown.Config{
-			TemplateSources: map[string]string{
-				"source1": remoteURL,
-			},
-		})
+		runner.writeConfigYaml(`template_sources: {source1: ` + remoteURL + `}`)
 		result := runner.run("template", "update-from-source", "source2#tmpl1")
 		result.assertState(resultState{
 			stderr: `cmd: error: no template source named "source2"`,
@@ -304,11 +223,7 @@ templates:
 
 	t.Run("source template not found", func(t *testing.T) {
 		runner := newCmdRunner(t)
-		runner.writeConfig(&bindown.Config{
-			TemplateSources: map[string]string{
-				"source1": remoteURL,
-			},
-		})
+		runner.writeConfigYaml(`template_sources: {source1: ` + remoteURL + `}`)
 		result := runner.run("template", "update-from-source", "source1#tmpl3")
 		result.assertState(resultState{
 			stderr: `cmd: error: source has no template named "tmpl3"`,

@@ -1,11 +1,10 @@
 package bindown
 
 import (
-	"path/filepath"
+	"encoding/json"
+	"fmt"
 	"testing"
 
-	"github.com/google/go-cmp/cmp"
-	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/stretchr/testify/require"
 )
 
@@ -19,36 +18,25 @@ func requireEqualDependency(t *testing.T, want, got *Dependency) {
 	require.Equal(t, want.Overrides, got.Overrides)
 }
 
-func TestGetURLChecksum(t *testing.T) {
-	ts := serveFile(t, filepath.Join("testdata", "downloadables", "foo.tar.gz"), "/foo/foo.tar.gz", "")
-	got, err := getURLChecksum(ts.URL+"/foo/foo.tar.gz", "")
-	require.NoError(t, err)
-	require.Equal(t, fooChecksum, got)
-}
-
 func TestDependency_applyTemplate(t *testing.T) {
 	t.Run("no template", func(t *testing.T) {
-		dep := &Dependency{
-			URL: ptr("foo"),
-		}
-		want := &Dependency{
-			URL: ptr("foo"),
-		}
+		dep := mustConfigFromYAML(t, `dependencies: {dep1: {url: "foo"}}`).Dependencies["dep1"]
+		want := mustConfigFromYAML(t, `dependencies: {dep1: {url: "foo"}}`).Dependencies["dep1"]
 		err := dep.applyTemplate(nil, 0)
 		require.NoError(t, err)
 		requireEqualDependency(t, want, dep)
 	})
 
 	t.Run("missing grandparent template", func(t *testing.T) {
-		dep := &Dependency{
-			Template: ptr("foo"),
-		}
-		templates := map[string]*Dependency{
-			"foo": {
-				Template: ptr("bar"),
-			},
-		}
-		err := dep.applyTemplate(templates, 0)
+		cfg := mustConfigFromYAML(t, `
+dependencies:
+  dep1:
+    template: foo
+templates:
+  foo:
+    template: bar
+`)
+		err := cfg.Dependencies["dep1"].applyTemplate(cfg.Templates, 0)
 		require.Error(t, err)
 	})
 
@@ -61,7 +49,7 @@ func TestDependency_applyTemplate(t *testing.T) {
 	})
 
 	t.Run("basic", func(t *testing.T) {
-		cfg := configFromYaml(t, `---
+		cfg := mustConfigFromYAML(t, `---
 templates:
   parentTemplate:
     url: parentTemplateURL
@@ -116,185 +104,106 @@ dependencies:
 		dep := cfg.Dependencies["myDependency"]
 		err := dep.applyTemplate(cfg.Templates, 0)
 		require.NoError(t, err)
-		require.Empty(t, cmp.Diff(cfg.Dependencies["want"], dep, cmpopts.EquateEmpty()))
+		assertDependencyEqual(t, cfg.Dependencies["want"], dep)
+	})
+
+	t.Run("maxTemplateDepth", func(t *testing.T) {
+		templates := map[string]*Dependency{}
+		for i := 0; i < maxTemplateDepth; i++ {
+			name := fmt.Sprintf("template%d", i)
+			nextName := fmt.Sprintf("template%d", i+1)
+			templates[name] = &Dependency{Template: ptr(nextName)}
+		}
+		templates[fmt.Sprintf("template%d", maxTemplateDepth)] = &Dependency{
+			Overrideable: Overrideable{URL: ptr("foo")},
+		}
+		dep := &Dependency{
+			Template: ptr("template0"),
+		}
+		err := dep.applyTemplate(templates, 0)
+		require.EqualError(t, err, fmt.Sprintf("max template depth of %d exceeded", maxTemplateDepth))
 	})
 }
 
 func Test_Dependency_applyOverrides(t *testing.T) {
 	t.Run("nil overrides", func(t *testing.T) {
-		want := Dependency{
-			ArchivePath: ptr("archivePath"),
-			Link:        nil,
-			Vars: map[string]string{
-				"foo": "bar",
-			},
-		}
-		dep := want.Clone()
-		dep.applyOverrides(newSystemInfo("windows", "amd64"), 0)
-		requireEqualDependency(t, &want, dep)
+		want := mustConfigFromYAML(t, `
+dependencies:
+  dep1:
+    archive_path: archivePath
+    vars: {foo: bar}
+`).Dependencies["dep1"]
+		dep := want.clone()
+		err := dep.applyOverrides("windows/amd64", 0)
+		require.NoError(t, err)
+		requireEqualDependency(t, want, dep)
 	})
 
 	t.Run("simple override", func(t *testing.T) {
-		dep := &Dependency{
-			ArchivePath: ptr("archivePath"),
-			Vars: map[string]string{
-				"foo":     "bar",
-				"baz":     "qux",
-				"version": "1.2.3",
-			},
-			Overrides: []DependencyOverride{
-				{
-					OverrideMatcher: OverrideMatcher{
-						"os":      {"linux"},
-						"foo":     {"bar"},
-						"version": {"asdf", "1.2.4", "1.x"},
-					},
-					Dependency: Dependency{
-						Link: ptr(true),
-						Vars: map[string]string{
-							"foo": "not bar",
-							"bar": "moo",
-						},
-						Overrides: []DependencyOverride{
-							{
-								OverrideMatcher: OverrideMatcher{
-									"arch": []string{"amd64"},
-								},
-								Dependency: Dependency{
-									ArchivePath: ptr("it's amd64"),
-								},
-							},
-							{
-								OverrideMatcher: OverrideMatcher{
-									"arch": []string{"x86"},
-								},
-								Dependency: Dependency{
-									ArchivePath: ptr("it's x86"),
-								},
-							},
-						},
-					},
-				},
-			},
+		cfg := mustConfigFromYAML(t, `
+dependencies:
+  dep1:
+    archive_path: archivePath
+    vars:
+      foo: bar
+      baz: qux
+      version: 1.2.3
+    overrides:
+      - matcher:
+          os: [linux]
+          foo: [bar]
+          version: [asdf, 1.2.4, 1.x]
+        dependency:
+          link: true
+          vars:
+            foo: not bar
+            bar: moo
+          overrides:
+            - matcher:
+                arch: [amd64]
+              dependency:
+                archive_path: it's amd64
+                overrides:
+                  - matcher:
+                      arch: [ amd64 ]
+                    dependency:
+                      archive_path: still amd64
+`)
+
+		dep := cfg.Dependencies["dep1"]
+		want := mustConfigFromYAML(t, `
+dependencies:
+  dep1:
+    archive_path: still amd64
+    link: true
+    vars:
+      foo: not bar
+      baz: qux
+      bar: moo
+      version: 1.2.3
+`).Dependencies["dep1"]
+		err := dep.applyOverrides("linux/amd64", 0)
+		require.NoError(t, err)
+		assertDependencyEqual(t, want, dep)
+	})
+
+	t.Run("maxOverrideDepth", func(t *testing.T) {
+		dep := &Dependency{}
+		latest := &dep.Overrideable
+		for i := 0; i < maxOverrideDepth+1; i++ {
+			latest.Overrides = []DependencyOverride{{OverrideMatcher: map[string][]string{"os": {"darwin"}}}}
+			latest = &latest.Overrides[0].Dependency
 		}
-		want := Dependency{
-			ArchivePath: ptr("it's amd64"),
-			Link:        ptr(true),
-			Vars: map[string]string{
-				"foo":     "not bar",
-				"baz":     "qux",
-				"bar":     "moo",
-				"version": "1.2.3",
-			},
-		}
-		dep.applyOverrides(newSystemInfo("linux", "amd64"), 0)
-		require.Empty(t, cmp.Diff(&want, dep))
+		err := dep.applyOverrides("darwin/amd64", 0)
+		require.EqualError(t, err, fmt.Sprintf("max override depth of %d exceeded", maxOverrideDepth))
 	})
 }
 
-func TestOverrideMatcher_matches(t *testing.T) {
-	for _, td := range []struct {
-		name    string
-		matcher OverrideMatcher
-		info    SystemInfo
-		vars    map[string]string
-		want    bool
-	}{
-		{
-			name: "empty matcher always matches",
-			want: true,
-		},
-		{
-			name: "os match",
-			matcher: OverrideMatcher{
-				"os": {"windows", "darwin"},
-			},
-			info: newSystemInfo("darwin", "amd64"),
-			want: true,
-		},
-		{
-			name: "os mismatch",
-			matcher: OverrideMatcher{
-				"os": {"windows", "darwin"},
-			},
-			info: newSystemInfo("linux", "amd64"),
-			want: false,
-		},
-		{
-			name: "arch match",
-			matcher: OverrideMatcher{
-				"arch": {"amd64", "arm64"},
-			},
-			info: newSystemInfo("linux", "amd64"),
-			want: true,
-		},
-		{
-			name: "arch mismatch",
-			matcher: OverrideMatcher{
-				"arch": {"amd64", "arm64"},
-			},
-			info: newSystemInfo("linux", "386"),
-			want: false,
-		},
-		{
-			name: "var match",
-			matcher: OverrideMatcher{
-				"foo": {"bar", "baz"},
-			},
-			vars: map[string]string{
-				"foo": "bar",
-			},
-			want: true,
-		},
-		{
-			name: "var mismatch",
-			matcher: OverrideMatcher{
-				"foo": {"bar", "baz"},
-			},
-			vars: map[string]string{
-				"foo": "qux",
-			},
-		},
-		{
-			name: "var not set",
-			matcher: OverrideMatcher{
-				"foo": {"bar", "baz"},
-			},
-			want: false,
-		},
-		{
-			name: "var match with semver glob",
-			matcher: OverrideMatcher{
-				"foo": {"bar", "baz", "1.*"},
-			},
-			vars: map[string]string{
-				"foo": "1.2.3",
-			},
-			want: true,
-		},
-		{
-			name: "semver glob with non-semver version",
-			matcher: OverrideMatcher{
-				"foo": {"1.*", "bar", "baz"},
-			},
-			vars: map[string]string{
-				"foo": "bar",
-			},
-			want: true,
-		},
-		{
-			name: "empty os var overrides system info",
-			matcher: OverrideMatcher{
-				"os": {"windows", "darwin"},
-			},
-			vars: map[string]string{
-				"os": "",
-			},
-			info: newSystemInfo("linux", "amd64"),
-		},
-	} {
-		t.Run(td.name, func(t *testing.T) {
-			require.Equal(t, td.want, td.matcher.matches(td.info, td.vars))
-		})
-	}
+func assertDependencyEqual(t testing.TB, want, got *Dependency) {
+	t.Helper()
+	wantJson, err := json.Marshal(want)
+	require.NoError(t, err)
+	gotJson, err := json.Marshal(got)
+	require.NoError(t, err)
+	require.JSONEq(t, string(wantJson), string(gotJson))
 }

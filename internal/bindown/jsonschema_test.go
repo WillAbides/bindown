@@ -50,7 +50,7 @@ dependencies:
   goreleaser:
     template: goreleaser
     vars:
-      version: 12
+      version: 1.2.3
 url_checksums:
   foo: deadbeef
   bar: []
@@ -71,7 +71,7 @@ url_checksums:
     "goreleaser": {
       "template": "goreleaser",
       "vars": {
-        "version": 12
+        "version": "1.2.3"
       }
     }
   },

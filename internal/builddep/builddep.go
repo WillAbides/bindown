@@ -2,66 +2,33 @@ package builddep
 
 import (
 	"context"
-	_ "embed"
 	"fmt"
 	"strings"
 
 	"github.com/Masterminds/semver/v3"
 	"github.com/google/go-github/v52/github"
-	"github.com/willabides/bindown/v3"
+	"github.com/willabides/bindown/v4/internal/bindown"
 	"golang.org/x/exp/maps"
 	"golang.org/x/exp/slices"
 	"golang.org/x/oauth2"
 	"gopkg.in/yaml.v3"
 )
 
-//go:generate sh -c "go tool dist list > go_dist_list.txt"
+var forbiddenOS = map[string]bool{
+	"js": true,
+}
 
-//go:embed go_dist_list.txt
-var _goDists string
+var forbiddenArch = map[string]bool{
+	"arm":  true,
+	"wasm": true,
+}
 
-func QueryGitHubRelease(ctx context.Context, repo, tag, tkn string) (urls []string, version, homepage, description string, _ error) {
-	client := github.NewClient(oauth2.NewClient(ctx, oauth2.StaticTokenSource(
-		&oauth2.Token{AccessToken: tkn},
-	)))
-	splitRepo := strings.Split(repo, "/")
-	orgName, repoName := splitRepo[0], splitRepo[1]
-	repoResp, _, err := client.Repositories.Get(ctx, orgName, repoName)
-	if err != nil {
-		return nil, "", "", "", err
+func distSystems() []bindown.System {
+	var systems []bindown.System
+	for _, system := range strings.Split(strings.TrimSpace(bindown.GoDists), "\n") {
+		systems = append(systems, bindown.System(system))
 	}
-	description = repoResp.GetDescription()
-	homepage = repoResp.GetHomepage()
-	if homepage == "" {
-		homepage = repoResp.GetHTMLURL()
-	}
-	var release *github.RepositoryRelease
-	if tag == "" {
-		release, _, err = client.Repositories.GetLatestRelease(ctx, orgName, repoName)
-		if err != nil {
-			return nil, "", "", "", err
-		}
-		tag = release.GetTagName()
-	} else {
-		release, _, err = client.Repositories.GetReleaseByTag(ctx, orgName, repoName, tag)
-		if err != nil {
-			return nil, "", "", "", err
-		}
-	}
-
-	if version == "" {
-		version = tag
-		if strings.HasPrefix(version, "v") {
-			_, err = semver.NewVersion(version[1:])
-			if err == nil {
-				version = version[1:]
-			}
-		}
-	}
-	for _, asset := range release.Assets {
-		urls = append(urls, asset.GetBrowserDownloadURL())
-	}
-	return urls, version, homepage, description, nil
+	return systems
 }
 
 func AddDependency(
@@ -82,13 +49,9 @@ func addDependency(
 	urls []string,
 	selector selectCandidateFunc,
 ) error {
-	var systems []string
+	systems := distSystems()
 	if cfg.Systems != nil {
-		for _, systemInfo := range cfg.Systems {
-			systems = append(systems, systemInfo.String())
-		}
-	} else {
-		systems = distSystems()
+		systems = append(systems[:0], cfg.Systems...)
 	}
 	groups := parseDownloads(urls, name, version, systems)
 	var regrouped []*depGroup
@@ -104,7 +67,7 @@ func addDependency(
 	if err != nil {
 		return err
 	}
-	err = built.Validate(nil, built.Systems)
+	err = built.Validate(name, built.Systems)
 	if err != nil {
 		b, e := yaml.Marshal(&bindown.Config{
 			Dependencies: built.Dependencies,
@@ -143,37 +106,6 @@ func addDependency(
 	return nil
 }
 
-var forbiddenOS = map[string]bool{
-	"js": true,
-}
-
-var forbiddenArch = map[string]bool{
-	"arm":  true,
-	"wasm": true,
-}
-
-func distSystems() []string {
-	return strings.Split(strings.TrimSpace(_goDists), "\n")
-}
-
-func parseDist(dist string) (os, arch string) {
-	parts := strings.Split(dist, "/")
-	if len(parts) != 2 {
-		panic(fmt.Sprintf("invalid dist: %q", dist))
-	}
-	return parts[0], parts[1]
-}
-
-func systemOs(system string) string {
-	os, _ := parseDist(system)
-	return os
-}
-
-func systemArch(system string) string {
-	_, arch := parseDist(system)
-	return arch
-}
-
 type systemSub struct {
 	val        string
 	normalized string
@@ -181,7 +113,7 @@ type systemSub struct {
 	idx        int
 }
 
-func osSubs(systems []string) []systemSub {
+func osSubs(systems []bindown.System) []systemSub {
 	subs := []systemSub{
 		{val: "apple-darwin", normalized: "darwin"},
 		{val: "unknown-linux-gnu", normalized: "linux", priority: -1},
@@ -201,11 +133,10 @@ func osSubs(systems []string) []systemSub {
 		systems = distSystems()
 	}
 	for _, dist := range systems {
-		distOS := systemOs(dist)
 		if !slices.ContainsFunc(subs, func(sub systemSub) bool {
-			return sub.val == distOS
+			return sub.val == dist.OS()
 		}) {
-			subs = append(subs, systemSub{val: distOS, normalized: distOS})
+			subs = append(subs, systemSub{val: dist.OS(), normalized: dist.OS()})
 		}
 	}
 	slices.SortFunc(subs, func(a, b systemSub) bool {
@@ -214,7 +145,7 @@ func osSubs(systems []string) []systemSub {
 	return subs
 }
 
-func archSubs(systems []string) []systemSub {
+func archSubs(systems []bindown.System) []systemSub {
 	subs := []systemSub{
 		{val: "amd64", normalized: "amd64"},
 		{val: "arm64", normalized: "arm64"},
@@ -234,11 +165,10 @@ func archSubs(systems []string) []systemSub {
 		systems = distSystems()
 	}
 	for _, dist := range systems {
-		distArch := systemArch(dist)
 		if !slices.ContainsFunc(subs, func(sub systemSub) bool {
-			return sub.val == distArch
+			return sub.val == dist.Arch()
 		}) {
-			subs = append(subs, systemSub{val: distArch, normalized: distArch})
+			subs = append(subs, systemSub{val: dist.Arch(), normalized: dist.Arch()})
 		}
 	}
 	slices.SortFunc(subs, func(a, b systemSub) bool {
@@ -265,7 +195,7 @@ func matchSub(filename string, subs []systemSub) *systemSub {
 	return nil
 }
 
-func parseOs(filename string, systems []string) *systemSub {
+func parseOs(filename string, systems []bindown.System) *systemSub {
 	sub := matchSub(filename, osSubs(systems))
 	if sub != nil {
 		return sub
@@ -280,7 +210,7 @@ func parseOs(filename string, systems []string) *systemSub {
 	return nil
 }
 
-func parseArch(filename string, systems []string) *systemSub {
+func parseArch(filename string, systems []bindown.System) *systemSub {
 	sub := matchSub(filename, archSubs(systems))
 	if sub != nil {
 		return sub
@@ -319,7 +249,7 @@ var archiveSuffixes = []string{
 	".zst",
 }
 
-func parseDownload(dlURL, version string, systems []string) (*dlFile, bool) {
+func parseDownload(dlURL, version string, systems []bindown.System) (*dlFile, bool) {
 	tmpl := dlURL
 	osSub := parseOs(dlURL, systems)
 	if osSub == nil {
@@ -338,9 +268,8 @@ func parseDownload(dlURL, version string, systems []string) (*dlFile, bool) {
 	if forbiddenArch[archSub.normalized] || forbiddenOS[osSub.normalized] {
 		return nil, false
 	}
-	if !slices.ContainsFunc(systems, func(sys string) bool {
-		o, a := parseDist(sys)
-		return o == osSub.normalized && a == archSub.normalized
+	if !slices.ContainsFunc(systems, func(sys bindown.System) bool {
+		return sys.OS() == osSub.normalized && sys.Arch() == archSub.normalized
 	}) {
 		return nil, false
 	}
@@ -378,8 +307,8 @@ func parseDownload(dlURL, version string, systems []string) (*dlFile, bool) {
 	}, true
 }
 
-func parseDownloads(dlUrls []string, binName, version string, allowedSystems []string) []*depGroup {
-	systemFiles := map[string][]*dlFile{}
+func parseDownloads(dlUrls []string, binName, version string, allowedSystems []bindown.System) []*depGroup {
+	systemFiles := map[bindown.System][]*dlFile{}
 	for _, dlUrl := range dlUrls {
 		f, ok := parseDownload(dlUrl, version, allowedSystems)
 		if !ok {
@@ -463,7 +392,7 @@ func parseDownloads(dlUrls []string, binName, version string, allowedSystems []s
 
 	var groups []*depGroup
 	systems := maps.Keys(systemFiles)
-	slices.SortFunc(systems, func(a, b string) bool {
+	slices.SortFunc(systems, func(a, b bindown.System) bool {
 		if len(systemFiles[a]) == 0 || len(systemFiles[b]) == 0 {
 			return len(systemFiles[a]) > 0
 		}
@@ -512,21 +441,10 @@ func buildConfig(name, version string, groups []*depGroup) *bindown.Config {
 		}
 		otherGroups := slices.Clone(groups[:i])
 		otherGroups = append(otherGroups, groups[i+1:]...)
-		for _, system := range group.systems {
-			o, a := parseDist(system)
-			dep.Systems = append(dep.Systems, bindown.SystemInfo{
-				OS:   o,
-				Arch: a,
-			})
-		}
+		dep.Systems = append(dep.Systems, group.systems...)
 		dep.Overrides = append(dep.Overrides, group.overrides(otherGroups)...)
 	}
-	slices.SortFunc(dep.Systems, func(a, b bindown.SystemInfo) bool {
-		if a.OS != b.OS {
-			return a.OS < b.OS
-		}
-		return a.Arch < b.Arch
-	})
+	slices.Sort(dep.Systems)
 	for tp := range dep.Substitutions {
 		for k, v := range dep.Substitutions[tp] {
 			if k == v {
@@ -568,8 +486,10 @@ func buildConfig(name, version string, groups []*depGroup) *bindown.Config {
 		Dependencies: map[string]*bindown.Dependency{
 			name: {
 				Template: &name,
-				Vars: map[string]string{
-					"version": version,
+				Overrideable: bindown.Overrideable{
+					Vars: map[string]string{
+						"version": version,
+					},
 				},
 			},
 		},
@@ -580,7 +500,7 @@ func buildConfig(name, version string, groups []*depGroup) *bindown.Config {
 	}
 }
 
-func splitSystems(systems []string, fn func(s string) bool) (matching, nonMatching []string) {
+func splitSystems(systems []bindown.System, fn func(s bindown.System) bool) (matching, nonMatching []bindown.System) {
 	for _, system := range systems {
 		if fn(system) {
 			matching = append(matching, system)
@@ -591,24 +511,22 @@ func splitSystems(systems []string, fn func(s string) bool) (matching, nonMatchi
 	return
 }
 
-func systemsMatcher(systems, otherSystems []string) (_ map[string][]string, matcherSystems, remainingSystems []string) {
+func systemsMatcher(systems, otherSystems []bindown.System) (_ map[string][]string, matcherSystems, remainingSystems []bindown.System) {
 	var oses, arches, otherOses, otherArches, exclusiveOses, exclusiveArches []string
 	for _, system := range systems {
-		o, a := parseDist(system)
-		if !slices.Contains(oses, o) {
-			oses = append(oses, o)
+		if !slices.Contains(oses, system.OS()) {
+			oses = append(oses, system.OS())
 		}
-		if !slices.Contains(arches, a) {
-			arches = append(arches, a)
+		if !slices.Contains(arches, system.Arch()) {
+			arches = append(arches, system.Arch())
 		}
 	}
 	for _, system := range otherSystems {
-		o, a := parseDist(system)
-		if !slices.Contains(otherOses, o) {
-			otherOses = append(otherOses, o)
+		if !slices.Contains(otherOses, system.OS()) {
+			otherOses = append(otherOses, system.OS())
 		}
-		if !slices.Contains(otherArches, a) {
-			otherArches = append(otherArches, a)
+		if !slices.Contains(otherArches, system.Arch()) {
+			otherArches = append(otherArches, system.Arch())
 		}
 	}
 	for _, s := range oses {
@@ -617,8 +535,8 @@ func systemsMatcher(systems, otherSystems []string) (_ map[string][]string, matc
 		}
 	}
 	if len(exclusiveOses) > 0 {
-		s, r := splitSystems(systems, func(system string) bool {
-			return slices.Contains(exclusiveOses, systemOs(system))
+		s, r := splitSystems(systems, func(system bindown.System) bool {
+			return slices.Contains(exclusiveOses, system.OS())
 		})
 		return map[string][]string{"os": exclusiveOses}, s, r
 	}
@@ -628,8 +546,8 @@ func systemsMatcher(systems, otherSystems []string) (_ map[string][]string, matc
 		}
 	}
 	if len(exclusiveArches) > 0 {
-		s, r := splitSystems(systems, func(system string) bool {
-			return slices.Contains(exclusiveArches, systemArch(system))
+		s, r := splitSystems(systems, func(system bindown.System) bool {
+			return slices.Contains(exclusiveArches, system.Arch())
 		})
 		return map[string][]string{"arch": exclusiveArches}, s, r
 	}
@@ -643,9 +561,9 @@ func systemsMatcher(systems, otherSystems []string) (_ map[string][]string, matc
 		a := arches[0]
 		var archOses []string
 		for _, system := range systems {
-			if systemArch(system) == a {
+			if system.Arch() == a {
 				matcherSystems = append(matcherSystems, system)
-				archOses = append(archOses, systemOs(system))
+				archOses = append(archOses, system.OS())
 				continue
 			}
 			remainingSystems = append(remainingSystems, system)
@@ -658,15 +576,59 @@ func systemsMatcher(systems, otherSystems []string) (_ map[string][]string, matc
 	o := oses[0]
 	var osArches []string
 	for _, system := range systems {
-		if systemOs(system) == o {
-			osArches = append(osArches, systemArch(system))
+		if system.OS() == o {
+			osArches = append(osArches, system.Arch())
 		}
 	}
-	s, r := splitSystems(systems, func(system string) bool {
-		return systemOs(system) == o
+	s, r := splitSystems(systems, func(system bindown.System) bool {
+		return system.OS() == o
 	})
 	return map[string][]string{
 		"os":   {o},
 		"arch": osArches,
 	}, s, r
+}
+
+func QueryGitHubRelease(ctx context.Context, repo, tag, tkn string) (urls []string, version, homepage, description string, _ error) {
+	client := github.NewClient(oauth2.NewClient(ctx, oauth2.StaticTokenSource(
+		&oauth2.Token{AccessToken: tkn},
+	)))
+	splitRepo := strings.Split(repo, "/")
+	orgName, repoName := splitRepo[0], splitRepo[1]
+	repoResp, _, err := client.Repositories.Get(ctx, orgName, repoName)
+	if err != nil {
+		return nil, "", "", "", err
+	}
+	description = repoResp.GetDescription()
+	homepage = repoResp.GetHomepage()
+	if homepage == "" {
+		homepage = repoResp.GetHTMLURL()
+	}
+	var release *github.RepositoryRelease
+	if tag == "" {
+		release, _, err = client.Repositories.GetLatestRelease(ctx, orgName, repoName)
+		if err != nil {
+			return nil, "", "", "", err
+		}
+		tag = release.GetTagName()
+	} else {
+		release, _, err = client.Repositories.GetReleaseByTag(ctx, orgName, repoName, tag)
+		if err != nil {
+			return nil, "", "", "", err
+		}
+	}
+
+	if version == "" {
+		version = tag
+		if strings.HasPrefix(version, "v") {
+			_, err = semver.NewVersion(version[1:])
+			if err == nil {
+				version = version[1:]
+			}
+		}
+	}
+	for _, asset := range release.Assets {
+		urls = append(urls, asset.GetBrowserDownloadURL())
+	}
+	return urls, version, homepage, description, nil
 }

@@ -13,7 +13,9 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/willabides/bindown/v3"
+	"github.com/stretchr/testify/require"
+	"github.com/willabides/bindown/v4/internal/bindown"
+	"gopkg.in/yaml.v3"
 )
 
 type cmdRunner struct {
@@ -69,24 +71,22 @@ func (c *cmdRunner) run(commandLine ...string) *runCmdResult {
 	return &result
 }
 
+func mustConfigFromYAML(t *testing.T, yml string) *bindown.Config {
+	t.Helper()
+	got, err := bindown.ConfigFromYAML(context.Background(), []byte(yml))
+	require.NoError(t, err)
+	return got
+}
+
 func (c *cmdRunner) writeConfigYaml(content string) {
 	c.t.Helper()
 	err := os.WriteFile(c.configFile, []byte(content), 0o600)
 	assert.NoError(c.t, err)
 }
 
-func (c *cmdRunner) writeConfig(config *bindown.Config) {
+func (c *cmdRunner) getConfigFile() *bindown.Config {
 	c.t.Helper()
-	cfgFile := &bindown.ConfigFile{
-		Filename: c.configFile,
-		Config:   *config,
-	}
-	assert.NoError(c.t, cfgFile.Write(false))
-}
-
-func (c *cmdRunner) getConfigFile() *bindown.ConfigFile {
-	c.t.Helper()
-	cfgFile, err := bindown.LoadConfigFile(context.Background(), c.configFile, false)
+	cfgFile, err := bindown.NewConfig(context.Background(), c.configFile, false)
 	assert.NoError(c.t, err)
 	return cfgFile
 }
@@ -97,7 +97,18 @@ func (c *cmdRunner) assertConfigYaml(want string) {
 	if !assert.NoError(c.t, err) {
 		return
 	}
-	assert.Equal(c.t, strings.TrimSpace(want), strings.TrimSpace(string(got)))
+	assert.Equal(c.t, normalizeYaml(c.t, want), normalizeYaml(c.t, string(got)))
+}
+
+func normalizeYaml(t testing.TB, val string) string {
+	t.Helper()
+	var data any
+	err := yaml.Unmarshal([]byte(val), &data)
+	require.NoError(t, err)
+	var out bytes.Buffer
+	err = bindown.EncodeYaml(&out, data)
+	require.NoError(t, err)
+	return out.String()
 }
 
 type runCmdResult struct {
@@ -146,39 +157,6 @@ func (r *runCmdResult) assertState(state resultState) {
 // fooChecksum is the checksum of downloadablesPath("foo.tar.gz")
 const fooChecksum = "f7fa712caea646575c920af17de3462fe9d08d7fe062b9a17010117d5fa4ed88"
 
-// serveFile starts an HTTP server
-func serveFile(t *testing.T, file, path, query string) *httptest.Server {
-	t.Helper()
-	file = filepath.FromSlash(file)
-	mux := http.NewServeMux()
-	mux.HandleFunc(path, func(w http.ResponseWriter, req *http.Request) {
-		if req.URL.RawQuery != query {
-			http.Error(w, "not found", http.StatusNotFound)
-			return
-		}
-		http.ServeFile(w, req, file)
-	})
-	ts := httptest.NewServer(mux)
-	t.Cleanup(ts.Close)
-	return ts
-}
-
-// serveFiles starts an HTTP server serving the given files.
-// files is a map of URL paths to local file paths.
-func serveFiles(t *testing.T, files map[string]string) *httptest.Server {
-	t.Helper()
-	mux := http.NewServeMux()
-	for path, file := range files {
-		f := filepath.FromSlash(file)
-		mux.HandleFunc(path, func(w http.ResponseWriter, req *http.Request) {
-			http.ServeFile(w, req, f)
-		})
-	}
-	ts := httptest.NewServer(mux)
-	t.Cleanup(ts.Close)
-	return ts
-}
-
 func serveErr(t *testing.T, errCode int) *httptest.Server {
 	t.Helper()
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
@@ -186,10 +164,6 @@ func serveErr(t *testing.T, errCode int) *httptest.Server {
 	}))
 	t.Cleanup(ts.Close)
 	return ts
-}
-
-func ptr[T any](val T) *T {
-	return &val
 }
 
 func assertEqualOrMatch(t testing.TB, want, got string) {

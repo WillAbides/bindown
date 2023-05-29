@@ -1,4 +1,4 @@
-module github.com/willabides/bindown/v3
+module github.com/willabides/bindown/v4
 
 go 1.20
 
@@ -8,6 +8,7 @@ require (
 	github.com/alecthomas/kong v0.7.1
 	github.com/google/go-cmp v0.5.9
 	github.com/google/go-github/v52 v52.0.0
+	github.com/invopop/jsonschema v0.7.0
 	github.com/mholt/archiver/v3 v3.5.1
 	github.com/mholt/archiver/v4 v4.0.0-alpha.8
 	github.com/posener/complete v1.2.3
@@ -18,7 +19,6 @@ require (
 	golang.org/x/exp v0.0.0-20230321023759-10a507213a29
 	golang.org/x/oauth2 v0.8.0
 	golang.org/x/sync v0.2.0
-	gopkg.in/yaml.v2 v2.4.0
 	gopkg.in/yaml.v3 v3.0.1
 )
 
@@ -37,6 +37,7 @@ require (
 	github.com/google/go-querystring v1.1.0 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
+	github.com/iancoleman/orderedmap v0.0.0-20190318233801-ac98e3ecb4b0 // indirect
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51 // indirect
 	github.com/klauspost/compress v1.15.9 // indirect
 	github.com/klauspost/pgzip v1.2.5 // indirect

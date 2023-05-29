@@ -22,11 +22,7 @@ fi
 
 . script/goenv
 
-make -s bin/yq
-
-# We need a copy of bindown.schema.json in both root and internal/bindown
-yq read --prettyPrint -j bindown.schema.yml > bindown.schema.json
-yq read --prettyPrint -j bindown.schema.yml > internal/bindown/bindown.schema.json
+script/generate-jsonschema
 
 go generate ./...
 COLUMNS=100 script/bindown --help > ./docs/clihelp.txt

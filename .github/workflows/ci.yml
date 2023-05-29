@@ -5,6 +5,7 @@ jobs:
     strategy:
       matrix:
         platform: [ ubuntu-20.04, macos-11, windows-2019 ]
+      fail-fast: false
     runs-on: ${{ matrix.platform }}
     steps:
       - uses: actions/checkout@v3
@@ -20,6 +21,7 @@ jobs:
           key: ${{ runner.os }}-go-test-${{ hashFiles('**/go.sum') }}
           restore-keys: ${{ runner.os }}-go-test
       - run: script/test
+        shell: sh
   lint:
     runs-on: ubuntu-20.04
     steps:
