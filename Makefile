@@ -1,5 +1,3 @@
-GOCMD=go
-GOBUILD=$(GOCMD) build
 PATH := "${CURDIR}/bin:$(PATH)"
 
 .PHONY: gobuildcache
@@ -14,12 +12,8 @@ bin/go: bin/bootstrapped/bindown bindown.yml
 bins += bin/go
 
 bin/bindown: gobuildcache bin/go
-	$(GOBUILD) -o $@ ./cmd/bindown
+	go build -o $@ ./cmd/bindown
 bins += bin/bindown
-
-bin/build-bootstrapper: gobuildcache bin/go
-	$(GOBUILD) -o $@ ./internal/build-bootstrapper
-bins += bin/build-bootstrapper
 
 bin/golangci-lint: bin/bindown
 	bin/bindown install -q  $(notdir $@)
