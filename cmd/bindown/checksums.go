@@ -7,6 +7,7 @@ import (
 type checksumsCmd struct {
 	Add   addChecksumsCmd   `kong:"cmd,help=${add_checksums_help}"`
 	Prune pruneChecksumsCmd `kong:"cmd,help=${prune_checksums_help}"`
+	Sync  syncChecksumsCmd  `kong:"cmd,help=${sync_checksums_help}"`
 }
 
 type addChecksumsCmd struct {
@@ -34,6 +35,24 @@ func (d *pruneChecksumsCmd) Run(ctx *runContext) error {
 		return err
 	}
 	err = config.PruneChecksums()
+	if err != nil {
+		return err
+	}
+	return config.WriteFile(ctx.rootCmd.JSONConfig)
+}
+
+type syncChecksumsCmd struct{}
+
+func (d *syncChecksumsCmd) Run(ctx *runContext) error {
+	config, err := loadConfigFile(ctx, true)
+	if err != nil {
+		return err
+	}
+	err = config.PruneChecksums()
+	if err != nil {
+		return err
+	}
+	err = config.AddChecksums(nil, nil)
 	if err != nil {
 		return err
 	}
