@@ -232,7 +232,7 @@ func (c fmtCmd) Run(ctx *runContext, cli *rootCmd) error {
 
 type installCmd struct {
 	Force                bool           `kong:"help=${install_force_help}"`
-	Dependency           string         `kong:"required=true,arg,help=${download_dependency_help},predictor=bin"`
+	Dependency           []string       `kong:"required=true,arg,help=${download_dependency_help},predictor=bin"`
 	TargetFile           string         `kong:"type=path,name=output,type=file,help=${install_target_file_help}"`
 	System               bindown.System `kong:"name=system,default=${system_default},help=${system_help},predictor=allSystems"`
 	AllowMissingChecksum bool           `kong:"name=allow-missing-checksum,help=${allow_missing_checksum}"`
@@ -243,22 +243,28 @@ func (d *installCmd) Run(ctx *runContext) error {
 	if err != nil {
 		return err
 	}
-	pth, err := config.InstallDependency(d.Dependency, d.System, &bindown.ConfigInstallDependencyOpts{
-		TargetPath:           d.TargetFile,
-		Force:                d.Force,
-		AllowMissingChecksum: d.AllowMissingChecksum,
-	})
-	if err != nil {
-		return err
+	if len(d.Dependency) > 1 && d.TargetFile != "" {
+		return fmt.Errorf("cannot specify --output when installing multiple dependencies")
 	}
-	fmt.Fprintf(ctx.stdout, "installed %s to %s\n", d.Dependency, pth)
+	for _, dep := range d.Dependency {
+		var pth string
+		pth, err = config.InstallDependency(dep, d.System, &bindown.ConfigInstallDependencyOpts{
+			TargetPath:           d.TargetFile,
+			Force:                d.Force,
+			AllowMissingChecksum: d.AllowMissingChecksum,
+		})
+		if err != nil {
+			return err
+		}
+		fmt.Fprintf(ctx.stdout, "installed %s to %s\n", dep, pth)
+	}
 	return nil
 }
 
 type downloadCmd struct {
 	Force                bool           `kong:"help=${download_force_help}"`
 	System               bindown.System `kong:"name=system,default=${system_default},help=${system_help},predictor=allSystems"`
-	Dependency           string         `kong:"required=true,arg,help=${download_dependency_help},predictor=bin"`
+	Dependency           []string       `kong:"required=true,arg,help=${download_dependency_help},predictor=bin"`
 	AllowMissingChecksum bool           `kong:"name=allow-missing-checksum,help=${allow_missing_checksum}"`
 }
 
@@ -267,20 +273,23 @@ func (d *downloadCmd) Run(ctx *runContext) error {
 	if err != nil {
 		return err
 	}
-	pth, err := config.DownloadDependency(d.Dependency, d.System, &bindown.ConfigDownloadDependencyOpts{
-		Force:                d.Force,
-		AllowMissingChecksum: d.AllowMissingChecksum,
-	})
-	if err != nil {
-		return err
+	for _, dep := range d.Dependency {
+		var pth string
+		pth, err = config.DownloadDependency(dep, d.System, &bindown.ConfigDownloadDependencyOpts{
+			Force:                d.Force,
+			AllowMissingChecksum: d.AllowMissingChecksum,
+		})
+		if err != nil {
+			return err
+		}
+		fmt.Fprintf(ctx.stdout, "downloaded %s to %s\n", dep, pth)
 	}
-	fmt.Fprintf(ctx.stdout, "downloaded %s to %s\n", d.Dependency, pth)
 	return nil
 }
 
 type extractCmd struct {
 	System               bindown.System `kong:"name=system,default=${system_default},help=${system_help},predictor=allSystems"`
-	Dependency           string         `kong:"required=true,arg,help=${extract_dependency_help},predictor=bin"`
+	Dependency           []string       `kong:"required=true,arg,help=${extract_dependency_help},predictor=bin"`
 	AllowMissingChecksum bool           `kong:"name=allow-missing-checksum,help=${allow_missing_checksum}"`
 }
 
@@ -289,13 +298,15 @@ func (d *extractCmd) Run(ctx *runContext) error {
 	if err != nil {
 		return err
 	}
-	pth, err := config.ExtractDependency(d.Dependency, d.System, &bindown.ConfigExtractDependencyOpts{
-		Force:                false,
-		AllowMissingChecksum: d.AllowMissingChecksum,
-	})
-	if err != nil {
-		return err
+	for _, dep := range d.Dependency {
+		var pth string
+		pth, err = config.ExtractDependency(dep, d.System, &bindown.ConfigExtractDependencyOpts{
+			AllowMissingChecksum: d.AllowMissingChecksum,
+		})
+		if err != nil {
+			return err
+		}
+		fmt.Fprintf(ctx.stdout, "extracted %s to %s\n", dep, pth)
 	}
-	fmt.Fprintf(ctx.stdout, "extracted %s to %s\n", d.Dependency, pth)
 	return nil
 }
