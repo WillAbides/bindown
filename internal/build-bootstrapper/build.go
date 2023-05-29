@@ -16,7 +16,7 @@ import (
 var assets embed.FS
 
 func execBindown(repoRoot string, arg ...string) error {
-	bootstrapCmd := exec.Command("script/bootstrap-bindown.sh", "bin/bootstrapped")
+	bootstrapCmd := exec.Command("script/bootstrap-bindown.sh", "-b", "bin/bootstrapped")
 	bootstrapCmd.Dir = repoRoot
 	err := bootstrapCmd.Run()
 	if err != nil {
