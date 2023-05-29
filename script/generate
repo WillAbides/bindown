@@ -19,7 +19,7 @@ if [ "$1" = "--check" ]; then
   (
     cd "$GENTEMP"
     git add .
-    git commit -q -m "Generate"
+    git commit -q -m "Generate" --allow-empty
     script/generate
     [ -z "$(git status --porcelain)" ] || {
       git status echo "script/generate resulted in changes." 1>&2
