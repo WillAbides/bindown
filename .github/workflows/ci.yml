@@ -36,25 +36,9 @@ jobs:
             ${{ steps.setup-go.outputs.GOCACHE }}
             ${{ steps.setup-go.outputs.GOMODCACHE }}
             .bindown
-          key: ${{ runner.os }}-go-lint-${{ hashFiles('**/go.sum', 'bindown.yml', 'Makefile', 'script/*') }}
+          key: ${{ runner.os }}-go-lint-${{ hashFiles('**/go.sum', 'bindown.yml', 'script/*') }}
           restore-keys: ${{ runner.os }}-go-lint
       - run: script/lint
-  make-bindown:
-    runs-on: ubuntu-20.04
-    steps:
-      - uses: actions/checkout@v3
-      - uses: WillAbides/setup-go-faster@v1
-        id: setup-go
-        with:
-          go-version: '1.20.x'
-      - uses: actions/cache@v3
-        with:
-          path: |
-            ${{ steps.setup-go.outputs.GOCACHE }}
-            ${{ steps.setup-go.outputs.GOMODCACHE }}
-          key: ${{ runner.os }}-go-make-bindown-${{ hashFiles('**/go.sum') }}
-          restore-keys: ${{ runner.os }}-go-make-bindown
-      - run: make bin/bindown
   generate:
     runs-on: ubuntu-20.04
     steps:
@@ -80,7 +64,6 @@ jobs:
     needs:
       - test
       - lint
-      - make-bindown
       - generate
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     env:

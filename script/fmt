@@ -4,9 +4,7 @@ set -e
 
 CDPATH="" cd -- "$(dirname -- "$(dirname -- "$0")")"
 
-. script/goenv
-
-make -s bin/gofumpt bin/shfmt
+script/bindown -q install gofumpt shfmt
 
 bin/gofumpt -w internal/*/*.go cmd/*/*.go
 

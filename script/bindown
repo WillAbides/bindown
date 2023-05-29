@@ -4,6 +4,6 @@ set -e
 
 CDPATH="" cd -- "$(dirname -- "$(dirname -- "$0")")"
 
-make -s bin/bindown
+go build -o bin/bindown ./cmd/bindown
 
-bin/bindown "$@"
+exec bin/bindown "$@"

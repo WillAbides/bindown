@@ -74,5 +74,5 @@ git fetch --tags
 bin/goreleaser release --clean
 
 # create bootstrap-bindown.sh
-go run ./internal/build-bootstrapper -tag "v$NEXT_VERSION" >bootstrap-bindown.sh
+go run ./internal/build-bootstrapper -tag "v$NEXT_VERSION" > bootstrap-bindown.sh
 bin/gh release upload "v$NEXT_VERSION" bootstrap-bindown.sh

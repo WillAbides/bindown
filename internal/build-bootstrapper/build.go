@@ -16,14 +16,13 @@ import (
 var assets embed.FS
 
 func execBindown(repoRoot string, arg ...string) error {
-	bindownPath := filepath.FromSlash("bin/bootstrapped/bindown")
-	makeCmd := exec.Command("make", bindownPath)
-	makeCmd.Dir = repoRoot
-	err := makeCmd.Run()
+	bootstrapCmd := exec.Command("script/bootstrap-bindown.sh", "-b", "bin/bootstrapped")
+	bootstrapCmd.Dir = repoRoot
+	err := bootstrapCmd.Run()
 	if err != nil {
 		return err
 	}
-	bindownCmd := exec.Command(bindownPath, arg...)
+	bindownCmd := exec.Command("bin/bootstrapped/bindown", arg...)
 	bindownCmd.Dir = repoRoot
 	return bindownCmd.Run()
 }
