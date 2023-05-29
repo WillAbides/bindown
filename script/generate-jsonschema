@@ -4,8 +4,6 @@ set -e
 
 CDPATH="" cd -- "$(dirname -- "$(dirname -- "$0")")"
 
-. script/goenv
-
 make -s bin/yq
 
 go run ./internal/genjsonschema > bindown.schema.json
