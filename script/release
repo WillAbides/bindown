@@ -63,13 +63,17 @@ else
   fi
 fi
 
+# pre-build so there isn't such a long time between creating the release and adding the assets
+if [ -f ".goreleaser.yaml" ]; then
+  script/bindown -q install goreleaser
+  bin/goreleaser release --snapshot --clean
+fi
+
 bin/gh release create "v$NEXT_VERSION" -t "v$NEXT_VERSION" --generate-notes
 
 # If there's no .goreleaser.yaml, there's nothing left to do.
 [ -f ".goreleaser.yaml" ] || exit 0
 
+# now build for real
 git fetch --tags
-
-script/bindown -q install goreleaser
-
 bin/goreleaser release --clean
