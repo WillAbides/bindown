@@ -30,6 +30,9 @@ type Config struct {
 	// where the native delimiter isn't /.
 	InstallDir string `json:"install_dir,omitempty" yaml:"install_dir,omitempty"`
 
+	// List of systems supported by this config. Systems are in the form of os/architecture.
+	Systems []System `json:"systems,omitempty" yaml:"systems,omitempty"`
+
 	// Dependencies available for bindown to install.
 	Dependencies map[string]*Dependency `json:"dependencies,omitempty" yaml:",omitempty"`
 
@@ -38,9 +41,6 @@ type Config struct {
 
 	// Upstream sources for templates.
 	TemplateSources map[string]string `json:"template_sources,omitempty" yaml:"template_sources,omitempty"`
-
-	// List of systems supported by this config. Systems are in the form of os/architecture.
-	Systems []System `json:"systems,omitempty" yaml:"systems,omitempty"`
 
 	// Checksums of downloaded files.
 	URLChecksums map[string]string `json:"url_checksums,omitempty" yaml:"url_checksums,omitempty"`

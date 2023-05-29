@@ -156,6 +156,11 @@ properties:
       The directory that bindown installs files to. This is relative to the directory where the configuration file
       resides. install_directory paths should always use / as a delimiter even on Windows or other operating systems
       where the native delimiter isn't /.
+  systems:
+    items:
+      type: string
+    type: array
+    description: List of systems supported by this config. Systems are in the form of os/architecture.
   dependencies:
     patternProperties:
       .*:
@@ -174,11 +179,6 @@ properties:
         type: string
     type: object
     description: Upstream sources for templates.
-  systems:
-    items:
-      type: string
-    type: array
-    description: List of systems supported by this config. Systems are in the form of os/architecture.
   url_checksums:
     patternProperties:
       .*:
