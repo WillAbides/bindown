@@ -5,9 +5,11 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"github.com/willabides/bindown/v4/internal/testutil"
 )
 
 func TestConfig_UnsetDependencyVars(t *testing.T) {
@@ -177,7 +179,7 @@ func TestConfig_addTemplateFromSource(t *testing.T) {
 
 	t.Run("http", func(t *testing.T) {
 		srcFile := filepath.Join("testdata", "configs", "ex1.yaml")
-		ts := serveFile(t, srcFile, "/ex1.yaml", "")
+		ts := testutil.ServeFile(t, srcFile, "/ex1.yaml", "")
 		cfg := new(Config)
 		src := ts.URL + "/ex1.yaml"
 		srcCfg, err := NewConfig(ctx, srcFile, true)
@@ -191,8 +193,8 @@ func TestConfig_addTemplateFromSource(t *testing.T) {
 func TestConfig_InstallDependency(t *testing.T) {
 	t.Run("raw file", func(t *testing.T) {
 		dir := t.TempDir()
-		servePath := filepath.Join("testdata", "downloadables", filepath.FromSlash("rawfile/foo"))
-		ts := serveFile(t, servePath, "/foo/foo", "")
+		servePath := filepath.Join("testdata", "downloadables", "rawfile", "foo")
+		ts := testutil.ServeFile(t, servePath, "/foo/foo", "")
 		depURL := ts.URL + "/foo/foo"
 		binDir := filepath.Join(dir, "bin")
 		require.NoError(t, os.MkdirAll(binDir, 0o755))
@@ -215,13 +217,13 @@ dependencies:
 		stat, err := os.Stat(wantBin)
 		require.NoError(t, err)
 		require.False(t, stat.IsDir())
-		require.Equal(t, os.FileMode(0o750), stat.Mode().Perm()&0o750)
+		testutil.AssertExecutable(t, stat.Mode())
 	})
 
 	t.Run("bin in root", func(t *testing.T) {
 		dir := t.TempDir()
 		servePath := filepath.Join("testdata", "downloadables", "fooinroot.tar.gz")
-		ts := serveFile(t, servePath, "/foo/fooinroot.tar.gz", "")
+		ts := testutil.ServeFile(t, servePath, "/foo/fooinroot.tar.gz", "")
 		depURL := ts.URL + "/foo/fooinroot.tar.gz"
 		binDir := filepath.Join(dir, "bin")
 		require.NoError(t, os.MkdirAll(binDir, 0o755))
@@ -244,13 +246,17 @@ dependencies:
 		stat, err := os.Stat(wantBin)
 		require.NoError(t, err)
 		require.False(t, stat.IsDir())
-		require.Equal(t, os.FileMode(0o750), stat.Mode().Perm()&0o750)
+		wantMode := os.FileMode(0o750)
+		if runtime.GOOS == "windows" {
+			wantMode = 0o640
+		}
+		require.Equal(t, wantMode, stat.Mode().Perm()&0o750)
 	})
 
 	t.Run("wrong checksum", func(t *testing.T) {
 		dir := t.TempDir()
 		servePath := filepath.Join("testdata", "downloadables", "fooinroot.tar.gz")
-		ts := serveFile(t, servePath, "/foo/fooinroot.tar.gz", "")
+		ts := testutil.ServeFile(t, servePath, "/foo/fooinroot.tar.gz", "")
 		depURL := ts.URL + "/foo/fooinroot.tar.gz"
 		binDir := filepath.Join(dir, "bin")
 		require.NoError(t, os.MkdirAll(binDir, 0o755))
@@ -273,11 +279,11 @@ dependencies:
 }
 
 func TestConfig_addChecksums(t *testing.T) {
-	ts1 := serveFile(t, filepath.Join("testdata", "downloadables", "foo.tar.gz"), "/foo/foo.tar.gz", "")
-	ts2 := serveFile(t, filepath.Join("testdata", "downloadables", "foo.tar.gz"), "/foo/foo.tar.gz", "")
-	ts3 := serveFile(t, filepath.Join("testdata", "downloadables", "foo.tar.gz"), "/foo/foo.tar.gz", "")
-	ts4 := serveFile(t, filepath.Join("testdata", "downloadables", "foo.tar.gz"), "/foo/foo.tar.gz", "")
-	ts5 := serveFile(t, filepath.Join("testdata", "downloadables", "foo.tar.gz"), "/foo/foo.tar.gz", "")
+	ts1 := testutil.ServeFile(t, filepath.Join("testdata", "downloadables", "foo.tar.gz"), "/foo/foo.tar.gz", "")
+	ts2 := testutil.ServeFile(t, filepath.Join("testdata", "downloadables", "foo.tar.gz"), "/foo/foo.tar.gz", "")
+	ts3 := testutil.ServeFile(t, filepath.Join("testdata", "downloadables", "foo.tar.gz"), "/foo/foo.tar.gz", "")
+	ts4 := testutil.ServeFile(t, filepath.Join("testdata", "downloadables", "foo.tar.gz"), "/foo/foo.tar.gz", "")
+	ts5 := testutil.ServeFile(t, filepath.Join("testdata", "downloadables", "foo.tar.gz"), "/foo/foo.tar.gz", "")
 	dl1 := ts1.URL + "/foo/foo.tar.gz"
 	dl2 := ts2.URL + "/foo/foo.tar.gz"
 	dl3 := ts3.URL + "/foo/foo.tar.gz"
@@ -332,8 +338,8 @@ dependencies:
 }
 
 func TestConfig_addChecksum(t *testing.T) {
-	ts1 := serveFile(t, filepath.Join("testdata", "downloadables", "foo.tar.gz"), "/testOS2-v1-v2", "")
-	ts2 := serveFile(t, filepath.Join("testdata", "downloadables", "foo.tar.gz"), "/testOS-overrideV1-overrideV2", "")
+	ts1 := testutil.ServeFile(t, filepath.Join("testdata", "downloadables", "foo.tar.gz"), "/testOS2-v1-v2", "")
+	ts2 := testutil.ServeFile(t, filepath.Join("testdata", "downloadables", "foo.tar.gz"), "/testOS-overrideV1-overrideV2", "")
 	dlURL := ts1.URL + "/{{.os}}-{{.var1}}-{{.var2}}"
 	dlURL2 := ts2.URL + "/{{.os}}-{{.var1}}-{{.var2}}"
 	overrideCheckedURL := ts2.URL + "/testOS-overrideV1-overrideV2"

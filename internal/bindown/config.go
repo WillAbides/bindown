@@ -624,15 +624,10 @@ func (c *Config) WriteFile(outputJSON bool) (errOut error) {
 // NewConfig loads a config from a URL
 func NewConfig(ctx context.Context, cfgSrc string, noDefaultDirs bool) (*Config, error) {
 	cfgURL, err := url.Parse(cfgSrc)
-	if err != nil {
-		return nil, err
-	}
-	switch cfgURL.Scheme {
-	case "":
-	case "http", "https":
-		return configFromHTTP(ctx, cfgSrc)
-	default:
-		return nil, fmt.Errorf("invalid src: %s", cfgSrc)
+	if err == nil {
+		if cfgURL.Scheme == "http" || cfgURL.Scheme == "https" {
+			return configFromHTTP(ctx, cfgSrc)
+		}
 	}
 	data, err := os.ReadFile(cfgSrc)
 	if err != nil {

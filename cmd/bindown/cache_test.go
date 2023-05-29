@@ -3,14 +3,16 @@ package main
 import (
 	"fmt"
 	"path/filepath"
+	"runtime"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/willabides/bindown/v4/internal/testutil"
 )
 
 func Test_cacheClearCmd(t *testing.T) {
 	servePath := testdataPath("downloadables/fooinroot.tar.gz")
-	successServer := serveFile(t, servePath, "/foo/fooinroot.tar.gz", "")
+	successServer := testutil.ServeFile(t, servePath, "/foo/fooinroot.tar.gz", "")
 	depURL := successServer.URL + "/foo/fooinroot.tar.gz"
 
 	t.Run("removes populated cache", func(t *testing.T) {
@@ -41,9 +43,13 @@ url_checksums:
 	t.Run("errors on missing config", func(t *testing.T) {
 		runner := newCmdRunner(t)
 		result := runner.run("cache", "clear")
+		wantStdErr := `no such file or directory`
+		if runtime.GOOS == "windows" {
+			wantStdErr = `The system cannot find the file specified`
+		}
 		result.assertState(resultState{
 			exit:   1,
-			stderr: `no such file or directory`,
+			stderr: wantStdErr,
 		})
 	})
 }

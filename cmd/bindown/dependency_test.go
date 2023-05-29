@@ -4,10 +4,12 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"github.com/willabides/bindown/v4/internal/testutil"
 )
 
 func Test_dependencyUpdateVarCmd(t *testing.T) {
@@ -385,9 +387,13 @@ dependencies:
 		runner := newCmdRunner(t)
 		runner.writeConfigYaml(`{}`)
 		result := runner.run("dependency", "add", "dep1", "tmpl", "--source=foo")
+		wantStderr := `no such file or directory`
+		if runtime.GOOS == "windows" {
+			wantStderr = `The system cannot find the file specified`
+		}
 		result.assertState(resultState{
 			exit:   1,
-			stderr: `cmd: error: open foo: no such file or directory`,
+			stderr: wantStderr,
 		})
 	})
 
@@ -398,6 +404,7 @@ dependencies:
 url_checksums:
   foo-linux-amd64-1.2.3: deadbeef
   foo-darwin-amd64-1.2.3: deadbeef
+  foo-windows-amd64-1.2.3: deadbeef
 template_sources:
   origin: %q
 `, srcFile))
@@ -428,6 +435,7 @@ dependencies:
 url_checksums:
   foo-linux-amd64-1.2.3: deadbeef
   foo-darwin-amd64-1.2.3: deadbeef
+  foo-windows-amd64-1.2.3: deadbeef
 template_sources:
   origin: %q
 `, srcFile))
@@ -462,6 +470,7 @@ templates:
 url_checksums:
   foo-linux-amd64-1.2.3: deadbeef
   foo-darwin-amd64-1.2.3: deadbeef
+  foo-windows-amd64-1.2.3: deadbeef
 `)
 		runner.stdin = strings.NewReader("1.2.3\nbar")
 		result := runner.run("dependency", "add", "dep1", "tmpl")
@@ -483,7 +492,7 @@ dependencies:
 		tar := filepath.Join(downloadablesDir, "runnable.tar.gz")
 		zip := filepath.Join(downloadablesDir, "runnable_windows.zip")
 
-		server := serveFiles(t, map[string]string{
+		server := testutil.ServeFiles(t, map[string]string{
 			"/foo/v1.2.3/foo-darwin-amd64.tar.gz": tar,
 			"/foo/v1.2.3/foo-darwin-arm64.tar.gz": tar,
 			"/foo/v1.2.3/foo-linux-amd64.tar.gz":  tar,
@@ -527,7 +536,7 @@ func Test_dependencyValidateCmd(t *testing.T) {
 		tar := filepath.Join(downloadablesDir, "runnable.tar.gz")
 		zip := filepath.Join(downloadablesDir, "runnable_windows.zip")
 
-		server := serveFiles(t, map[string]string{
+		server := testutil.ServeFiles(t, map[string]string{
 			"/foo/v1.2.3/foo-darwin-amd64.tar.gz": tar,
 			"/foo/v1.2.3/foo-darwin-arm64.tar.gz": tar,
 			"/foo/v1.2.3/foo-linux-amd64.tar.gz":  tar,

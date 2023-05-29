@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"github.com/willabides/bindown/v4/internal/testutil"
 )
 
 func Test_addChecksumsCmd(t *testing.T) {
@@ -13,7 +14,7 @@ func Test_addChecksumsCmd(t *testing.T) {
 		var servers [5]*httptest.Server
 		var urls [5]string
 		for i := range servers {
-			servers[i] = serveFile(t, testdataPath("downloadables/foo.tar.gz"), "/foo/foo.tar.gz", "")
+			servers[i] = testutil.ServeFile(t, testdataPath("downloadables/foo.tar.gz"), "/foo/foo.tar.gz", "")
 			urls[i] = servers[i].URL + "/foo/foo.tar.gz"
 		}
 		runner := newCmdRunner(t)

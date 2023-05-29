@@ -157,39 +157,6 @@ func (r *runCmdResult) assertState(state resultState) {
 // fooChecksum is the checksum of downloadablesPath("foo.tar.gz")
 const fooChecksum = "f7fa712caea646575c920af17de3462fe9d08d7fe062b9a17010117d5fa4ed88"
 
-// serveFile starts an HTTP server
-func serveFile(t *testing.T, file, path, query string) *httptest.Server {
-	t.Helper()
-	file = filepath.FromSlash(file)
-	mux := http.NewServeMux()
-	mux.HandleFunc(path, func(w http.ResponseWriter, req *http.Request) {
-		if req.URL.RawQuery != query {
-			http.Error(w, "not found", http.StatusNotFound)
-			return
-		}
-		http.ServeFile(w, req, file)
-	})
-	ts := httptest.NewServer(mux)
-	t.Cleanup(ts.Close)
-	return ts
-}
-
-// serveFiles starts an HTTP server serving the given files.
-// files is a map of URL paths to local file paths.
-func serveFiles(t *testing.T, files map[string]string) *httptest.Server {
-	t.Helper()
-	mux := http.NewServeMux()
-	for path, file := range files {
-		f := filepath.FromSlash(file)
-		mux.HandleFunc(path, func(w http.ResponseWriter, req *http.Request) {
-			http.ServeFile(w, req, f)
-		})
-	}
-	ts := httptest.NewServer(mux)
-	t.Cleanup(ts.Close)
-	return ts
-}
-
 func serveErr(t *testing.T, errCode int) *httptest.Server {
 	t.Helper()
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
