@@ -21,6 +21,7 @@ var kongVars = kong.Vars{
 	"systems_help":                    `target systems in the format of <os>/<architecture>`,
 	"add_checksums_help":              `add checksums to the config file`,
 	"prune_checksums_help":            `remove unnecessary checksums from the config file`,
+	"sync_checksums_help":             `add checksums to the config file and remove unnecessary checksums`,
 	"config_format_help":              `formats the config file`,
 	"config_validate_help":            `validate that installs work`,
 	"config_install_completions_help": `install shell completions`,
