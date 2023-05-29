@@ -6,12 +6,7 @@ bin/bootstrapped/bindown: script/bootstrap-bindown.sh
 	./script/bootstrap-bindown.sh -b bin/bootstrapped
 bins += bin/bootstrapped/bindown
 
-bin/go: bin/bootstrapped/bindown bindown.yml
-	$(MAKE) bin/bootstrapped/bindown
-	bin/bootstrapped/bindown install -q $(notdir $@)
-bins += bin/go
-
-bin/bindown: gobuildcache bin/go
+bin/bindown: gobuildcache
 	go build -o $@ ./cmd/bindown
 bins += bin/bindown
 
