@@ -4,7 +4,7 @@ set -e
 
 CDPATH="" cd -- "$(dirname -- "$(dirname -- "$0")")"
 
-make -s bin/golangci-lint bin/shellcheck
+script/bindown -q install golangci-lint shellcheck
 
 bin/golangci-lint run
 # Don't check bootstrap-bindown.sh because it's dynamically generated
