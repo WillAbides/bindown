@@ -15,6 +15,7 @@ if [ "$1" = "--check" ]; then
     mkdir -p "$(dirname -- "$target")"
     cp "$f" "$target"
   done
+  mkdir -p bin
   ln -s "$(pwd)"/bin "$GENTEMP"/bin
   (
     cd "$GENTEMP"
