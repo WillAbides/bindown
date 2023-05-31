@@ -1,5 +1,9 @@
 # bindown
 
+<p align="center">
+  <img src="./logo.png" width="100" alt="logo">
+</p>
+
 **bindown** is a declarative dependency manager for binary files. It is designed to be used in development and ci
 environments where it is important to guarantee the same version of the same binary is used by everyone. 
 
