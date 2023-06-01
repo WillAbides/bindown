@@ -157,10 +157,10 @@ func (c *dependencyRemoveCmd) Run(ctx *runContext) error {
 
 type dependencyAddCmd struct {
 	Name             string            `kong:"arg"`
-	Template         string            `kong:"arg,predictor=template"`
+	Template         string            `kong:"arg,optional,predictor=template"`
 	TemplateSource   string            `kong:"name=source,help='template source',predictor=templateSource"`
 	Vars             map[string]string `kong:"name=var"`
-	SkipRequiredVars bool              `kong:"name=skipvars,help='do not prompt for required vars'"`
+	SkipRequiredVars bool              `kong:"name=skipvars,help='do not prompt for required vars. implies --skipchecksums'"`
 	SkipChecksums    bool              `kong:"name=skipchecksums,help='do not add checksums for this dependency'"`
 }
 
@@ -170,12 +170,14 @@ func (c *dependencyAddCmd) Run(ctx *runContext) error {
 		return err
 	}
 	tmpl := c.Template
+	if tmpl == "" {
+		tmpl = c.Name
+	}
 	tmplSrc := c.TemplateSource
 	if tmplSrc == "" {
-		tmplParts := strings.SplitN(tmpl, "#", 2)
-		if len(tmplParts) == 2 {
-			tmpl = tmplParts[1]
-			tmplSrc = tmplParts[0]
+		ts, t, ok := strings.Cut(tmpl, "#")
+		if ok {
+			tmplSrc, tmpl = ts, t
 		}
 	}
 
@@ -194,9 +196,7 @@ func (c *dependencyAddCmd) Run(ctx *runContext) error {
 	if err != nil {
 		return err
 	}
-	hasMissingVars := len(missingVars) > 0
-	if hasMissingVars && !c.SkipRequiredVars {
-		hasMissingVars = false
+	if len(missingVars) > 0 && !c.SkipRequiredVars {
 		scanner := bufio.NewScanner(ctx.stdin)
 		for _, missingVar := range missingVars {
 			fmt.Fprintf(ctx.stdout, "Please enter a value for required variable %q:\t", missingVar)
@@ -209,7 +209,8 @@ func (c *dependencyAddCmd) Run(ctx *runContext) error {
 			config.Dependencies[c.Name].Vars[missingVar] = val
 		}
 	}
-	if !hasMissingVars && !c.SkipChecksums {
+	skipChecksums := c.SkipChecksums || c.SkipRequiredVars
+	if !skipChecksums {
 		err = config.AddChecksums([]string{c.Name}, nil)
 		if err != nil {
 			return err

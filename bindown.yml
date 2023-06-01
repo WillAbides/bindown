@@ -57,6 +57,8 @@ templates:
     required_vars:
       - tag
   origin#gh:
+    homepage: https://github.com/cli/cli
+    description: GitHub’s official command line tool
     url: https://github.com/cli/cli/releases/download/v{{.version}}/gh_{{.version}}_{{.os}}_{{.arch}}{{.urlSuffix}}
     archive_path: gh_{{.version}}_{{.os}}_{{.arch}}/bin/gh{{.archivePathSuffix}}
     bin: gh
