@@ -11,6 +11,9 @@ import (
 )
 
 func TestBuild(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping test in short mode.")
+	}
 	// This doesn't work on windows, and for now I don't care because it is only used in CI
 	if runtime.GOOS == "windows" {
 		t.Skip("skipping on windows")

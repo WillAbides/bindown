@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"regexp"
+	"sort"
 	"strings"
 
 	"github.com/willabides/bindown/v4/internal/bindown"
@@ -184,7 +185,7 @@ func (c *dependencyAddCmd) Run(ctx *runContext) error {
 	if c.Vars == nil {
 		c.Vars = map[string]string{}
 	}
-	err = config.AddDependencyFromTemplate(ctx, tmpl, &bindown.AddDependencyFromTemplateOpts{
+	dep, varVals, err := config.AddDependencyFromTemplate(ctx, tmpl, &bindown.AddDependencyFromTemplateOpts{
 		DependencyName: c.Name,
 		TemplateSource: tmplSrc,
 		Vars:           c.Vars,
@@ -192,13 +193,50 @@ func (c *dependencyAddCmd) Run(ctx *runContext) error {
 	if err != nil {
 		return err
 	}
+	// This shouldn't be possible, but just in case
+	if dep.Template == nil || config.Templates == nil || config.Templates[*dep.Template] == nil {
+		return fmt.Errorf("template not found: %q", tmpl)
+	}
+	if varVals == nil {
+		varVals = map[string][]string{}
+	}
 	missingVars, err := config.MissingDependencyVars(c.Name)
 	if err != nil {
 		return err
 	}
+	tmplCfg := config.Templates[*dep.Template]
+	// Don't need to output the list of systems
+	systems := tmplCfg.Systems
+	tmplCfg.Systems = nil
+	fmt.Fprintf(ctx.stdout, "Adding dependency %q from template ", c.Name)
+	err = bindown.EncodeYaml(ctx.stdout, map[string]bindown.Dependency{
+		*dep.Template: *tmplCfg,
+	})
+	if err != nil {
+		return err
+	}
+	tmplCfg.Systems = systems
+
 	if len(missingVars) > 0 && !c.SkipRequiredVars {
+		for _, d := range config.Dependencies {
+			if d.Template == nil || dep.Template == nil || *d.Template != *dep.Template {
+				continue
+			}
+			for k, v := range d.Vars {
+				varVals[k] = append([]string{v}, varVals[k]...)
+			}
+		}
+
 		scanner := bufio.NewScanner(ctx.stdin)
 		for _, missingVar := range missingVars {
+			knownVals := varVals[missingVar]
+			sort.Strings(knownVals)
+			if len(knownVals) > 0 {
+				fmt.Fprintf(ctx.stdout, "Known values for %q:\n", missingVar)
+				for _, v := range knownVals {
+					fmt.Fprintf(ctx.stdout, "  %s\n", v)
+				}
+			}
 			fmt.Fprintf(ctx.stdout, "Please enter a value for required variable %q:\t", missingVar)
 			scanner.Scan()
 			err = scanner.Err()

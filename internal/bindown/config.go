@@ -454,10 +454,10 @@ type AddDependencyFromTemplateOpts struct {
 	Vars           map[string]string
 }
 
-// AddDependencyFromTemplate adds a dependency to the config
-func (c *Config) AddDependencyFromTemplate(ctx context.Context, templateName string, opts *AddDependencyFromTemplateOpts) error {
+// AddDependencyFromTemplate adds a dependency to the config. Returns a map of known values for template vars
+func (c *Config) AddDependencyFromTemplate(ctx context.Context, templateName string, opts *AddDependencyFromTemplateOpts) (*Dependency, map[string][]string, error) {
 	if opts == nil {
-		opts = new(AddDependencyFromTemplateOpts)
+		opts = &AddDependencyFromTemplateOpts{}
 	}
 	dependencyName := opts.DependencyName
 	if dependencyName == "" {
@@ -467,29 +467,32 @@ func (c *Config) AddDependencyFromTemplate(ctx context.Context, templateName str
 		c.Dependencies = map[string]*Dependency{}
 	}
 	if c.Dependencies[dependencyName] != nil {
-		return fmt.Errorf("dependency named %q already exists", dependencyName)
+		return nil, nil, fmt.Errorf("dependency named %q already exists", dependencyName)
 	}
-	templateName, err := c.addOrGetTemplate(ctx, templateName, opts.TemplateSource)
+	templateName, varVals, err := c.addOrGetTemplate(ctx, templateName, opts.TemplateSource)
 	if err != nil {
-		return err
+		return nil, nil, err
 	}
-	dep := new(Dependency)
-	dep.Vars = opts.Vars
-	dep.Template = &templateName
+	dep := &Dependency{
+		Overrideable: Overrideable{
+			Vars: opts.Vars,
+		},
+		Template: &templateName,
+	}
 	c.Dependencies[dependencyName] = dep
-	return nil
+	return dep, varVals, nil
 }
 
-func (c *Config) addOrGetTemplate(ctx context.Context, name, src string) (string, error) {
-	destName := name
+func (c *Config) addOrGetTemplate(ctx context.Context, name, src string) (destName string, varVals map[string][]string, _ error) {
+	destName = name
 	if src != "" {
 		destName = fmt.Sprintf("%s#%s", src, name)
 	}
 	if _, ok := c.Templates[destName]; ok {
-		return destName, nil
+		return destName, nil, nil
 	}
 	if src == "" {
-		return "", fmt.Errorf("no template named %q", name)
+		return "", nil, fmt.Errorf("no template named %q", name)
 	}
 	tmplSrc := src
 	tmplSrcs := c.TemplateSources
@@ -499,11 +502,12 @@ func (c *Config) addOrGetTemplate(ctx context.Context, name, src string) (string
 	if _, ok := tmplSrcs[tmplSrc]; ok {
 		tmplSrc = tmplSrcs[tmplSrc]
 	}
-	err := c.addTemplateFromSource(ctx, tmplSrc, name, destName)
+	var err error
+	varVals, err = c.addTemplateFromSource(ctx, tmplSrc, name, destName)
 	if err != nil {
-		return "", err
+		return "", nil, err
 	}
-	return destName, nil
+	return destName, varVals, nil
 }
 
 // CopyTemplateFromSource copies a template from source
@@ -515,24 +519,34 @@ func (c *Config) CopyTemplateFromSource(ctx context.Context, src, srcTemplate, d
 	if tmplSrc == "" {
 		return fmt.Errorf("no template source named %q", src)
 	}
-	return c.addTemplateFromSource(ctx, tmplSrc, srcTemplate, destName)
+	_, err := c.addTemplateFromSource(ctx, tmplSrc, srcTemplate, destName)
+	return err
 }
 
 // addTemplateFromSource copies a template from another config file
-func (c *Config) addTemplateFromSource(ctx context.Context, src, srcTemplate, destName string) error {
+func (c *Config) addTemplateFromSource(ctx context.Context, src, srcTemplate, destName string) (map[string][]string, error) {
 	srcCfg, err := NewConfig(ctx, src, true)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	tmpl := srcCfg.Templates[srcTemplate]
 	if tmpl == nil {
-		return fmt.Errorf("source has no template named %q", srcTemplate)
+		return nil, fmt.Errorf("source has no template named %q", srcTemplate)
+	}
+	varVals := map[string][]string{}
+	for _, dep := range srcCfg.Dependencies {
+		if dep.Template == nil || *dep.Template != srcTemplate {
+			continue
+		}
+		for k, v := range dep.Vars {
+			varVals[k] = append(varVals[k], v)
+		}
 	}
 	if c.Templates == nil {
 		c.Templates = map[string]*Dependency{}
 	}
 	c.Templates[destName] = tmpl
-	return nil
+	return varVals, nil
 }
 
 func (c *Config) templatesList() []string {

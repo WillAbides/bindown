@@ -152,26 +152,27 @@ func TestConfig_addTemplateFromSource(t *testing.T) {
 	ctx := context.Background()
 	t.Run("file", func(t *testing.T) {
 		t.Run("success", func(t *testing.T) {
-			cfg := new(Config)
+			cfg := &Config{}
 			src := filepath.Join("testdata", "configs", "ex1.yaml")
 			srcCfg, err := NewConfig(ctx, src, true)
 			require.NoError(t, err)
-			err = cfg.addTemplateFromSource(ctx, src, "goreleaser", "mygoreleaser")
+			varVals, err := cfg.addTemplateFromSource(ctx, src, "goreleaser", "mygoreleaser")
 			require.NoError(t, err)
 			require.Equal(t, srcCfg.Templates["goreleaser"], cfg.Templates["mygoreleaser"])
+			require.Equal(t, map[string][]string{"version": {"0.120.7"}}, varVals)
 		})
 
 		t.Run("missing template", func(t *testing.T) {
-			cfg := new(Config)
+			cfg := &Config{}
 			src := filepath.Join("testdata", "configs", "ex1.yaml")
-			err := cfg.addTemplateFromSource(ctx, src, "fake", "myfake")
+			_, err := cfg.addTemplateFromSource(ctx, src, "fake", "myfake")
 			require.EqualError(t, err, `source has no template named "fake"`)
 		})
 
 		t.Run("missing file", func(t *testing.T) {
-			cfg := new(Config)
+			cfg := &Config{}
 			src := filepath.Join("testdata", "configs", "thisdoesnotexist.yaml")
-			err := cfg.addTemplateFromSource(ctx, src, "fake", "myfake")
+			_, err := cfg.addTemplateFromSource(ctx, src, "fake", "myfake")
 			require.Error(t, err)
 			require.True(t, os.IsNotExist(err))
 		})
@@ -180,13 +181,14 @@ func TestConfig_addTemplateFromSource(t *testing.T) {
 	t.Run("http", func(t *testing.T) {
 		srcFile := filepath.Join("testdata", "configs", "ex1.yaml")
 		ts := testutil.ServeFile(t, srcFile, "/ex1.yaml", "")
-		cfg := new(Config)
+		cfg := &Config{}
 		src := ts.URL + "/ex1.yaml"
 		srcCfg, err := NewConfig(ctx, srcFile, true)
 		require.NoError(t, err)
-		err = cfg.addTemplateFromSource(ctx, src, "goreleaser", "mygoreleaser")
+		varVals, err := cfg.addTemplateFromSource(ctx, src, "goreleaser", "mygoreleaser")
 		require.NoError(t, err)
 		require.Equal(t, srcCfg.Templates["goreleaser"], cfg.Templates["mygoreleaser"])
+		require.Equal(t, map[string][]string{"version": {"0.120.7"}}, varVals)
 	})
 }
 

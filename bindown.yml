@@ -233,6 +233,8 @@ templates:
     required_vars:
       - version
   origin#jq:
+    homepage: https://github.com/stedolan/jq
+    description: Command-line JSON processor
     url: https://github.com/stedolan/jq/releases/download/jq-{{.version}}/jq-{{.os}}{{.arch}}{{.extension}}
     archive_path: jq-{{.os}}{{.arch}}{{.extension}}
     bin: jq

@@ -463,6 +463,12 @@ dependencies:
 		runner := newCmdRunner(t)
 		runner.writeConfigYaml(`
 systems: ["linux/amd64", "darwin/amd64"]
+dependencies:
+  dep2:
+    template: tmpl
+    vars:
+      version: "1.2.3"
+      foo: bar
 templates:
   tmpl:
     url: foo-{{ .os }}-{{ .arch }}-{{ .version }}
@@ -475,7 +481,11 @@ url_checksums:
 		runner.stdin = strings.NewReader("1.2.3\nbar")
 		result := runner.run("dependency", "add", "dep1", "tmpl")
 		result.assertState(resultState{
-			stdout: `Please enter a value for required variable "version":	Please enter a value for required variable "foo":`,
+			stdout: `Known values for "version":
+  1.2.3
+Please enter a value for required variable "version":	Known values for "foo":
+  bar
+Please enter a value for required variable "foo":`,
 		})
 		cfg := runner.getConfigFile()
 		wantDep := mustConfigFromYAML(t, `
@@ -506,7 +516,8 @@ systems: ["darwin/amd64", "darwin/arm64", "linux/amd64", "windows/amd64"]
 template_sources:
   origin: %q
 `, srcPath))
-		wantStdout := `Please enter a value for required variable "version":	Please enter a value for required variable "addr":	`
+		wantStdout := `Missing required vars from template "tmpl1"
+Please enter a value for required variable "version":	Please enter a value for required variable "addr":	`
 		runner.stdin = strings.NewReader(fmt.Sprintf("%s\n%s", "1.2.3", server.URL))
 		result := runner.run("dependency", "add", "foo", "tmpl1", "--source", "origin")
 		require.Equal(t, 0, result.exitVal)
