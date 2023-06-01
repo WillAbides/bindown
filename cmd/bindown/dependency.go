@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"regexp"
-	"sort"
 	"strings"
 
 	"github.com/willabides/bindown/v4/internal/bindown"
@@ -230,7 +229,7 @@ func (c *dependencyAddCmd) Run(ctx *runContext) error {
 		scanner := bufio.NewScanner(ctx.stdin)
 		for _, missingVar := range missingVars {
 			knownVals := varVals[missingVar]
-			sort.Strings(knownVals)
+			bindown.SortBySemverOrString(knownVals)
 			if len(knownVals) > 0 {
 				fmt.Fprintf(ctx.stdout, "Known values for %q:\n", missingVar)
 				for _, v := range knownVals {
