@@ -362,7 +362,9 @@ url_checksums:
   foo-darwin-amd64-1.2.3: deadbeef
 `)
 		result := runner.run("dependency", "add", "dep1", "tmpl", "--var=version=1.2.3")
-		result.assertState(resultState{})
+		result.assertState(resultState{
+			stdout: `Adding dependency "dep1" from template tmpl`,
+		})
 		cfg := runner.getConfigFile()
 		wantDep := mustConfigFromYAML(t, `
 dependencies:
@@ -417,7 +419,9 @@ templates:
 `), 0o600)
 		require.NoError(t, err)
 		result := runner.run("dependency", "add", "dep1", "tmpl", "--var=version=1.2.3", "--source=origin")
-		result.assertState(resultState{})
+		result.assertState(resultState{
+			stdout: `Adding dependency "dep1" from template origin#tmpl`,
+		})
 		wantDep := mustConfigFromYAML(t, `
 dependencies:
   dep1:
@@ -448,7 +452,9 @@ templates:
 `), 0o600)
 		require.NoError(t, err)
 		result := runner.run("dependency", "add", "dep1", "origin#tmpl", "--var=version=1.2.3")
-		result.assertState(resultState{})
+		result.assertState(resultState{
+			stdout: `Adding dependency "dep1" from template origin#tmpl`,
+		})
 		wantDep := mustConfigFromYAML(t, `
 dependencies:
   dep1:
@@ -516,12 +522,11 @@ systems: ["darwin/amd64", "darwin/arm64", "linux/amd64", "windows/amd64"]
 template_sources:
   origin: %q
 `, srcPath))
-		wantStdout := `Missing required vars from template "tmpl1"
-Please enter a value for required variable "version":	Please enter a value for required variable "addr":	`
 		runner.stdin = strings.NewReader(fmt.Sprintf("%s\n%s", "1.2.3", server.URL))
 		result := runner.run("dependency", "add", "foo", "tmpl1", "--source", "origin")
-		require.Equal(t, 0, result.exitVal)
-		require.Equal(t, wantStdout, result.stdOut.String())
+		result.assertState(resultState{
+			stdout: `Adding dependency "foo" from template origin#tmpl`,
+		})
 		gotCfg := runner.getConfigFile()
 		wantDep := mustConfigFromYAML(t, fmt.Sprintf(`
 dependencies:
