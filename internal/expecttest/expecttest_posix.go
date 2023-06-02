@@ -18,6 +18,7 @@ func run(
 	testFunc func(*expect.Console),
 	opts ...Option,
 ) bool {
+	t.Helper()
 	o := option{}
 	for _, opt := range opts {
 		opt(&o)
