@@ -16,7 +16,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/willabides/bindown/v4/internal/bindown"
-	"github.com/willabides/bindown/v4/internal/bindown/testdata/expecttest"
+	"github.com/willabides/bindown/v4/internal/expecttest"
 	"gopkg.in/yaml.v3"
 )
 
