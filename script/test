@@ -4,21 +4,4 @@ set -e
 
 CDPATH="" cd -- "$(dirname -- "$(dirname -- "$0")")"
 
-uname_os() {
-  os=$(uname -s | tr '[:upper:]' '[:lower:]')
-  case "$os" in
-    cygwin_nt*) os="windows" ;;
-    mingw*) os="windows" ;;
-    msys_nt*) os="windows" ;;
-  esac
-  echo "$os"
-}
-
-if [ -z "$CI" ] || [ "$(uname_os)" = "windows" ]; then
-  exec go test -race -covermode=atomic ./...
-fi
-
-script/bindown -q install go-test2action
-
-go test -race -covermode=atomic -json ./... |
-  bin/go-test2action --passthrough --root-pkg github.com/willabides/bindown/v4
+go test -race -covermode=atomic ./...
