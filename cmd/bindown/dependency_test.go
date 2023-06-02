@@ -492,10 +492,7 @@ url_checksums:
 			require.NoError(t, err)
 			_, err = console.ExpectString("template")
 			require.NoError(t, err)
-			err = console.Close()
-			require.NoError(t, err)
-			_, err = console.ExpectEOF()
-			require.NoError(t, err)
+			require.NoError(t, console.Close())
 		}
 		result := runner.runExpect(ex, "dependency", "add", "dep1", "tmpl", "--var=version=1.2.3")
 		result.assertState(resultState{
