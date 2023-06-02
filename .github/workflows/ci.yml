@@ -5,9 +5,9 @@ jobs:
     strategy:
       matrix:
         platform:
-          - ubuntu-20.04
-          - macos-11
-#          - windows-2019
+          - ubuntu-22.04
+          - macos-13
+          - windows-2022
       fail-fast: false
     runs-on: ${{ matrix.platform }}
     steps:
@@ -26,7 +26,7 @@ jobs:
       - run: script/test
         shell: sh
   lint:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v3
       - uses: WillAbides/setup-go-faster@v1
@@ -43,7 +43,7 @@ jobs:
           restore-keys: ${{ runner.os }}-go-lint
       - run: script/lint
   generate:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v3
       - uses: WillAbides/setup-go-faster@v1
@@ -63,7 +63,7 @@ jobs:
           restore-keys: ${{ runner.os }}-go-generate
       - run: script/generate --check
   release:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     needs:
       - test
       - lint
