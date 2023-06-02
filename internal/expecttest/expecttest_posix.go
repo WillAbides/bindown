@@ -44,8 +44,5 @@ func run(
 	testFunc(console)
 	wg.Wait()
 	err = console.Close()
-	if !assert.NoError(t, err) {
-		return false
-	}
-	return true
+	return assert.NoError(t, err)
 }
