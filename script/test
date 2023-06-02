@@ -4,4 +4,11 @@ set -e
 
 CDPATH="" cd -- "$(dirname -- "$(dirname -- "$0")")"
 
-go test -race -covermode=atomic ./...
+if [ -z "$CI" ]; then
+  exec go test -race -covermode=atomic ./...
+fi
+
+script/bindown -q install go-test2action
+
+go test -race -covermode=atomic -json ./... |
+  bin/go-test2action --passthrough --root-pkg github.com/willabides/bindown/v4

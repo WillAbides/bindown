@@ -30,6 +30,10 @@ dependencies:
     template: origin#go
     vars:
       version: 1.20.2
+  go-test2action:
+    template: go-test2action
+    vars:
+      version: 0.0.0
   gofumpt:
     template: origin#gofumpt
     vars:
@@ -72,6 +76,35 @@ templates:
     bin: checksums.txt
     required_vars:
       - tag
+  go-test2action:
+    homepage: https://github.com/WillAbides/go-test2action
+    description: formats go test failures as errors in github action workflows
+    url: https://github.com/WillAbides/go-test2action/releases/download/v{{.version}}/go-test2action_{{.version}}_{{.os}}_{{.arch}}{{.urlSuffix}}
+    archive_path: go-test2action{{.archivePathSuffix}}
+    bin: go-test2action
+    vars:
+      archivePathSuffix: ""
+      urlSuffix: .tar.gz
+    overrides:
+      - matcher:
+          os:
+            - windows
+        dependency:
+          vars:
+            archivePathSuffix: .exe
+          substitutions:
+            arch:
+              arm64: amd64
+    substitutions:
+      arch:
+        arm64: amd64
+    systems:
+      - darwin/amd64
+      - darwin/arm64
+      - linux/amd64
+      - windows/amd64
+    required_vars:
+      - version
   origin#gh:
     homepage: https://github.com/cli/cli
     description: GitHub’s official command line tool
@@ -442,6 +475,9 @@ url_checksums:
   https://dl.google.com/go/go1.20.2.darwin-arm64.tar.gz: 7343c87f19e79c0063532e82e1c4d6f42175a32d99f7a4d15e658e88bf97f885
   https://dl.google.com/go/go1.20.2.linux-amd64.tar.gz: 4eaea32f59cde4dc635fbc42161031d13e1c780b87097f4b4234cfce671f1768
   https://dl.google.com/go/go1.20.2.windows-amd64.zip: fe439f0e438f7555a7f5f7194ddb6f4a07b0de1fa414385d19f2aeb26d9f43db
+  https://github.com/WillAbides/go-test2action/releases/download/v0.0.0/go-test2action_0.0.0_darwin_amd64.tar.gz: 8cbb8eecdc257c0c92bc784fdad349e4d4bcd9c541485f6ea5f495c9ebe66718
+  https://github.com/WillAbides/go-test2action/releases/download/v0.0.0/go-test2action_0.0.0_linux_amd64.tar.gz: 4b45f44f339f5a0139b7a82267fabb47a4685ac183f5f41b5121c080ca94ca1e
+  https://github.com/WillAbides/go-test2action/releases/download/v0.0.0/go-test2action_0.0.0_windows_amd64.tar.gz: 8ad522ae71d08ec11612b96ba00f3f71600d8762818dab9c876daf14fea4ef5a
   https://github.com/WillAbides/semver-next/releases/download/v2.0.0/semver-next_2.0.0_darwin_amd64.tar.gz: 2bb0e3a6fda58689c7c983c33f131b44298484ea42c95455f711b16e3a93d033
   https://github.com/WillAbides/semver-next/releases/download/v2.0.0/semver-next_2.0.0_darwin_arm64.tar.gz: d86b2a7e0cb21cd56b9168913994b4470be2c1a0d724d91c85d91aa3e8c63755
   https://github.com/WillAbides/semver-next/releases/download/v2.0.0/semver-next_2.0.0_linux_amd64.tar.gz: 336beb1eb6ce340a6dfbb61b7f3ffd8af821414112479a38f9b10db03dc7a6ea
