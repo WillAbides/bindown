@@ -42,10 +42,10 @@ func run(
 		expectFunc(console)
 	}()
 	testFunc(console)
+	wg.Wait()
 	err = console.Close()
 	if !assert.NoError(t, err) {
 		return false
 	}
-	wg.Wait()
 	return true
 }

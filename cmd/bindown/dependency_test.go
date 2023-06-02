@@ -492,6 +492,8 @@ url_checksums:
 			require.NoError(t, err)
 			_, err = console.ExpectString("template")
 			require.NoError(t, err)
+			err = console.Close()
+			require.NoError(t, err)
 			_, err = console.ExpectEOF()
 			require.NoError(t, err)
 		}
