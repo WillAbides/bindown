@@ -485,8 +485,6 @@ url_checksums:
   foo-windows-amd64-1.2.3: deadbeef
 `)
 
-		// runner.stdin = strings.NewReader("1.2.3\nbar")
-		// result := runner.run("dependency", "add", q"dep1", "tmpl")
 		ex := func(console *expect.Console) {
 			_, err := console.ExpectString("(bar) ")
 			require.NoError(t, err)
@@ -501,7 +499,6 @@ url_checksums:
 		result.assertState(resultState{
 			stdout: `.*`,
 		})
-		fmt.Println(result.stdOut.String())
 		cfg := runner.getConfigFile()
 		wantDep := mustConfigFromYAML(t, `
 dependencies:
@@ -531,15 +528,10 @@ systems: ["darwin/amd64", "darwin/arm64", "linux/amd64", "windows/amd64"]
 template_sources:
   origin: %q
 `, srcPath))
-		cmdLine := []string{
-			"dependency", "add", "foo", "tmpl1",
+		result := runner.run("dependency", "add", "foo", "tmpl1",
 			"--source", "origin",
 			"--var", "version=1.2.3",
-			"--var", "addr=" + server.URL,
-		}
-		fmt.Println(cmdLine)
-		result := runner.run(
-			cmdLine...,
+			"--var", "addr="+server.URL,
 		)
 		result.assertState(resultState{
 			stdout: `Adding dependency "foo" from template origin#tmpl`,
