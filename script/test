@@ -4,7 +4,17 @@ set -e
 
 CDPATH="" cd -- "$(dirname -- "$(dirname -- "$0")")"
 
-if [ -z "$CI" ]; then
+uname_os() {
+  os=$(uname -s | tr '[:upper:]' '[:lower:]')
+  case "$os" in
+    cygwin_nt*) os="windows" ;;
+    mingw*) os="windows" ;;
+    msys_nt*) os="windows" ;;
+  esac
+  echo "$os"
+}
+
+if [ -z "$CI" ] || [ "$(uname_os)" = "windows" ]; then
   exec go test -race -covermode=atomic ./...
 fi
 
