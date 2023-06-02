@@ -2,6 +2,12 @@
 
 package expecttest
 
+import (
+	"testing"
+
+	"github.com/Netflix/go-expect"
+)
+
 func run(
 	t testing.TB,
 	expectFunc func(*expect.Console),
