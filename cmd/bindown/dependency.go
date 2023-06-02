@@ -329,7 +329,7 @@ type dependencyAddByGithubReleaseCmd struct {
 
 var (
 	releaseShortExp = regexp.MustCompile(`^([^/]+)/([^/^@]+)@?(.+)?$`)
-	releaseURLExp   = regexp.MustCompile(`^https: //github\.com/([^/]+)/([^/]+)/releases/tag/([^/]+)`)
+	releaseURLExp   = regexp.MustCompile(`^https://github\.com/([^/]+)/([^/]+)/releases/tag/([^/]+)`)
 )
 
 func (c *dependencyAddByGithubReleaseCmd) Run(ctx *runContext) error {
