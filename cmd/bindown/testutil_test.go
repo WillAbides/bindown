@@ -87,7 +87,7 @@ func (c *cmdRunner) runExpect(expectFunc func(*expect.Console), commandLine ...s
 
 	result := runCmdResult{t: t}
 
-	expecttest.MustNew(expectFunc).Run(t, func(console *expect.Console) {
+	testFunc := func(console *expect.Console) {
 		Run(
 			ctx,
 			commandLine,
@@ -102,7 +102,9 @@ func (c *cmdRunner) runExpect(expectFunc func(*expect.Console), commandLine ...s
 				},
 			},
 		)
-	})
+	}
+
+	expecttest.Run(t, expectFunc, testFunc, expecttest.WithConsoleOpt(expect.WithStdout(&result.stdOut)))
 
 	return &result
 }
