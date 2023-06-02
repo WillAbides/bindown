@@ -12,9 +12,11 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/Netflix/go-expect"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/willabides/bindown/v4/internal/bindown"
+	"github.com/willabides/bindown/v4/internal/bindown/testdata/expecttest"
 	"gopkg.in/yaml.v3"
 )
 
@@ -58,8 +60,8 @@ func (c *cmdRunner) run(commandLine ...string) *runCmdResult {
 		ctx,
 		commandLine,
 		&runOpts{
-			stdin:   c.stdin,
-			stdout:  &result.stdOut,
+			stdin:   SimpleFileReader{c.stdin},
+			stdout:  SimpleFileWriter{&result.stdOut},
 			stderr:  &result.stdErr,
 			cmdName: "cmd",
 			exitHandler: func(i int) {
@@ -68,6 +70,40 @@ func (c *cmdRunner) run(commandLine ...string) *runCmdResult {
 			},
 		},
 	)
+	return &result
+}
+
+func (c *cmdRunner) runExpect(expectFunc func(*expect.Console), commandLine ...string) *runCmdResult {
+	t := c.t
+	t.Helper()
+	ctx := context.Background()
+
+	if c.configFile != "" {
+		commandLine = append(commandLine, "--configfile", c.configFile)
+	}
+	if c.cache != "" {
+		commandLine = append(commandLine, "--cache", c.cache)
+	}
+
+	result := runCmdResult{t: t}
+
+	expecttest.MustNew(expectFunc).Run(t, func(console *expect.Console) {
+		Run(
+			ctx,
+			commandLine,
+			&runOpts{
+				stdin:   console.Tty(),
+				stdout:  console.Tty(),
+				stderr:  &result.stdErr,
+				cmdName: "cmd",
+				exitHandler: func(i int) {
+					result.exited = true
+					result.exitVal = i
+				},
+			},
+		)
+	})
+
 	return &result
 }
 

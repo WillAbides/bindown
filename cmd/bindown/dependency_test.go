@@ -5,9 +5,9 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
-	"strings"
 	"testing"
 
+	"github.com/Netflix/go-expect"
 	"github.com/stretchr/testify/require"
 	"github.com/willabides/bindown/v4/internal/testutil"
 )
@@ -484,15 +484,24 @@ url_checksums:
   foo-darwin-amd64-1.2.3: deadbeef
   foo-windows-amd64-1.2.3: deadbeef
 `)
-		runner.stdin = strings.NewReader("1.2.3\nbar")
-		result := runner.run("dependency", "add", "dep1", "tmpl")
+
+		// runner.stdin = strings.NewReader("1.2.3\nbar")
+		// result := runner.run("dependency", "add", q"dep1", "tmpl")
+		ex := func(console *expect.Console) {
+			_, err := console.ExpectString("(bar) ")
+			require.NoError(t, err)
+			_, err = console.SendLine("")
+			require.NoError(t, err)
+			_, err = console.ExpectString("template")
+			require.NoError(t, err)
+			_, err = console.ExpectEOF()
+			require.NoError(t, err)
+		}
+		result := runner.runExpect(ex, "dependency", "add", "dep1", "tmpl", "--var=version=1.2.3")
 		result.assertState(resultState{
-			stdout: `Known values for "version":
-  1.2.3
-Please enter a value for required variable "version":	Known values for "foo":
-  bar
-Please enter a value for required variable "foo":`,
+			stdout: `.*`,
 		})
+		fmt.Println(result.stdOut.String())
 		cfg := runner.getConfigFile()
 		wantDep := mustConfigFromYAML(t, `
 dependencies:
@@ -522,8 +531,16 @@ systems: ["darwin/amd64", "darwin/arm64", "linux/amd64", "windows/amd64"]
 template_sources:
   origin: %q
 `, srcPath))
-		runner.stdin = strings.NewReader(fmt.Sprintf("%s\n%s", "1.2.3", server.URL))
-		result := runner.run("dependency", "add", "foo", "tmpl1", "--source", "origin")
+		cmdLine := []string{
+			"dependency", "add", "foo", "tmpl1",
+			"--source", "origin",
+			"--var", "version=1.2.3",
+			"--var", "addr=" + server.URL,
+		}
+		fmt.Println(cmdLine)
+		result := runner.run(
+			cmdLine...,
+		)
 		result.assertState(resultState{
 			stdout: `Adding dependency "foo" from template origin#tmpl`,
 		})

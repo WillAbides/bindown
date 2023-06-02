@@ -5,9 +5,12 @@ go 1.20
 require (
 	github.com/AlecAivazis/survey/v2 v2.3.6
 	github.com/Masterminds/semver/v3 v3.1.1
+	github.com/Netflix/go-expect v0.0.0-20220104043353-73e0943537d2
 	github.com/alecthomas/kong v0.7.1
+	github.com/creack/pty v1.1.18
 	github.com/google/go-cmp v0.5.9
 	github.com/google/go-github/v52 v52.0.0
+	github.com/hinshun/vt10x v0.0.0-20220119200601-820417d04eec
 	github.com/invopop/jsonschema v0.7.0
 	github.com/mholt/archiver/v3 v3.5.1
 	github.com/mholt/archiver/v4 v4.0.0-alpha.8

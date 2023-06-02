@@ -216,3 +216,15 @@ func SortBySemverOrString(vals []string) {
 		return aVer.LessThan(bVer)
 	})
 }
+
+// Unique appends unique values from vals to buf and returns buf
+func Unique[V comparable](vals, buf []V) []V {
+	seen := make(map[V]bool)
+	for _, val := range vals {
+		if !seen[val] {
+			seen[val] = true
+			buf = append(buf, val)
+		}
+	}
+	return buf
+}
