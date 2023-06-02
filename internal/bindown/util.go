@@ -14,7 +14,9 @@ import (
 	"strings"
 	"text/template"
 
+	"github.com/Masterminds/semver/v3"
 	"golang.org/x/exp/maps"
+	"golang.org/x/exp/slices"
 	"gopkg.in/yaml.v3"
 )
 
@@ -187,4 +189,42 @@ func EncodeYaml(w io.Writer, v any) (errOut error) {
 	defer deferErr(&errOut, encoder.Close)
 	encoder.SetIndent(2)
 	return encoder.Encode(v)
+}
+
+func SortBySemverOrString(vals []string) {
+	semvers := make(map[string]*semver.Version)
+	for _, val := range vals {
+		ver, err := semver.NewVersion(val)
+		if err == nil {
+			semvers[val] = ver
+		}
+	}
+
+	// descending order only if all values are semvers
+	if len(vals) == len(semvers) {
+		slices.SortFunc(vals, func(a, b string) bool {
+			return semvers[a].GreaterThan(semvers[b])
+		})
+		return
+	}
+
+	slices.SortFunc(vals, func(a, b string) bool {
+		aVer, bVer := semvers[a], semvers[b]
+		if aVer == nil || bVer == nil {
+			return a < b
+		}
+		return aVer.LessThan(bVer)
+	})
+}
+
+// Unique appends unique values from vals to buf and returns buf
+func Unique[V comparable](vals, buf []V) []V {
+	seen := make(map[V]bool)
+	for _, val := range vals {
+		if !seen[val] {
+			seen[val] = true
+			buf = append(buf, val)
+		}
+	}
+	return buf
 }

@@ -93,10 +93,38 @@ func loadConfigFile(ctx *runContext, noDefaultDirs bool) (*bindown.Config, error
 	return configFile, nil
 }
 
+// fileWriter covers terminal.FileWriter. Needed for survey
+type fileWriter interface {
+	io.Writer
+	Fd() uintptr
+}
+
+type SimpleFileWriter struct {
+	io.Writer
+}
+
+func (s SimpleFileWriter) Fd() uintptr {
+	return 0
+}
+
+// fileReader covers terminal.FileReader. Needed for survey
+type fileReader interface {
+	io.Reader
+	Fd() uintptr
+}
+
+type SimpleFileReader struct {
+	io.Reader
+}
+
+func (s SimpleFileReader) Fd() uintptr {
+	return 0
+}
+
 type runContext struct {
 	parent  context.Context
-	stdin   io.Reader
-	stdout  io.Writer
+	stdin   fileReader
+	stdout  fileWriter
 	rootCmd *rootCmd
 }
 
@@ -123,8 +151,8 @@ func (r *runContext) Value(key any) any {
 }
 
 type runOpts struct {
-	stdin       io.Reader
-	stdout      io.Writer
+	stdin       fileReader
+	stdout      fileWriter
 	stderr      io.Writer
 	cmdName     string
 	exitHandler func(int)
@@ -171,7 +199,7 @@ func Run(ctx context.Context, args []string, opts *runOpts) {
 	kongCtx, err := parser.Parse(args)
 	parser.FatalIfErrorf(err)
 	if root.Quiet {
-		runCtx.stdout = io.Discard
+		runCtx.stdout = SimpleFileWriter{io.Discard}
 		kongCtx.Stdout = io.Discard
 	}
 	err = kongCtx.Run()

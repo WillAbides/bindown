@@ -5,9 +5,9 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
-	"strings"
 	"testing"
 
+	"github.com/Netflix/go-expect"
 	"github.com/stretchr/testify/require"
 	"github.com/willabides/bindown/v4/internal/testutil"
 )
@@ -362,7 +362,9 @@ url_checksums:
   foo-darwin-amd64-1.2.3: deadbeef
 `)
 		result := runner.run("dependency", "add", "dep1", "tmpl", "--var=version=1.2.3")
-		result.assertState(resultState{})
+		result.assertState(resultState{
+			stdout: `Adding dependency "dep1" from template tmpl`,
+		})
 		cfg := runner.getConfigFile()
 		wantDep := mustConfigFromYAML(t, `
 dependencies:
@@ -417,7 +419,9 @@ templates:
 `), 0o600)
 		require.NoError(t, err)
 		result := runner.run("dependency", "add", "dep1", "tmpl", "--var=version=1.2.3", "--source=origin")
-		result.assertState(resultState{})
+		result.assertState(resultState{
+			stdout: `Adding dependency "dep1" from template origin#tmpl`,
+		})
 		wantDep := mustConfigFromYAML(t, `
 dependencies:
   dep1:
@@ -448,7 +452,9 @@ templates:
 `), 0o600)
 		require.NoError(t, err)
 		result := runner.run("dependency", "add", "dep1", "origin#tmpl", "--var=version=1.2.3")
-		result.assertState(resultState{})
+		result.assertState(resultState{
+			stdout: `Adding dependency "dep1" from template origin#tmpl`,
+		})
 		wantDep := mustConfigFromYAML(t, `
 dependencies:
   dep1:
@@ -463,6 +469,12 @@ dependencies:
 		runner := newCmdRunner(t)
 		runner.writeConfigYaml(`
 systems: ["linux/amd64", "darwin/amd64"]
+dependencies:
+  dep2:
+    template: tmpl
+    vars:
+      version: "1.2.3"
+      foo: bar
 templates:
   tmpl:
     url: foo-{{ .os }}-{{ .arch }}-{{ .version }}
@@ -472,10 +484,19 @@ url_checksums:
   foo-darwin-amd64-1.2.3: deadbeef
   foo-windows-amd64-1.2.3: deadbeef
 `)
-		runner.stdin = strings.NewReader("1.2.3\nbar")
-		result := runner.run("dependency", "add", "dep1", "tmpl")
+
+		ex := func(console *expect.Console) {
+			_, err := console.ExpectString("(bar) ")
+			require.NoError(t, err)
+			_, err = console.SendLine("")
+			require.NoError(t, err)
+			_, err = console.ExpectString("template")
+			require.NoError(t, err)
+			require.NoError(t, console.Close())
+		}
+		result := runner.runExpect(ex, "dependency", "add", "dep1", "tmpl", "--var=version=1.2.3")
 		result.assertState(resultState{
-			stdout: `Please enter a value for required variable "version":	Please enter a value for required variable "foo":`,
+			stdout: `.*`,
 		})
 		cfg := runner.getConfigFile()
 		wantDep := mustConfigFromYAML(t, `
@@ -506,11 +527,14 @@ systems: ["darwin/amd64", "darwin/arm64", "linux/amd64", "windows/amd64"]
 template_sources:
   origin: %q
 `, srcPath))
-		wantStdout := `Please enter a value for required variable "version":	Please enter a value for required variable "addr":	`
-		runner.stdin = strings.NewReader(fmt.Sprintf("%s\n%s", "1.2.3", server.URL))
-		result := runner.run("dependency", "add", "foo", "tmpl1", "--source", "origin")
-		require.Equal(t, 0, result.exitVal)
-		require.Equal(t, wantStdout, result.stdOut.String())
+		result := runner.run("dependency", "add", "foo", "tmpl1",
+			"--source", "origin",
+			"--var", "version=1.2.3",
+			"--var", "addr="+server.URL,
+		)
+		result.assertState(resultState{
+			stdout: `Adding dependency "foo" from template origin#tmpl`,
+		})
 		gotCfg := runner.getConfigFile()
 		wantDep := mustConfigFromYAML(t, fmt.Sprintf(`
 dependencies:

@@ -1,12 +1,12 @@
 package main
 
 import (
-	"bufio"
 	"encoding/json"
 	"fmt"
 	"regexp"
 	"strings"
 
+	"github.com/AlecAivazis/survey/v2"
 	"github.com/willabides/bindown/v4/internal/bindown"
 	"github.com/willabides/bindown/v4/internal/builddep"
 )
@@ -157,10 +157,10 @@ func (c *dependencyRemoveCmd) Run(ctx *runContext) error {
 
 type dependencyAddCmd struct {
 	Name             string            `kong:"arg"`
-	Template         string            `kong:"arg,predictor=template"`
+	Template         string            `kong:"arg,optional,predictor=template"`
 	TemplateSource   string            `kong:"name=source,help='template source',predictor=templateSource"`
 	Vars             map[string]string `kong:"name=var"`
-	SkipRequiredVars bool              `kong:"name=skipvars,help='do not prompt for required vars'"`
+	SkipRequiredVars bool              `kong:"name=skipvars,help='do not prompt for required vars. implies --skipchecksums'"`
 	SkipChecksums    bool              `kong:"name=skipchecksums,help='do not add checksums for this dependency'"`
 }
 
@@ -170,19 +170,21 @@ func (c *dependencyAddCmd) Run(ctx *runContext) error {
 		return err
 	}
 	tmpl := c.Template
+	if tmpl == "" {
+		tmpl = c.Name
+	}
 	tmplSrc := c.TemplateSource
 	if tmplSrc == "" {
-		tmplParts := strings.SplitN(tmpl, "#", 2)
-		if len(tmplParts) == 2 {
-			tmpl = tmplParts[1]
-			tmplSrc = tmplParts[0]
+		ts, t, ok := strings.Cut(tmpl, "#")
+		if ok {
+			tmplSrc, tmpl = ts, t
 		}
 	}
 
 	if c.Vars == nil {
 		c.Vars = map[string]string{}
 	}
-	err = config.AddDependencyFromTemplate(ctx, tmpl, &bindown.AddDependencyFromTemplateOpts{
+	dep, varVals, err := config.AddDependencyFromTemplate(ctx, tmpl, &bindown.AddDependencyFromTemplateOpts{
 		DependencyName: c.Name,
 		TemplateSource: tmplSrc,
 		Vars:           c.Vars,
@@ -190,32 +192,103 @@ func (c *dependencyAddCmd) Run(ctx *runContext) error {
 	if err != nil {
 		return err
 	}
-	missingVars, err := config.MissingDependencyVars(c.Name)
+	// This shouldn't be possible, but just in case
+	if dep.Template == nil || config.Templates == nil || config.Templates[*dep.Template] == nil {
+		return fmt.Errorf("template not found: %q", tmpl)
+	}
+	if varVals == nil {
+		varVals = map[string][]string{}
+	}
+	tmplCfg := config.Templates[*dep.Template]
+	// Don't need to output the list of systems
+	systems := tmplCfg.Systems
+	tmplCfg.Systems = nil
+	fmt.Fprintf(ctx.stdout, "Adding dependency %q from template ", c.Name)
+	err = bindown.EncodeYaml(ctx.stdout, map[string]bindown.Dependency{
+		*dep.Template: *tmplCfg,
+	})
 	if err != nil {
 		return err
 	}
-	hasMissingVars := len(missingVars) > 0
-	if hasMissingVars && !c.SkipRequiredVars {
-		hasMissingVars = false
-		scanner := bufio.NewScanner(ctx.stdin)
-		for _, missingVar := range missingVars {
-			fmt.Fprintf(ctx.stdout, "Please enter a value for required variable %q:\t", missingVar)
-			scanner.Scan()
-			err = scanner.Err()
-			if err != nil {
-				return err
-			}
-			val := scanner.Text()
-			config.Dependencies[c.Name].Vars[missingVar] = val
-		}
+	tmplCfg.Systems = systems
+
+	err = c.promptForVars(ctx, config, dep, varVals)
+	if err != nil {
+		return err
 	}
-	if !hasMissingVars && !c.SkipChecksums {
+
+	skipChecksums := c.SkipChecksums || c.SkipRequiredVars
+	if !skipChecksums {
 		err = config.AddChecksums([]string{c.Name}, nil)
 		if err != nil {
 			return err
 		}
 	}
 	return config.WriteFile(ctx.rootCmd.JSONConfig)
+}
+
+func (c *dependencyAddCmd) promptForVars(ctx *runContext, config *bindown.Config, dep *bindown.Dependency, varVals map[string][]string) error {
+	if c.SkipRequiredVars {
+		return nil
+	}
+	missingVars, err := config.MissingDependencyVars(c.Name)
+	if err != nil {
+		return err
+	}
+	if len(missingVars) == 0 {
+		return nil
+	}
+	for _, d := range config.Dependencies {
+		if d.Template == nil || dep.Template == nil || *d.Template != *dep.Template {
+			continue
+		}
+		for k, v := range d.Vars {
+			varVals[k] = append([]string{v}, varVals[k]...)
+		}
+	}
+
+	questions := make([]*survey.Question, 0, len(missingVars))
+	for _, missingVar := range missingVars {
+		prompt := survey.Input{
+			Message: missingVar,
+			// Help:    `The thing you need to do is...`,
+		}
+		knownVals := varVals[missingVar]
+		bindown.SortBySemverOrString(knownVals)
+		knownVals = bindown.Unique(knownVals, knownVals[:0])
+		if len(knownVals) > 0 {
+			prompt.Default = knownVals[0]
+			prompt.Suggest = func(toComplete string) []string {
+				suggestions := make([]string, 0, len(knownVals))
+				for _, v := range knownVals {
+					if strings.HasPrefix(v, toComplete) {
+						suggestions = append(suggestions, v)
+					}
+				}
+				return suggestions
+			}
+		}
+		questions = append(questions, &survey.Question{
+			Name:   missingVar,
+			Prompt: &prompt,
+		})
+	}
+	answers := map[string]any{}
+	err = survey.Ask(questions, &answers, survey.WithStdio(ctx.stdin, ctx.stdout, nil), survey.WithShowCursor(true))
+	if err != nil {
+		return err
+	}
+	for k, v := range answers {
+		s, ok := v.(string)
+		if !ok {
+			return fmt.Errorf("expected string for %q, got %T", k, v)
+		}
+		config.Dependencies[c.Name].Vars[k] = s
+	}
+
+	fmt.Fprintf(ctx.stdout, "Adding dependency %q from template\n", c.Name)
+
+	return nil
 }
 
 type dependencyAddByUrlsCmd struct {

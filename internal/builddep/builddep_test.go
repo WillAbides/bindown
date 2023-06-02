@@ -45,7 +45,6 @@ systems:
 	require.NoError(t, err)
 	got, err := yaml.Marshal(&cfg)
 	require.NoError(t, err)
-	fmt.Println(string(got))
 
 	want := `
 systems:
