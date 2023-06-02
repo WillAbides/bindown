@@ -514,6 +514,8 @@ dependencies:
 		tar := filepath.Join(downloadablesDir, "runnable.tar.gz")
 		zip := filepath.Join(downloadablesDir, "runnable_windows.zip")
 
+		require.True(t, false)
+
 		server := testutil.ServeFiles(t, map[string]string{
 			"/foo/v1.2.3/foo-darwin-amd64.tar.gz": tar,
 			"/foo/v1.2.3/foo-darwin-arm64.tar.gz": tar,
