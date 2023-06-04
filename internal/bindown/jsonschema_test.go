@@ -1,35 +1,39 @@
 package bindown
 
 import (
-	"context"
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"gopkg.in/yaml.v3"
 )
 
 func TestValidateConfig(t *testing.T) {
-	ctx := context.Background()
 	t.Run("valid yaml", func(t *testing.T) {
 		cfg, err := os.ReadFile(filepath.Join("testdata", "configs", "ex1.yaml"))
 		require.NoError(t, err)
-		err = validateConfig(ctx, cfg)
+		err = validateConfig(cfg)
 		require.NoError(t, err)
 	})
 
 	t.Run("valid json", func(t *testing.T) {
 		cfgContent, err := os.ReadFile(filepath.Join("testdata", "configs", "ex1.yaml"))
 		require.NoError(t, err)
-		cfg, err := yaml2json(cfgContent)
+		var data any
+		err = yaml.Unmarshal(cfgContent, &data)
 		require.NoError(t, err)
-		err = validateConfig(ctx, cfg)
+		cfg, err := json.Marshal(data)
+		require.NoError(t, err)
+		require.NoError(t, err)
+		err = validateConfig(cfg)
 		require.NoError(t, err)
 	})
 
 	t.Run("empty", func(t *testing.T) {
 		cfg := []byte("")
-		err := validateConfig(ctx, cfg)
+		err := validateConfig(cfg)
 		require.Error(t, err)
 	})
 
@@ -45,7 +49,7 @@ url_checksums:
   foo: deadbeef
   bar: []
 `)
-		err := validateConfig(ctx, cfg)
+		err := validateConfig(cfg)
 		require.Error(t, err)
 	})
 
@@ -68,7 +72,7 @@ url_checksums:
     ]
   }
 }`)
-		err := validateConfig(ctx, cfg)
+		err := validateConfig(cfg)
 		require.Error(t, err)
 	})
 }
