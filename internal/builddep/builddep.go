@@ -19,7 +19,6 @@ var forbiddenOS = map[string]bool{
 }
 
 var forbiddenArch = map[string]bool{
-	"arm":  true,
 	"wasm": true,
 }
 
