@@ -111,7 +111,7 @@ func (c *cmdRunner) runExpect(expectFunc func(*expect.Console), commandLine ...s
 
 func mustConfigFromYAML(t *testing.T, yml string) *bindown.Config {
 	t.Helper()
-	got, err := bindown.ConfigFromYAML([]byte(yml))
+	got, err := bindown.ConfigFromYAML(context.Background(), []byte(yml))
 	require.NoError(t, err)
 	return got
 }

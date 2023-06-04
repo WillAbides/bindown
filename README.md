@@ -340,7 +340,6 @@ Commands:
   cache clear                         clear the cache
   version                             show bindown version
   install-completions                 install shell completions
-  jsonschema                          output json schema for bindown config
 
 Run "bindown <command> --help" for more information on a command.
 ```
