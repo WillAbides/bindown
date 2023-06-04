@@ -75,6 +75,17 @@ jobs:
       - uses: actions/checkout@v3
         with:
           fetch-depth: 0
+      - uses: WillAbides/setup-go-faster@v1
+        id: setup-go
+        with:
+          go-version: '1.20.x'
+      - uses: actions/cache@v3
+        with:
+          path: |
+            ${{ steps.setup-go.outputs.GOCACHE }}
+            ${{ steps.setup-go.outputs.GOMODCACHE }}
+          key: ${{ runner.os }}-go-release-${{ hashFiles('**/go.sum') }}
+          restore-keys: ${{ runner.os }}-go-release
       - uses: WillAbides/semver-release-action@v1.5.2
         with:
           create_release: true
@@ -93,3 +104,5 @@ jobs:
             set -e
             script/bindown install goreleaser
             bin/goreleaser release --clean
+            go run ./internal/build-bootstrapper -tag "v$RELEASE_VERSION" > bootstrap-bindown.sh
+            gh release upload "v$RELEASE_VERSION" bootstrap-bindown.sh
