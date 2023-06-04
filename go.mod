@@ -15,8 +15,8 @@ require (
 	github.com/mholt/archiver/v3 v3.5.1
 	github.com/mholt/archiver/v4 v4.0.0-alpha.8
 	github.com/posener/complete v1.2.3
-	github.com/qri-io/jsonschema v0.2.1
 	github.com/rogpeppe/go-internal v1.10.0
+	github.com/santhosh-tekuri/jsonschema/v5 v5.3.0
 	github.com/stretchr/testify v1.7.1
 	github.com/willabides/kongplete v0.3.0
 	golang.org/x/exp v0.0.0-20230321023759-10a507213a29
@@ -52,7 +52,6 @@ require (
 	github.com/pierrec/lz4/v4 v4.1.15 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
-	github.com/qri-io/jsonpointer v0.1.1 // indirect
 	github.com/riywo/loginshell v0.0.0-20200815045211-7d26008be1ab // indirect
 	github.com/therootcompany/xz v1.0.1 // indirect
 	github.com/ulikunitz/xz v0.5.11 // indirect

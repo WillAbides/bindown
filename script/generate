@@ -31,9 +31,14 @@ if [ "$1" = "--check" ]; then
   exit 0
 fi
 
-script/generate-jsonschema
+script/bindown -q install yq
 
 go generate ./...
+go mod tidy
+
+script/bindown jsonschema > bindown.schema.json
+script/bindown jsonschema | bin/yq -P . > bindown.schema.yml
+
 COLUMNS=100 script/bindown --help > ./docs/clihelp.txt
 script/generate-readme
 script/bindown format

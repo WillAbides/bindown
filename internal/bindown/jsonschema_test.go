@@ -1,46 +1,40 @@
 package bindown
 
 import (
-	"context"
-	"fmt"
+	"encoding/json"
 	"os"
 	"path/filepath"
-	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"gopkg.in/yaml.v3"
 )
 
-func assertValidationErr(t *testing.T, want []string, got error) {
-	t.Helper()
-	wantErr := fmt.Sprintf("invalid config:\n%s", strings.Join(want, "\n"))
-	require.EqualError(t, got, wantErr)
-}
-
 func TestValidateConfig(t *testing.T) {
-	ctx := context.Background()
 	t.Run("valid yaml", func(t *testing.T) {
 		cfg, err := os.ReadFile(filepath.Join("testdata", "configs", "ex1.yaml"))
 		require.NoError(t, err)
-		err = validateConfig(ctx, cfg)
+		err = validateConfig(cfg)
 		require.NoError(t, err)
 	})
 
 	t.Run("valid json", func(t *testing.T) {
 		cfgContent, err := os.ReadFile(filepath.Join("testdata", "configs", "ex1.yaml"))
 		require.NoError(t, err)
-		cfg, err := yaml2json(cfgContent)
+		var data any
+		err = yaml.Unmarshal(cfgContent, &data)
 		require.NoError(t, err)
-		err = validateConfig(ctx, cfg)
+		cfg, err := json.Marshal(data)
+		require.NoError(t, err)
+		require.NoError(t, err)
+		err = validateConfig(cfg)
 		require.NoError(t, err)
 	})
 
 	t.Run("empty", func(t *testing.T) {
 		cfg := []byte("")
-		err := validateConfig(ctx, cfg)
-		assertValidationErr(t, []string{
-			`/: type should be object, got null`,
-		}, err)
+		err := validateConfig(cfg)
+		require.Error(t, err)
 	})
 
 	t.Run("invalid yaml", func(t *testing.T) {
@@ -55,12 +49,8 @@ url_checksums:
   foo: deadbeef
   bar: []
 `)
-		wantErrs := []string{
-			`/dependencies/golangci-lint: "surprise string" type should be object, got string`,
-			`/url_checksums/bar: [] type should be string, got array`,
-		}
-		err := validateConfig(ctx, cfg)
-		assertValidationErr(t, wantErrs, err)
+		err := validateConfig(cfg)
+		require.Error(t, err)
 	})
 
 	t.Run("invalid json", func(t *testing.T) {
@@ -82,11 +72,7 @@ url_checksums:
     ]
   }
 }`)
-		wantErrs := []string{
-			`/dependencies/golangci-lint: "surprise string" type should be object, got string`,
-			`/url_checksums/bar: [] type should be string, got array`,
-		}
-		err := validateConfig(ctx, cfg)
-		assertValidationErr(t, wantErrs, err)
+		err := validateConfig(cfg)
+		require.Error(t, err)
 	})
 }

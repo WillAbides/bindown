@@ -1,53 +1,58 @@
 package bindown
 
 import (
-	"context"
-	_ "embed"
 	"encoding/json"
 	"fmt"
-	"sort"
-	"strings"
 
-	"github.com/qri-io/jsonschema"
+	"github.com/invopop/jsonschema"
+	validator "github.com/santhosh-tekuri/jsonschema/v5"
 	"gopkg.in/yaml.v3"
 )
 
-//go:embed bindown.schema.json
-var jsonSchemaText string
+var (
+	_jsonSchema     *jsonschema.Schema
+	_jsonSchemaText []byte
+)
 
 // validateConfig checks whether cfg meets the json schema.
-func validateConfig(ctx context.Context, cfg []byte) error {
-	cfgJSON, err := yaml2json(cfg)
+func validateConfig(cfg []byte) error {
+	var val any
+	err := yaml.Unmarshal(cfg, &val)
 	if err != nil {
 		return fmt.Errorf("config is not valid yaml (or json)")
 	}
-	var schema jsonschema.Schema
-	err = json.Unmarshal([]byte(jsonSchemaText), &schema)
+	if _jsonSchemaText == nil {
+		var s *jsonschema.Schema
+		s, err = GetJSONSchema()
+		if err != nil {
+			return err
+		}
+		_jsonSchemaText, err = json.Marshal(s)
+		if err != nil {
+			return err
+		}
+	}
+	vSchema, err := validator.CompileString("", string(_jsonSchemaText))
 	if err != nil {
 		return err
 	}
-	validationErrs, err := schema.ValidateBytes(ctx, cfgJSON)
+	err = vSchema.Validate(val)
 	if err != nil {
-		return fmt.Errorf("unexpected error running jsonSchema.ValidateBytes: %v", err)
+		return fmt.Errorf("invalid config: %w", err)
 	}
-	if len(validationErrs) == 0 {
-		return nil
-	}
-	sort.Slice(validationErrs, func(i, j int) bool {
-		return validationErrs[i].Error() < validationErrs[j].Error()
-	})
-	msgs := make([]string, len(validationErrs))
-	for i, validationErr := range validationErrs {
-		msgs[i] = validationErr.Error()
-	}
-	return fmt.Errorf("invalid config:\n%s", strings.Join(msgs, "\n"))
+	return nil
 }
 
-func yaml2json(y []byte) ([]byte, error) {
-	var data any
-	err := yaml.Unmarshal(y, &data)
-	if err != nil {
-		return nil, err
+func GetJSONSchema() (*jsonschema.Schema, error) {
+	if _jsonSchema == nil {
+		r := &jsonschema.Reflector{}
+		r.ExpandedStruct = true
+		err := r.AddGoComments("github.com/willabides/bindown/v4", "./")
+		if err != nil {
+			return nil, err
+		}
+		_jsonSchema = r.Reflect(&Config{})
+		_jsonSchema.ID = "https://willabides.github.io/bindown/bindown.schema.json"
 	}
-	return json.Marshal(data)
+	return _jsonSchema, nil
 }

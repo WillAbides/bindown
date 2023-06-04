@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"os"
@@ -61,6 +62,7 @@ type rootCmd struct {
 
 	Version            versionCmd                   `kong:"cmd,help='show bindown version'"`
 	InstallCompletions kongplete.InstallCompletions `kong:"cmd,help=${config_install_completions_help}"`
+	JSONSchema         jsonschemaCmd                `kong:"cmd,name='jsonschema',help='output json schema for bindown config'"`
 }
 
 var defaultConfigFilenames = []string{
@@ -336,5 +338,20 @@ func (d *extractCmd) Run(ctx *runContext) error {
 		}
 		fmt.Fprintf(ctx.stdout, "extracted %s to %s\n", dep, pth)
 	}
+	return nil
+}
+
+type jsonschemaCmd struct{}
+
+func (d *jsonschemaCmd) Run(ctx *runContext) error {
+	schema, err := bindown.GetJSONSchema()
+	if err != nil {
+		return err
+	}
+	b, err := json.MarshalIndent(schema, "", "  ")
+	if err != nil {
+		return err
+	}
+	fmt.Fprintln(ctx.stdout, string(b))
 	return nil
 }
