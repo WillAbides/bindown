@@ -2,8 +2,12 @@
 
 set -e
 
-CDPATH="" cd -- "$(dirname -- "$(dirname -- "$0")")"
+REPO_DIR="$(CDPATH="" cd -- "$(dirname -- "$(dirname -- "$0")")" && pwd)"
 
-go build -o bin/bindown ./cmd/bindown
+(
+  cd "$REPO_DIR"
+  mkdir -p bin
+  go build -o bin/bindown ./cmd/bindown
+)
 
-exec bin/bindown "$@"
+exec "$REPO_DIR"/bin/bindown "$@"
