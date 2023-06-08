@@ -1,5 +1,13 @@
 name: ci
-on: [ push ]
+on:
+  push:
+  pull_request:
+    types:
+      - synchronize
+      - opened
+      - reopened
+      - labeled
+      - unlabeled
 jobs:
   test:
     strategy:
@@ -86,7 +94,7 @@ jobs:
             ${{ steps.setup-go.outputs.GOMODCACHE }}
           key: ${{ runner.os }}-go-release-${{ hashFiles('**/go.sum') }}
           restore-keys: ${{ runner.os }}-go-release
-      - uses: WillAbides/semver-release-action@v1.5.2
+      - uses: WillAbides/semver-release-action@v1.6.0
         with:
           create_release: true
           validate_version: |
