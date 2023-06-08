@@ -73,7 +73,16 @@ jobs:
           key: ${{ runner.os }}-go-generate-${{ hashFiles('**/go.sum') }}
           restore-keys: ${{ runner.os }}-go-generate
       - run: script/generate --check
+  label_check:
+    name: check labels
+    runs-on: ubuntu-22.04
+    if: github.event_name == 'pull_request'
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: WillAbides/release-train@v1.6.1
   release:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-22.04
     needs:
       - test
