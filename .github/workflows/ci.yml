@@ -93,9 +93,9 @@ jobs:
             ${{ steps.setup-go.outputs.GOMODCACHE }}
           key: ${{ runner.os }}-go-release-${{ hashFiles('**/go.sum') }}
           restore-keys: ${{ runner.os }}-go-release
-      - uses: WillAbides/semver-release-action@v1.6.0
+      - uses: WillAbides/release-train@v1.6.1
         with:
-          create_release: true
+          create_release: ${{ github.ref == 'refs/heads/main' && github.event_name == 'push' }}
           validate_version: |
             set -e
             MODULE_VERSION_SUFFIX="$(go list -m | grep -o '/v[0-9][0-9]*$' || true)"
