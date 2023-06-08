@@ -113,6 +113,10 @@ jobs:
             fi
           post_release_hook: |
             set -e
+            if [ -z "$RELEASE_VERSION" ]; then
+              echo "RELEASE_VERSION not set"
+              exit 0
+            fi
             script/bindown install goreleaser
             bin/goreleaser release --clean
             go run ./internal/build-bootstrapper -tag "v$RELEASE_VERSION" > bootstrap-bindown.sh
