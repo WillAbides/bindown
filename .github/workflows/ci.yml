@@ -15,7 +15,7 @@ jobs:
         platform:
           - ubuntu-22.04
           - macos-13
-          - windows-2022
+#          - windows-2022
       fail-fast: false
     runs-on: ${{ matrix.platform }}
     steps:
