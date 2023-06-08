@@ -98,6 +98,10 @@ jobs:
           create_release: ${{ github.ref == 'refs/heads/main' && github.event_name == 'push' }}
           validate_version: |
             set -e
+            if [ -z "$RELEASE_VERSION" ]; then
+              echo "RELEASE_VERSION not set"
+              exit 0
+            fi
             MODULE_VERSION_SUFFIX="$(go list -m | grep -o '/v[0-9][0-9]*$' || true)"
             MAJOR_VERSION="${RELEASE_VERSION%%.*}"
             if [ "$MAJOR_VERSION" -ge 2 ] && [ "$MODULE_VERSION_SUFFIX" != "/v$MAJOR_VERSION" ]; then
