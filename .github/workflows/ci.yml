@@ -29,6 +29,9 @@ jobs:
     needs:
       - matrix_test
     runs-on: ubuntu-22.04
+    steps:
+      - run: echo ok
+        shell: sh
   lint:
     runs-on: ubuntu-22.04
     steps:
