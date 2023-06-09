@@ -159,6 +159,11 @@ func archSubs(systems []bindown.System) []systemSub {
 		{val: "ppcle_64", normalized: "ppc64le"},
 		{val: "s390x_64", normalized: "s390x"},
 		{val: "i386", normalized: "386"},
+		{val: "armv6", normalized: "arm"},
+		{val: "armv7", normalized: "arm"},
+		{val: "armv5", normalized: "arm"},
+		{val: "armv6l", normalized: "arm"},
+		{val: "armv6hf", normalized: "arm"},
 	}
 	if systems == nil {
 		systems = distSystems()

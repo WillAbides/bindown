@@ -1,7 +1,7 @@
 name: ci
 on: [ push ]
 jobs:
-  test:
+  matrix_test:
     strategy:
       matrix:
         platform:
@@ -24,6 +24,13 @@ jobs:
           key: ${{ runner.os }}-go-test-${{ hashFiles('**/go.sum') }}
           restore-keys: ${{ runner.os }}-go-test
       - run: script/test
+        shell: sh
+  test:
+    needs:
+      - matrix_test
+    runs-on: ubuntu-22.04
+    steps:
+      - run: echo ok
         shell: sh
   lint:
     runs-on: ubuntu-22.04
@@ -86,7 +93,7 @@ jobs:
             ${{ steps.setup-go.outputs.GOMODCACHE }}
           key: ${{ runner.os }}-go-release-${{ hashFiles('**/go.sum') }}
           restore-keys: ${{ runner.os }}-go-release
-      - uses: WillAbides/semver-release-action@v1.5.2
+      - uses: WillAbides/release-train@v1.6.1
         with:
           create_release: true
           validate_version: |
