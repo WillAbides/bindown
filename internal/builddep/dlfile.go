@@ -25,6 +25,7 @@ type dlFile struct {
 	archSub      *systemSub
 	suffix       string
 	isArchive    bool
+	isCompress   bool
 	priority     int
 	archiveFiles []*archiveFile
 	checksum     string
@@ -45,7 +46,7 @@ func (f *dlFile) clone() *dlFile {
 }
 
 func (f *dlFile) setArchiveFiles(ctx context.Context, binName, version string) error {
-	if !f.isArchive {
+	if !f.isArchive && !f.isCompress {
 		return nil
 	}
 	parsedUrl, err := url.Parse(f.origUrl)
@@ -53,6 +54,18 @@ func (f *dlFile) setArchiveFiles(ctx context.Context, binName, version string) e
 		return err
 	}
 	filename := path.Base(parsedUrl.EscapedPath())
+	if f.isCompress {
+		f.archiveFiles = []*archiveFile{parseArchiveFile(
+			strings.TrimSuffix(filename, f.suffix),
+			binName,
+			f.osSub.val,
+			f.archSub.val,
+			version,
+			true,
+		)}
+		return nil
+	}
+
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, f.origUrl, http.NoBody)
 	if err != nil {
 		return err

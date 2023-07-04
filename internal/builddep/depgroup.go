@@ -50,7 +50,7 @@ func (g *depGroup) regroupByArchivePath(ctx context.Context, binName, version st
 		return []*depGroup{gr}, nil
 	}
 	// trust that if the first isn't an archive, none of them are
-	if !gr.files[0].isArchive {
+	if !gr.files[0].isArchive && !gr.files[0].isCompress {
 		gr.archivePath = path.Base(gr.files[0].url)
 		return []*depGroup{gr}, nil
 	}
