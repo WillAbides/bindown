@@ -8,6 +8,7 @@ builds:
       - linux
       - darwin
       - windows
+      - freebsd
     env:
       - CGO_ENABLED=0
 archives:
