@@ -3,6 +3,7 @@ package bindown
 import (
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/mholt/archiver/v3"
 	"github.com/willabides/bindown/v4/internal/cache"
@@ -55,9 +56,20 @@ func extract(archivePath, extractDir string) error {
 		return err
 	}
 	tarPath := filepath.Join(downloadDir, dlName)
-	_, err = archiver.ByExtension(dlName)
+	byExt, err := archiver.ByExtension(dlName)
 	if err != nil {
 		return copyFile(tarPath, filepath.Join(extractDir, dlName))
 	}
-	return archiver.Unarchive(tarPath, extractDir)
+	switch x := byExt.(type) {
+	case archiver.Unarchiver:
+		return x.Unarchive(tarPath, extractDir)
+	case archiver.Decompressor:
+		dest := filepath.Join(
+			extractDir,
+			strings.TrimSuffix(dlName, filepath.Ext(dlName)),
+		)
+		return archiver.FileCompressor{Decompressor: x}.DecompressFile(tarPath, dest)
+	default:
+		return copyFile(tarPath, filepath.Join(extractDir, dlName))
+	}
 }

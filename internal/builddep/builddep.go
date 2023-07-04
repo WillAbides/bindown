@@ -244,6 +244,9 @@ var archiveSuffixes = []string{
 	".tzst",
 	".rar",
 	".zip",
+}
+
+var compressSuffixes = []string{
 	".br",
 	".gz",
 	".bz2",
@@ -278,12 +281,22 @@ func parseDownload(dlURL, version string, systems []bindown.System) (*dlFile, bo
 		return nil, false
 	}
 	isArchive := false
+	isCompress := false
 	suffix := ""
 	for _, s := range archiveSuffixes {
 		if strings.HasSuffix(dlURL, s) {
 			suffix = s
 			isArchive = true
 			break
+		}
+	}
+	if !isArchive {
+		for _, s := range compressSuffixes {
+			if strings.HasSuffix(dlURL, s) {
+				suffix = s
+				isCompress = true
+				break
+			}
 		}
 	}
 	if strings.HasSuffix(dlURL, ".exe") {
@@ -301,13 +314,14 @@ func parseDownload(dlURL, version string, systems []bindown.System) (*dlFile, bo
 		priority += archSub.priority
 	}
 	return &dlFile{
-		origUrl:   dlURL,
-		url:       tmpl,
-		osSub:     osSub,
-		archSub:   archSub,
-		suffix:    suffix,
-		isArchive: isArchive,
-		priority:  priority,
+		origUrl:    dlURL,
+		url:        tmpl,
+		osSub:      osSub,
+		archSub:    archSub,
+		suffix:     suffix,
+		isArchive:  isArchive,
+		isCompress: isCompress,
+		priority:   priority,
 	}, true
 }
 
@@ -361,24 +375,35 @@ func parseDownloads(dlUrls []string, binName, version string, allowedSystems []b
 		if len(systemFiles[system]) == 1 {
 			continue
 		}
-		// prefer archives
-		slices.SortFunc(systemFiles[system], func(a, b *dlFile) bool {
-			return a.isArchive && !b.isArchive
-		})
-		cutOff = slices.IndexFunc(systemFiles[system], func(f *dlFile) bool {
-			return !f.isArchive
-		})
-		if cutOff != -1 {
-			systemFiles[system] = systemFiles[system][:cutOff]
+		// prefer archives then compresses
+		var archiveSystems, compressSystems, plainSystems []*dlFile
+		for _, file := range systemFiles[system] {
+			switch {
+			case file.isArchive:
+				archiveSystems = append(archiveSystems, file)
+			case file.isCompress:
+				compressSystems = append(compressSystems, file)
+			default:
+				plainSystems = append(plainSystems, file)
+			}
 		}
-		if len(systemFiles[system]) == 1 {
-			continue
+		var sf []*dlFile
+		switch {
+		case len(archiveSystems) > 0:
+			sf = archiveSystems
+		case len(compressSystems) > 0:
+			sf = compressSystems
+		default:
+			sf = plainSystems
+		}
+		if len(sf) < 2 {
+			systemFiles[system] = sf
 		}
 		// now arbitrarily pick the first one alphabetically by origUrl
-		slices.SortFunc(systemFiles[system], func(a, b *dlFile) bool {
+		slices.SortFunc(sf, func(a, b *dlFile) bool {
 			return a.origUrl < b.origUrl
 		})
-		systemFiles[system] = systemFiles[system][:1]
+		systemFiles[system] = sf[:1]
 	}
 
 	templates := maps.Keys(urlFrequency)
