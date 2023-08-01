@@ -79,6 +79,9 @@ jobs:
       - test
       - lint
       - generate
+    permissions:
+      contents: write
+      pull-requests: write
     steps:
       - uses: actions/checkout@v3
         with:
@@ -109,6 +112,8 @@ jobs:
       - if: steps.release-train.outputs.created-release == 'true'
         env:
           RELEASE_TAG: ${{ steps.release-train.outputs.release-tag }}
+          GITHUB_TOKEN: ${{ github.token }}
         run: |
+          script/bindown -q install gh
           go run ./internal/build-bootstrapper -tag "$RELEASE_TAG" > bootstrap-bindown.sh
-          gh release upload "$RELEASE_TAG" bootstrap-bindown.sh
+          bin/gh release upload "$RELEASE_TAG" bootstrap-bindown.sh

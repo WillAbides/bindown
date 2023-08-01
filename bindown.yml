@@ -6,6 +6,10 @@ systems:
   - linux/amd64
   - windows/amd64
 dependencies:
+  gh:
+    template: origin#gh
+    vars:
+      version: 2.30.0
   go:
     template: origin#go
     vars:
@@ -40,6 +44,51 @@ templates:
     bin: checksums.txt
     required_vars:
       - tag
+  origin#gh:
+    homepage: https://github.com/cli/cli
+    description: GitHub’s official command line tool
+    url: https://github.com/cli/cli/releases/download/v{{.version}}/gh_{{.version}}_{{.os}}_{{.arch}}{{.urlSuffix}}
+    archive_path: gh_{{.version}}_{{.os}}_{{.arch}}/bin/gh{{.archivePathSuffix}}
+    bin: gh
+    vars:
+      archivePathSuffix: ""
+      urlSuffix: .zip
+    overrides:
+      - matcher:
+          os:
+            - windows
+        dependency:
+          archive_path: bin/gh{{.archivePathSuffix}}
+          vars:
+            archivePathSuffix: .exe
+      - matcher:
+          os:
+            - linux
+        dependency:
+          vars:
+            urlSuffix: .tar.gz
+      - matcher:
+          os:
+            - darwin
+          version:
+            - < 2.28.0
+        dependency:
+          vars:
+            urlSuffix: .tar.gz
+    substitutions:
+      os:
+        darwin: macOS
+    systems:
+      - darwin/amd64
+      - darwin/arm64
+      - linux/386
+      - linux/amd64
+      - linux/arm64
+      - windows/386
+      - windows/amd64
+      - windows/arm64
+    required_vars:
+      - version
   origin#go:
     url: https://dl.google.com/go/go{{.version}}.{{.os}}-{{.arch}}{{.urlSuffix}}
     archive_path: go/bin/go{{.archivePathSuffix}}
@@ -275,6 +324,10 @@ url_checksums:
   https://dl.google.com/go/go1.20.2.darwin-arm64.tar.gz: 7343c87f19e79c0063532e82e1c4d6f42175a32d99f7a4d15e658e88bf97f885
   https://dl.google.com/go/go1.20.2.linux-amd64.tar.gz: 4eaea32f59cde4dc635fbc42161031d13e1c780b87097f4b4234cfce671f1768
   https://dl.google.com/go/go1.20.2.windows-amd64.zip: fe439f0e438f7555a7f5f7194ddb6f4a07b0de1fa414385d19f2aeb26d9f43db
+  https://github.com/cli/cli/releases/download/v2.30.0/gh_2.30.0_linux_amd64.tar.gz: 5aee45bd42a27f5be309373c326e45cbcc7f04591b1798581a3094af767225b7
+  https://github.com/cli/cli/releases/download/v2.30.0/gh_2.30.0_macOS_amd64.zip: 6b91c446586935de0e9df82da58309b2d1b83061cfcd4cc173124270f1277ca7
+  https://github.com/cli/cli/releases/download/v2.30.0/gh_2.30.0_macOS_arm64.zip: 32a71652367f3cf664894456e4c4f655faa95964d71cc3a449fbf64bdce1fff1
+  https://github.com/cli/cli/releases/download/v2.30.0/gh_2.30.0_windows_amd64.zip: 7d466686978e3c93e1a412229a77921288862cec183e94ad06cd36bfcd34ebaf
   https://github.com/golangci/golangci-lint/releases/download/v1.51.2/golangci-lint-1.51.2-darwin-amd64.tar.gz: 0549cbaa2df451cf3a2011a9d73a9cb127784d26749d9cd14c9f4818af104d44
   https://github.com/golangci/golangci-lint/releases/download/v1.51.2/golangci-lint-1.51.2-darwin-arm64.tar.gz: 36e69882205a0e42a63ad57ec3015639c11051e03f0beb9cf7949c6451408960
   https://github.com/golangci/golangci-lint/releases/download/v1.51.2/golangci-lint-1.51.2-linux-amd64.tar.gz: 4de479eb9d9bc29da51aec1834e7c255b333723d38dbd56781c68e5dddc6a90b
