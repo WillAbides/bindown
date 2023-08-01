@@ -1,5 +1,9 @@
 name: ci
-on: [ push ]
+on:
+  push:
+    branches: [ 'main' ]
+  pull_request:
+    types: [ synchronize, opened, reopened, labeled, unlabeled ]
 jobs:
   matrix_test:
     strategy:
@@ -75,9 +79,6 @@ jobs:
       - test
       - lint
       - generate
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-    env:
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - uses: actions/checkout@v3
         with:
@@ -93,13 +94,21 @@ jobs:
             ${{ steps.setup-go.outputs.GOMODCACHE }}
           key: ${{ runner.os }}-go-release-${{ hashFiles('**/go.sum') }}
           restore-keys: ${{ runner.os }}-go-release
-      - uses: WillAbides/release-train@v1.7.0
+      - uses: WillAbides/release-train@v3.2.1
+        id: release-train
         with:
-          create_release: true
-          validate_go_module: "."
-          post_release_hook: |
+          create-release: true
+          release-refs: main
+          pre-tag-hook: |
             set -e
+            script/check-module-version "$(go list -m)" "$RELEASE_TAG"
             script/bindown install goreleaser
-            bin/goreleaser release --clean
-            go run ./internal/build-bootstrapper -tag "v$RELEASE_VERSION" > bootstrap-bindown.sh
-            gh release upload "v$RELEASE_VERSION" bootstrap-bindown.sh
+            git tag "$RELEASE_TAG"
+            bin/goreleaser release --clean --skip-publish
+            cp dist/checksums.txt dist/bindown_*.tar.gz "$ASSETS_DIR"
+      - if: steps.release-train.outputs.created-release == 'true'
+        env:
+          RELEASE_TAG: ${{ steps.release-train.outputs.release-tag }}
+        run: |
+          go run ./internal/build-bootstrapper -tag "$RELEASE_TAG" > bootstrap-bindown.sh
+          gh release upload "$RELEASE_TAG" bootstrap-bindown.sh
