@@ -160,6 +160,7 @@ type dependencyAddCmd struct {
 	Template         string            `kong:"arg,optional,predictor=template"`
 	TemplateSource   string            `kong:"name=source,help='template source',predictor=templateSource"`
 	Vars             map[string]string `kong:"name=var"`
+	AcceptDefaults   bool              `kong:"short=y,help='accept default values for vars'"`
 	SkipRequiredVars bool              `kong:"name=skipvars,help='do not prompt for required vars. implies --skipchecksums'"`
 	SkipChecksums    bool              `kong:"name=skipchecksums,help='do not add checksums for this dependency'"`
 }
@@ -251,13 +252,17 @@ func (c *dependencyAddCmd) promptForVars(ctx *runContext, config *bindown.Config
 	for _, missingVar := range missingVars {
 		prompt := survey.Input{
 			Message: missingVar,
-			// Help:    `The thing you need to do is...`,
 		}
 		knownVals := varVals[missingVar]
 		bindown.SortBySemverOrString(knownVals)
 		knownVals = bindown.Unique(knownVals, knownVals[:0])
 		if len(knownVals) > 0 {
-			prompt.Default = knownVals[0]
+			defaultVal := knownVals[0]
+			if c.AcceptDefaults {
+				config.Dependencies[c.Name].Vars[missingVar] = defaultVal
+				continue
+			}
+			prompt.Default = defaultVal
 			prompt.Suggest = func(toComplete string) []string {
 				suggestions := make([]string, 0, len(knownVals))
 				for _, v := range knownVals {
@@ -274,9 +279,11 @@ func (c *dependencyAddCmd) promptForVars(ctx *runContext, config *bindown.Config
 		})
 	}
 	answers := map[string]any{}
-	err = survey.Ask(questions, &answers, survey.WithStdio(ctx.stdin, ctx.stdout, nil), survey.WithShowCursor(true))
-	if err != nil {
-		return err
+	if len(questions) > 0 {
+		err = survey.Ask(questions, &answers, survey.WithStdio(ctx.stdin, ctx.stdout, nil), survey.WithShowCursor(true))
+		if err != nil {
+			return err
+		}
 	}
 	for k, v := range answers {
 		s, ok := v.(string)
