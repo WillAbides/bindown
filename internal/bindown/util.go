@@ -230,6 +230,17 @@ func Unique[V comparable](vals, buf []V) []V {
 	return buf
 }
 
+func dirIsGitIgnored(dir string) (bool, error) {
+	ig, err := fileIsGitignored(dir)
+	if err != nil {
+		return false, err
+	}
+	if ig {
+		return true, nil
+	}
+	return fileIsGitignored(filepath.Join(dir, "x"))
+}
+
 // fileIsGitignored returns true if the file is ignored by a .gitignore file in the same directory or any parent
 // directory from the same git repo.
 func fileIsGitignored(filename string) (bool, error) {

@@ -681,18 +681,22 @@ func findCacheDir(cfgDir string) (string, error) {
 	if err == nil && info.IsDir() {
 		return bindownDir, nil
 	}
-	// if .cache is ignored by .gitignore, use it
+	// if .bindown is in .gitignore, use it
+	ig, err := dirIsGitIgnored(bindownDir)
+	if err != nil {
+		return "", err
+	}
+	if ig {
+		return bindownDir, nil
+	}
+	// if .cache is in .gitignore, use it
 	cacheDir := filepath.Join(cfgDir, ".cache")
-	// When a dir is ignored with a trailing slash, we need to check if a file in that dir is ignored.
-	for _, dir := range []string{cacheDir, filepath.Join(cacheDir, "downloads")} {
-		var ignored bool
-		ignored, err = fileIsGitignored(dir)
-		if err != nil {
-			return "", err
-		}
-		if ignored {
-			return cacheDir, nil
-		}
+	ig, err = dirIsGitIgnored(cacheDir)
+	if err != nil {
+		return "", err
+	}
+	if ig {
+		return cacheDir, nil
 	}
 	// default to .bindown
 	return bindownDir, nil
