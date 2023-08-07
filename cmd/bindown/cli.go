@@ -113,14 +113,6 @@ type fileReader interface {
 	Fd() uintptr
 }
 
-type SimpleFileReader struct {
-	io.Reader
-}
-
-func (s SimpleFileReader) Fd() uintptr {
-	return 0
-}
-
 type runContext struct {
 	parent  context.Context
 	stdin   fileReader
