@@ -98,13 +98,13 @@ jobs:
             ${{ steps.setup-go.outputs.GOMODCACHE }}
           key: ${{ runner.os }}-go-release-${{ hashFiles('**/go.sum') }}
           restore-keys: ${{ runner.os }}-go-release
-      - uses: WillAbides/release-train@v3.2.1
+      - uses: WillAbides/release-train@v3.3.0
         id: release-train
         with:
           create-release: true
           release-refs: main
           pre-tag-hook: |
-            set -e
+            set -ex
             script/check-module-version "$(go list -m)" "$RELEASE_TAG"
             script/bindown install goreleaser
             git tag "$RELEASE_TAG"
