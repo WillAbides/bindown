@@ -53,6 +53,7 @@ jobs:
           key: ${{ runner.os }}-go-lint-${{ hashFiles('**/go.sum', 'bindown.yml', 'script/*') }}
           restore-keys: ${{ runner.os }}-go-lint
       - run: script/lint
+      - run: script/deadcode
   generate:
     runs-on: ubuntu-22.04
     steps:

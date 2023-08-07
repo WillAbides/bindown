@@ -1,0 +1,27 @@
+#!/bin/sh
+
+set -e
+
+REPO_DIR="$(CDPATH="" cd -- "$(dirname -- "$0")/.." && pwd -P)"
+
+DEADCODE_REVISION="aac7fb67aecb"
+
+GOBIN="$REPO_DIR"/bin go install golang.org/x/tools/internal/cmd/deadcode@"$DEADCODE_REVISION"
+
+RESULT="$(
+  "$REPO_DIR"/bin/deadcode -line ./... |
+    grep -v "internal/expecttest." |
+    grep -v "internal/testutil." || true
+)"
+
+TEST_RESULT="$(
+  "$REPO_DIR"/bin/deadcode -line -test ./... |
+    grep -v "internal/builddep.adhocRelease" || true
+)"
+
+if [ -n "$RESULT" ] || [ -n "$TEST_RESULT" ]; then
+  echo "deadcode found unused code:"
+  echo "$RESULT"
+  echo "$TEST_RESULT"
+  exit 1
+fi
