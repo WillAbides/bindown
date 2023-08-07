@@ -10,8 +10,8 @@ jobs:
       matrix:
         platform:
           - ubuntu-22.04
-          - macos-13
-          - windows-2022
+#          - macos-13
+#          - windows-2022
       fail-fast: false
     runs-on: ${{ matrix.platform }}
     steps:
@@ -98,7 +98,7 @@ jobs:
             ${{ steps.setup-go.outputs.GOMODCACHE }}
           key: ${{ runner.os }}-go-release-${{ hashFiles('**/go.sum') }}
           restore-keys: ${{ runner.os }}-go-release
-      - uses: WillAbides/release-train@v3.2.1
+      - uses: WillAbides/release-train@v3.3.0
         id: release-train
         with:
           create-release: true
