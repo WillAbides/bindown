@@ -16,6 +16,7 @@ require (
 	github.com/mholt/archiver/v4 v4.0.0-alpha.8
 	github.com/posener/complete v1.2.3
 	github.com/rogpeppe/go-internal v1.10.0
+	github.com/sabhiram/go-gitignore v0.0.0-20210923224102-525f6e181f06
 	github.com/santhosh-tekuri/jsonschema/v5 v5.3.0
 	github.com/stretchr/testify v1.7.1
 	github.com/willabides/kongplete v0.3.0

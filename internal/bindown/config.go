@@ -656,12 +656,46 @@ func NewConfig(ctx context.Context, cfgSrc string, noDefaultDirs bool) (*Config,
 		return cfg, nil
 	}
 	if cfg.Cache == "" {
-		cfg.Cache = filepath.Join(filepath.Dir(cfgSrc), ".cache")
+		cfg.Cache, err = findCacheDir(filepath.Dir(cfgSrc))
+		if err != nil {
+			return nil, err
+		}
 	}
 	if cfg.InstallDir == "" {
 		cfg.InstallDir = filepath.Join(filepath.Dir(cfgSrc), "bin")
 	}
 	return cfg, nil
+}
+
+// findCacheDir decides between .bindown and .cache for the cache directory to use when
+// none is specified. This is necessary because v4 mistakenly made .cache the default.
+// We want to use .bindown, but will revert to .cache if it is in .gitignore and .bindown
+// does not exist.
+func findCacheDir(cfgDir string) (string, error) {
+	// if .bindown exists, use it
+	bindownDir := filepath.Join(cfgDir, ".bindown")
+	info, err := os.Stat(bindownDir)
+	if err != nil && !os.IsNotExist(err) {
+		return "", err
+	}
+	if err == nil && info.IsDir() {
+		return bindownDir, nil
+	}
+	// if .cache is ignored by .gitignore, use it
+	cacheDir := filepath.Join(cfgDir, ".cache")
+	// When a dir is ignored with a trailing slash, we need to check if a file in that dir is ignored.
+	for _, dir := range []string{cacheDir, filepath.Join(cacheDir, "downloads")} {
+		var ignored bool
+		ignored, err = fileIsGitignored(dir)
+		if err != nil {
+			return "", err
+		}
+		if ignored {
+			return cacheDir, nil
+		}
+	}
+	// default to .bindown
+	return bindownDir, nil
 }
 
 func configFromHTTP(ctx context.Context, src string) (*Config, error) {

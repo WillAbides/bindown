@@ -15,6 +15,7 @@ import (
 	"text/template"
 
 	"github.com/Masterminds/semver/v3"
+	ignore "github.com/sabhiram/go-gitignore"
 	"golang.org/x/exp/maps"
 	"golang.org/x/exp/slices"
 	"gopkg.in/yaml.v3"
@@ -227,4 +228,66 @@ func Unique[V comparable](vals, buf []V) []V {
 		}
 	}
 	return buf
+}
+
+// fileIsGitignored returns true if the file is ignored by a .gitignore file in the same directory or any parent
+// directory from the same git repo.
+func fileIsGitignored(filename string) (bool, error) {
+	dir := filepath.Dir(filename)
+	repoBase, err := gitRepo(dir)
+	if err != nil {
+		return false, err
+	}
+	if repoBase == "" {
+		return false, nil
+	}
+	for {
+		ignoreFile := filepath.Join(dir, ".gitignore")
+		var info os.FileInfo
+		info, err = os.Stat(ignoreFile)
+		if err != nil {
+			if !os.IsNotExist(err) {
+				return false, err
+			}
+		} else if info.Mode().Type().IsRegular() {
+			var ig *ignore.GitIgnore
+			ig, err = ignore.CompileIgnoreFile(ignoreFile)
+			if err != nil {
+				return false, err
+			}
+			var relFile string
+			relFile, err = filepath.Rel(dir, filename)
+			if err != nil {
+				return false, err
+			}
+			if ig.MatchesPath(relFile) {
+				return true, nil
+			}
+		}
+		if dir == repoBase {
+			break
+		}
+		dir = filepath.Dir(dir)
+	}
+	return false, nil
+}
+
+// gitRepo returns the path of the base git repo for a dir. Returns ""
+// if dir is not in a git repo.
+// Does not use git commands. Just checks for .git directory.
+func gitRepo(dir string) (string, error) {
+	dir = filepath.Clean(dir)
+	info, err := os.Stat(filepath.Join(dir, ".git"))
+	if err != nil {
+		if !os.IsNotExist(err) {
+			return "", err
+		}
+	} else if info.IsDir() {
+		return dir, nil
+	}
+	parent := filepath.Dir(dir)
+	if parent == dir {
+		return "", nil
+	}
+	return gitRepo(parent)
 }
