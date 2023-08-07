@@ -2,11 +2,13 @@ package bindown
 
 import (
 	"context"
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"gopkg.in/yaml.v3"
 )
 
 func TestValidateConfig(t *testing.T) {
@@ -71,4 +73,13 @@ url_checksums:
 		err := validateConfig(ctx, cfg)
 		require.Error(t, err)
 	})
+}
+
+func yaml2json(y []byte) ([]byte, error) {
+	var data any
+	err := yaml.Unmarshal(y, &data)
+	if err != nil {
+		return nil, err
+	}
+	return json.Marshal(data)
 }

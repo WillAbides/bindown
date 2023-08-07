@@ -20,6 +20,14 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+type simpleFileReader struct {
+	io.Reader
+}
+
+func (s simpleFileReader) Fd() uintptr {
+	return 0
+}
+
 type cmdRunner struct {
 	t          testing.TB
 	configFile string
@@ -60,7 +68,7 @@ func (c *cmdRunner) run(commandLine ...string) *runCmdResult {
 		ctx,
 		commandLine,
 		&runOpts{
-			stdin:   SimpleFileReader{c.stdin},
+			stdin:   simpleFileReader{c.stdin},
 			stdout:  SimpleFileWriter{&result.stdOut},
 			stderr:  &result.stdErr,
 			cmdName: "cmd",

@@ -3,7 +3,6 @@ package bindown
 import (
 	"context"
 	_ "embed"
-	"encoding/json"
 	"fmt"
 
 	"github.com/santhosh-tekuri/jsonschema/v5"
@@ -29,13 +28,4 @@ func validateConfig(ctx context.Context, cfg []byte) error {
 		return fmt.Errorf("invalid config: %w", err)
 	}
 	return nil
-}
-
-func yaml2json(y []byte) ([]byte, error) {
-	var data any
-	err := yaml.Unmarshal(y, &data)
-	if err != nil {
-		return nil, err
-	}
-	return json.Marshal(data)
 }
