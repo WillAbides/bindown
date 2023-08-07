@@ -104,7 +104,7 @@ jobs:
           create-release: true
           release-refs: main
           pre-tag-hook: |
-            set -ex
+            set -e
             script/check-module-version "$(go list -m)" "$RELEASE_TAG"
             script/bindown install goreleaser
             git tag "$RELEASE_TAG"
