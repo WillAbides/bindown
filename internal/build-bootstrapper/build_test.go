@@ -30,5 +30,4 @@ func TestBuild(t *testing.T) {
 	want, err := os.ReadFile(filepath.FromSlash("testdata/want.txt"))
 	require.NoError(t, err)
 	require.Equal(t, string(want), got)
-	//require.Empty(t, cmp.Diff(string(want), got))
 }
