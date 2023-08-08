@@ -3,7 +3,7 @@ GITHUB_DOWNLOAD=https://github.com/WillAbides/bindown/releases/download
 
 usage() {
   this=$1
-  cat <<EOT
+  cat << EOT
 Usage: $this [-b bindir] [-d]
   -b sets bindir or installation directory, Defaults to ./bin
   -d turns on debug logging
@@ -28,6 +28,14 @@ parse_args() {
   shift $((OPTIND - 1))
 }
 
+bindown_name() {
+  if [ "$OS" = "windows" ]; then
+    echo bindown.exe
+  else
+    echo bindown
+  fi
+}
+
 execute() {
   tmpdir=$(mktemp -d)
   echo "$CHECKSUMS" > "${tmpdir}/checksums.txt"
@@ -37,12 +45,8 @@ execute() {
   srcdir="${tmpdir}"
   (cd "${tmpdir}" && untar "${TARBALL}")
   test ! -d "${BINDIR}" && install -d "${BINDIR}"
-  binexe="bindown"
-  if [ "$OS" = "windows" ]; then
-    binexe="${binexe}.exe"
-  fi
-  install "${srcdir}/${binexe}" "${BINDIR}/"
-  log_info "installed ${BINDIR}/${binexe}"
+  install "${srcdir}/$(bindown_name)" "${BINDIR}/"
+  log_info "installed ${BINDIR}/$(bindown_name)"
   rm -rf "${tmpdir}"
 }
 
