@@ -17,6 +17,12 @@ import (
 var assets embed.FS
 
 func build(tag, repoRoot string) (_ string, errOut error) {
+	bindownCmd := exec.Command("script/bindown", "install", "shfmt", "shellcheck")
+	bindownCmd.Dir = repoRoot
+	err := bindownCmd.Run()
+	if err != nil {
+		return "", err
+	}
 	checksumsURL := fmt.Sprintf(
 		`https://github.com/WillAbides/bindown/releases/download/%s/checksums.txt`,
 		tag,

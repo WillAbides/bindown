@@ -1,9 +1,6 @@
 package main
 
 import (
-	"fmt"
-	"io"
-	"net/http"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -11,19 +8,6 @@ import (
 
 	"github.com/stretchr/testify/require"
 )
-
-func TestFoo(t *testing.T) {
-	resp, err := http.Get("https://github.com/WillAbides/bindown/releases/download/v4.0.0/checksums.txt")
-	require.NoError(t, err)
-	t.Cleanup(func() {
-		require.NoError(t, resp.Body.Close())
-	})
-	require.Equal(t, http.StatusOK, resp.StatusCode)
-	got, err := io.ReadAll(resp.Body)
-	require.NoError(t, err)
-	fmt.Println(string(got))
-
-}
 
 func TestBuild(t *testing.T) {
 	if testing.Short() {
