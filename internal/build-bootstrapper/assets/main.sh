@@ -5,8 +5,6 @@ usage() {
   this=$1
   cat <<EOT
 Usage: $this [-b bindir] [-d]
-
-Usage: $this [-b] bindir [-d]
   -b sets bindir or installation directory, Defaults to ./bin
   -d turns on debug logging
 
