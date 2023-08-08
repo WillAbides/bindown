@@ -1,14 +1,29 @@
 package main
 
 import (
+	"fmt"
+	"io"
+	"net/http"
 	"os"
 	"path/filepath"
 	"runtime"
 	"testing"
 
-	"github.com/google/go-cmp/cmp"
 	"github.com/stretchr/testify/require"
 )
+
+func TestFoo(t *testing.T) {
+	resp, err := http.Get("https://github.com/WillAbides/bindown/releases/download/v4.0.0/checksums.txt")
+	require.NoError(t, err)
+	t.Cleanup(func() {
+		require.NoError(t, resp.Body.Close())
+	})
+	require.Equal(t, http.StatusOK, resp.StatusCode)
+	got, err := io.ReadAll(resp.Body)
+	require.NoError(t, err)
+	fmt.Println(string(got))
+
+}
 
 func TestBuild(t *testing.T) {
 	if testing.Short() {
@@ -20,11 +35,16 @@ func TestBuild(t *testing.T) {
 	}
 	origConfig, err := os.ReadFile(filepath.FromSlash("../../bindown.yml"))
 	require.NoError(t, err)
+	t.Cleanup(func() {
+		require.NoError(
+			t,
+			os.WriteFile(filepath.FromSlash("../../bindown.yml"), origConfig, 0o644),
+		)
+	})
 	got, err := build("v4.0.0", filepath.FromSlash("../../"))
 	require.NoError(t, err)
 	want, err := os.ReadFile(filepath.FromSlash("testdata/want.txt"))
 	require.NoError(t, err)
-	require.Empty(t, cmp.Diff(string(want), got))
-	err = os.WriteFile(filepath.FromSlash("../../bindown.yml"), origConfig, 0o644)
-	require.NoError(t, err)
+	require.Equal(t, string(want), got)
+	//require.Empty(t, cmp.Diff(string(want), got))
 }

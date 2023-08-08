@@ -1,4 +1,4 @@
-cat /dev/null <<EOF
+cat /dev/null << EOF
 ------------------------------------------------------------------------
 https://github.com/client9/shlib - portable posix shell functions
 Public domain - http://unlicense.org
@@ -7,7 +7,7 @@ but credit (and pull requests) appreciated.
 ------------------------------------------------------------------------
 EOF
 is_command() {
-  command -v "$1" >/dev/null
+  command -v "$1" > /dev/null
 }
 echoerr() {
   echo "$@" 1>&2
@@ -175,7 +175,7 @@ hash_sha256() {
     hash=$(sha256sum "$TARGET") || return 1
     echo "$hash" | cut -d ' ' -f 1
   elif is_command shasum; then
-    hash=$(shasum -a 256 "$TARGET" 2>/dev/null) || return 1
+    hash=$(shasum -a 256 "$TARGET" 2> /dev/null) || return 1
     echo "$hash" | cut -d ' ' -f 1
   elif is_command openssl; then
     hash=$(openssl -dst openssl dgst -sha256 "$TARGET") || return 1
@@ -193,7 +193,7 @@ hash_sha256_verify() {
     return 1
   fi
   BASENAME=${TARGET##*/}
-  want=$(grep "${BASENAME}" "${checksums}" 2>/dev/null | tr '\t' ' ' | cut -d ' ' -f 1)
+  want=$(grep "${BASENAME}" "${checksums}" 2> /dev/null | tr '\t' ' ' | cut -d ' ' -f 1)
   if [ -z "$want" ]; then
     log_err "hash_sha256_verify unable to find checksum for '${TARGET}' in '${checksums}'"
     return 1
@@ -204,7 +204,7 @@ hash_sha256_verify() {
     return 1
   fi
 }
-cat /dev/null <<EOF
+cat /dev/null << EOF
 ------------------------------------------------------------------------
 End of functions from https://github.com/client9/shlib
 ------------------------------------------------------------------------

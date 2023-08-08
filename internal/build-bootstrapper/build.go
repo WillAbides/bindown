@@ -5,7 +5,8 @@ import (
 	"embed"
 	"flag"
 	"fmt"
-	"os"
+	"io"
+	"net/http"
 	"os/exec"
 	"path/filepath"
 	"strings"
@@ -15,69 +16,25 @@ import (
 //go:embed assets/*
 var assets embed.FS
 
-func execBindown(repoRoot string, arg ...string) error {
-	bootstrapCmd := exec.Command("script/bootstrap-bindown.sh", "-b", "bin/bootstrapped")
-	bootstrapCmd.Dir = repoRoot
-	err := bootstrapCmd.Run()
-	if err != nil {
-		return err
-	}
-	bindownCmd := exec.Command("bin/bootstrapped/bindown", arg...)
-	bindownCmd.Dir = repoRoot
-	return bindownCmd.Run()
-}
-
 func build(tag, repoRoot string) (_ string, errOut error) {
-	tmpDir, err := os.MkdirTemp("", "")
+	checksumsURL := fmt.Sprintf(
+		`https://github.com/WillAbides/bindown/releases/download/%s/checksums.txt`,
+		tag,
+	)
+	resp, err := http.Get(checksumsURL)
 	if err != nil {
 		return "", err
 	}
 	defer func() {
-		rmErr := os.RemoveAll(tmpDir)
+		err = resp.Body.Close()
 		if errOut == nil {
-			errOut = rmErr
+			errOut = err
 		}
 	}()
-	err = execBindown(repoRoot, "install", "shfmt")
-	if err != nil {
-		return "", err
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("got status %d from %s", resp.StatusCode, checksumsURL)
 	}
-	err = execBindown(repoRoot, "install", "shellcheck")
-	if err != nil {
-		return "", err
-	}
-	err = execBindown(
-		repoRoot,
-		"dependency",
-		"add",
-		"bindown-checksums",
-		"bindown-checksums",
-		"--var",
-		fmt.Sprintf("tag=%s", tag),
-		"--skipchecksums",
-	)
-	if err != nil {
-		return "", err
-	}
-	defer func() {
-		removeErr := execBindown(repoRoot, "dependency", "remove", "bindown-checksums")
-		if errOut != nil {
-			errOut = removeErr
-		}
-	}()
-	checksumsDir := filepath.Join(tmpDir, "checksums")
-	err = execBindown(
-		repoRoot,
-		"extract",
-		"bindown-checksums",
-		"--allow-missing-checksum",
-		"--output",
-		checksumsDir,
-	)
-	if err != nil {
-		return "", err
-	}
-	checksums, err := os.ReadFile(filepath.Join(checksumsDir, "checksums.txt"))
+	checksums, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return "", err
 	}
