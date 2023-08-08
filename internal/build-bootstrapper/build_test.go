@@ -6,7 +6,6 @@ import (
 	"runtime"
 	"testing"
 
-	"github.com/google/go-cmp/cmp"
 	"github.com/stretchr/testify/require"
 )
 
@@ -20,11 +19,15 @@ func TestBuild(t *testing.T) {
 	}
 	origConfig, err := os.ReadFile(filepath.FromSlash("../../bindown.yml"))
 	require.NoError(t, err)
+	t.Cleanup(func() {
+		require.NoError(
+			t,
+			os.WriteFile(filepath.FromSlash("../../bindown.yml"), origConfig, 0o644),
+		)
+	})
 	got, err := build("v4.0.0", filepath.FromSlash("../../"))
 	require.NoError(t, err)
 	want, err := os.ReadFile(filepath.FromSlash("testdata/want.txt"))
 	require.NoError(t, err)
-	require.Empty(t, cmp.Diff(string(want), got))
-	err = os.WriteFile(filepath.FromSlash("../../bindown.yml"), origConfig, 0o644)
-	require.NoError(t, err)
+	require.Equal(t, string(want), got)
 }
