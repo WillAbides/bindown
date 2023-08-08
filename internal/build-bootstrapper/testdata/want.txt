@@ -287,6 +287,12 @@ execute() {
   rm -rf "${tmpdir}"
 }
 
+already_installed() {
+  VERSION="$1"
+  [ -f "${BINDIR}/$(bindown_name)" ] &&
+    "${BINDIR}/$(bindown_name)" version 2> /dev/null | grep -q "$VERSION"
+}
+
 OS=$(uname_os)
 ARCH=$(uname_arch)
 
@@ -296,6 +302,12 @@ uname_arch_check "$ARCH"
 parse_args "$@"
 
 VERSION=${TAG#v}
+
+if already_installed "$VERSION"; then
+  log_debug "bindown ${VERSION} is already installed"
+  exit 0
+fi
+
 NAME=bindown_${VERSION}_${OS}_${ARCH}
 TARBALL=${NAME}.${FORMAT}
 TARBALL_URL=${GITHUB_DOWNLOAD}/${TAG}/${TARBALL}
