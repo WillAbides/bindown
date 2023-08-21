@@ -5,7 +5,7 @@ import (
 	"sort"
 	"text/tabwriter"
 
-	"golang.org/x/exp/maps"
+	"github.com/willabides/bindown/v4/internal/bindown"
 )
 
 type templateSourceCmd struct {
@@ -22,7 +22,7 @@ func (c *templateSourceListCmd) Run(ctx *runContext) error {
 		return err
 	}
 	w := tabwriter.NewWriter(ctx.stdout, 0, 0, 1, ' ', 0)
-	sourceNames := maps.Keys(cfg.TemplateSources)
+	sourceNames := bindown.MapKeys(cfg.TemplateSources)
 	sort.Strings(sourceNames)
 	for _, name := range sourceNames {
 		fmt.Fprintln(w, name+"\t"+cfg.TemplateSources[name])

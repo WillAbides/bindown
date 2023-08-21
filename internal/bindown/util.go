@@ -9,6 +9,7 @@ import (
 	"hash"
 	"hash/fnv"
 	"io"
+	"maps"
 	"os"
 	"path/filepath"
 	"strings"
@@ -16,7 +17,6 @@ import (
 
 	"github.com/Masterminds/semver/v3"
 	ignore "github.com/sabhiram/go-gitignore"
-	"golang.org/x/exp/maps"
 	"golang.org/x/exp/slices"
 	"gopkg.in/yaml.v3"
 )
@@ -301,4 +301,12 @@ func gitRepo(dir string) (string, error) {
 		return "", nil
 	}
 	return gitRepo(parent)
+}
+
+func MapKeys[M ~map[K]V, K comparable, V any](m M) []K {
+	r := make([]K, 0, len(m))
+	for k := range m {
+		r = append(r, k)
+	}
+	return r
 }

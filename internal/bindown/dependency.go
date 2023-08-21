@@ -2,11 +2,11 @@ package bindown
 
 import (
 	"fmt"
+	"maps"
 	"os"
 	"path/filepath"
 
 	"github.com/Masterminds/semver/v3"
-	"golang.org/x/exp/maps"
 	"golang.org/x/exp/slices"
 )
 
@@ -217,7 +217,7 @@ func (d *Overrideable) applyOverrides(system System, depth int) error {
 		if _, ok := systemVars["arch"]; !ok {
 			systemVars["arch"] = system.Arch()
 		}
-		match := !slices.ContainsFunc(maps.Keys(d.Overrides[i].OverrideMatcher), func(varName string) bool {
+		match := !slices.ContainsFunc(MapKeys(d.Overrides[i].OverrideMatcher), func(varName string) bool {
 			overridePatterns := d.Overrides[i].OverrideMatcher[varName]
 			val := systemVars[varName]
 			// A match is found if the value is an exact match for a pattern or if the

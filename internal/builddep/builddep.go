@@ -8,7 +8,6 @@ import (
 	"github.com/Masterminds/semver/v3"
 	"github.com/google/go-github/v52/github"
 	"github.com/willabides/bindown/v4/internal/bindown"
-	"golang.org/x/exp/maps"
 	"golang.org/x/exp/slices"
 	"golang.org/x/oauth2"
 	"gopkg.in/yaml.v3"
@@ -407,7 +406,7 @@ func parseDownloads(dlUrls []string, binName, version string, allowedSystems []b
 		systemFiles[system] = sf[:1]
 	}
 
-	templates := maps.Keys(urlFrequency)
+	templates := bindown.MapKeys(urlFrequency)
 	slices.SortFunc(templates, func(a, b string) bool {
 		return urlFrequency[a] > urlFrequency[b]
 	})
@@ -421,7 +420,7 @@ func parseDownloads(dlUrls []string, binName, version string, allowedSystems []b
 	}
 
 	var groups []*depGroup
-	systems := maps.Keys(systemFiles)
+	systems := bindown.MapKeys(systemFiles)
 	slices.SortFunc(systems, func(a, b bindown.System) bool {
 		if len(systemFiles[a]) == 0 || len(systemFiles[b]) == 0 {
 			return len(systemFiles[a]) > 0
