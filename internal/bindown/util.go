@@ -12,12 +12,12 @@ import (
 	"maps"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"text/template"
 
 	"github.com/Masterminds/semver/v3"
 	ignore "github.com/sabhiram/go-gitignore"
-	"golang.org/x/exp/slices"
 	"gopkg.in/yaml.v3"
 )
 
@@ -203,18 +203,24 @@ func SortBySemverOrString(vals []string) {
 
 	// descending order only if all values are semvers
 	if len(vals) == len(semvers) {
-		slices.SortFunc(vals, func(a, b string) bool {
-			return semvers[a].GreaterThan(semvers[b])
+		slices.SortFunc(vals, func(a, b string) int {
+			return semvers[b].Compare(semvers[a])
 		})
 		return
 	}
 
-	slices.SortFunc(vals, func(a, b string) bool {
+	slices.SortFunc(vals, func(a, b string) int {
 		aVer, bVer := semvers[a], semvers[b]
 		if aVer == nil || bVer == nil {
-			return a < b
+			if a == b {
+				return 0
+			}
+			if a < b {
+				return -1
+			}
+			return 1
 		}
-		return aVer.LessThan(bVer)
+		return aVer.Compare(bVer)
 	})
 }
 

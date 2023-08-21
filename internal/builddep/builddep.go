@@ -3,12 +3,13 @@ package builddep
 import (
 	"context"
 	"fmt"
+	"slices"
+	"sort"
 	"strings"
 
 	"github.com/Masterminds/semver/v3"
 	"github.com/google/go-github/v52/github"
 	"github.com/willabides/bindown/v4/internal/bindown"
-	"golang.org/x/exp/slices"
 	"golang.org/x/oauth2"
 	"gopkg.in/yaml.v3"
 )
@@ -138,8 +139,8 @@ func osSubs(systems []bindown.System) []systemSub {
 			subs = append(subs, systemSub{val: dist.OS(), normalized: dist.OS()})
 		}
 	}
-	slices.SortFunc(subs, func(a, b systemSub) bool {
-		return len(a.val) > len(b.val)
+	sort.Slice(subs, func(i, j int) bool {
+		return len(subs[i].val) > len(subs[j].val)
 	})
 	return subs
 }
@@ -175,8 +176,8 @@ func archSubs(systems []bindown.System) []systemSub {
 			subs = append(subs, systemSub{val: dist.Arch(), normalized: dist.Arch()})
 		}
 	}
-	slices.SortFunc(subs, func(a, b systemSub) bool {
-		return len(a.val) > len(b.val)
+	sort.Slice(subs, func(i, j int) bool {
+		return len(subs[i].val) > len(subs[j].val)
 	})
 	return subs
 }
@@ -340,8 +341,8 @@ func parseDownloads(dlUrls []string, binName, version string, allowedSystems []b
 			continue
 		}
 		// remove all but the highest priority
-		slices.SortFunc(systemFiles[system], func(a, b *dlFile) bool {
-			return a.priority > b.priority
+		sort.Slice(systemFiles[system], func(i, j int) bool {
+			return systemFiles[system][i].priority > systemFiles[system][j].priority
 		})
 		cutOff := slices.IndexFunc(systemFiles[system], func(f *dlFile) bool {
 			return f.priority < systemFiles[system][0].priority
@@ -363,8 +364,8 @@ func parseDownloads(dlUrls []string, binName, version string, allowedSystems []b
 			continue
 		}
 		// prefer templates that are used more often
-		slices.SortFunc(systemFiles[system], func(a, b *dlFile) bool {
-			return urlFrequency[a.url] > urlFrequency[b.url]
+		sort.Slice(systemFiles[system], func(i, j int) bool {
+			return urlFrequency[systemFiles[system][i].url] > urlFrequency[systemFiles[system][j].url]
 		})
 		cutOff := slices.IndexFunc(systemFiles[system], func(f *dlFile) bool {
 			return urlFrequency[f.url] < urlFrequency[systemFiles[system][0].url]
@@ -400,15 +401,15 @@ func parseDownloads(dlUrls []string, binName, version string, allowedSystems []b
 			systemFiles[system] = sf
 		}
 		// now arbitrarily pick the first one alphabetically by origUrl
-		slices.SortFunc(sf, func(a, b *dlFile) bool {
-			return a.origUrl < b.origUrl
+		sort.Slice(sf, func(i, j int) bool {
+			return sf[i].origUrl < sf[j].origUrl
 		})
 		systemFiles[system] = sf[:1]
 	}
 
 	templates := bindown.MapKeys(urlFrequency)
-	slices.SortFunc(templates, func(a, b string) bool {
-		return urlFrequency[a] > urlFrequency[b]
+	sort.Slice(templates, func(i, j int) bool {
+		return urlFrequency[templates[i]] > urlFrequency[templates[j]]
 	})
 
 	// special handling to remap darwin/arm64 to darwin/amd64
@@ -421,16 +422,16 @@ func parseDownloads(dlUrls []string, binName, version string, allowedSystems []b
 
 	var groups []*depGroup
 	systems := bindown.MapKeys(systemFiles)
-	slices.SortFunc(systems, func(a, b bindown.System) bool {
-		if len(systemFiles[a]) == 0 || len(systemFiles[b]) == 0 {
-			return len(systemFiles[a]) > 0
+	sort.Slice(systems, func(i, j int) bool {
+		if len(systemFiles[systems[i]]) == 0 || len(systemFiles[systems[j]]) == 0 {
+			return len(systemFiles[systems[i]]) > 0
 		}
-		aFile := systemFiles[a][0]
-		bFile := systemFiles[b][0]
+		aFile := systemFiles[systems[i]][0]
+		bFile := systemFiles[systems[j]][0]
 		if aFile.priority != bFile.priority {
 			return aFile.priority > bFile.priority
 		}
-		return a < b
+		return systems[i] < systems[j]
 	})
 	for _, system := range systems {
 		file := systemFiles[system][0]
@@ -451,8 +452,8 @@ func parseDownloads(dlUrls []string, binName, version string, allowedSystems []b
 		group.addFile(file, binName)
 		groups = append(groups, group)
 	}
-	slices.SortFunc(groups, func(a, b *depGroup) bool {
-		return len(a.files) > len(b.files)
+	sort.Slice(groups, func(i, j int) bool {
+		return len(groups[i].files) > len(groups[j].files)
 	})
 	return groups
 }

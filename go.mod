@@ -19,7 +19,6 @@ require (
 	github.com/santhosh-tekuri/jsonschema/v5 v5.3.0
 	github.com/stretchr/testify v1.7.1
 	github.com/willabides/kongplete v0.3.0
-	golang.org/x/exp v0.0.0-20230321023759-10a507213a29
 	golang.org/x/oauth2 v0.8.0
 	golang.org/x/sync v0.2.0
 	gopkg.in/yaml.v3 v3.0.1

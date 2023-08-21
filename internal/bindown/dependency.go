@@ -5,9 +5,9 @@ import (
 	"maps"
 	"os"
 	"path/filepath"
+	"slices"
 
 	"github.com/Masterminds/semver/v3"
-	"golang.org/x/exp/slices"
 )
 
 type DependencyOverride struct {

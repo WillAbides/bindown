@@ -2,9 +2,9 @@ package main
 
 import (
 	"fmt"
+	"slices"
 
 	"github.com/willabides/bindown/v4/internal/bindown"
-	"golang.org/x/exp/slices"
 )
 
 type supportedSystemCmd struct {
