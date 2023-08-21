@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"sort"
+	"slices"
 	"text/tabwriter"
 
 	"github.com/willabides/bindown/v4/internal/bindown"
@@ -23,7 +23,7 @@ func (c *templateSourceListCmd) Run(ctx *runContext) error {
 	}
 	w := tabwriter.NewWriter(ctx.stdout, 0, 0, 1, ' ', 0)
 	sourceNames := bindown.MapKeys(cfg.TemplateSources)
-	sort.Strings(sourceNames)
+	slices.Sort(sourceNames)
 	for _, name := range sourceNames {
 		fmt.Fprintln(w, name+"\t"+cfg.TemplateSources[name])
 	}

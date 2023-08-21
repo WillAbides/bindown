@@ -12,7 +12,6 @@ import (
 	"net/url"
 	"path"
 	"slices"
-	"sort"
 	"strings"
 
 	"github.com/mholt/archiver/v4"
@@ -116,9 +115,7 @@ func (f *dlFile) setArchiveFiles(ctx context.Context, binName, version string) e
 	if err != nil {
 		return err
 	}
-	sort.Slice(f.archiveFiles, func(i, j int) bool {
-		return archiveFileLess(f.archiveFiles[i], f.archiveFiles[j])
-	})
+	slices.SortFunc(f.archiveFiles, archiveFileComp)
 	// read remaining bytes to calculate hash
 	_, err = io.Copy(io.Discard, reader)
 	if err != nil {

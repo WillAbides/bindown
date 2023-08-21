@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 	"os"
-	"sort"
+	"slices"
 	"strings"
 
 	"github.com/alecthomas/kong"
@@ -84,7 +84,7 @@ func allDependencies(cfg *bindown.Config) []string {
 		}
 		dependencies = append(dependencies, bn)
 	}
-	sort.Strings(dependencies)
+	slices.Sort(dependencies)
 	return dependencies
 }
 

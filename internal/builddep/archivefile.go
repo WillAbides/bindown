@@ -1,6 +1,7 @@
 package builddep
 
 import (
+	"cmp"
 	"fmt"
 	"strings"
 
@@ -16,28 +17,41 @@ type archiveFile struct {
 	containsBin bool
 }
 
-// archiveFileLess puts executables first,
+// compBool compares bools with false < true
+func compBool(a, b bool) int {
+	if a == b {
+		return 0
+	}
+	if a {
+		return 1
+	}
+	return -1
+}
+
+// archiveFileComp sorts archive files in the order they should be selected
+// puts executables first,
 // then containsBin,
 // then the most templated files,
-// then the shortest path, then alphabetically
-func archiveFileLess(a, b *archiveFile) bool {
-	if a.executable != b.executable {
-		return a.executable
+// then the shortest path
+// then alphabetically
+func archiveFileComp(a, b *archiveFile) int {
+	c := compBool(b.executable, a.executable)
+	if c != 0 {
+		return c
 	}
-	if a.containsBin != b.containsBin {
-		return a.containsBin
+	c = compBool(b.containsBin, a.containsBin)
+	if c != 0 {
+		return c
 	}
-	fTmpls := strings.Count(a.name, "{{")
-	otherTmpls := strings.Count(b.name, "{{")
-	if fTmpls != otherTmpls {
-		return fTmpls > otherTmpls
+	c = cmp.Compare(b.tmplCount, a.tmplCount)
+	if c != 0 {
+		return c
 	}
-	fSlashes := strings.Count(a.origName, "/")
-	otherSlashes := strings.Count(b.origName, "/")
-	if fSlashes != otherSlashes {
-		return fSlashes < otherSlashes
+	c = cmp.Compare(strings.Count(a.origName, "/"), strings.Count(b.origName, "/"))
+	if c != 0 {
+		return c
 	}
-	return a.origName < b.origName
+	return cmp.Compare(a.origName, b.origName)
 }
 
 // archiveFileGroupable returns true if a and b can be in the same top-level dependency
