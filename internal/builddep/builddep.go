@@ -15,7 +15,8 @@ import (
 )
 
 var forbiddenOS = map[string]bool{
-	"js": true,
+	"js":     true,
+	"wasip1": true,
 }
 
 var forbiddenArch = map[string]bool{
