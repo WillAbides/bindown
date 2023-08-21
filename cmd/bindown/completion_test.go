@@ -5,7 +5,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"sort"
+	"slices"
 	"testing"
 
 	"github.com/posener/complete"
@@ -85,7 +85,7 @@ func Test_binCompleter(t *testing.T) {
 	configFile := createConfigFile(t, "ex1.yaml")
 	setConfigFileEnvVar(t, configFile)
 	got = binCompleter(ctx).Predict(complete.Args{})
-	sort.Strings(got)
+	slices.Sort(got)
 	require.Equal(t, []string{"golangci-lint", "goreleaser"}, got)
 }
 

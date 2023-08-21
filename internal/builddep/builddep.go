@@ -1,21 +1,22 @@
 package builddep
 
 import (
+	"cmp"
 	"context"
 	"fmt"
+	"slices"
 	"strings"
 
 	"github.com/Masterminds/semver/v3"
 	"github.com/google/go-github/v52/github"
 	"github.com/willabides/bindown/v4/internal/bindown"
-	"golang.org/x/exp/maps"
-	"golang.org/x/exp/slices"
 	"golang.org/x/oauth2"
 	"gopkg.in/yaml.v3"
 )
 
 var forbiddenOS = map[string]bool{
-	"js": true,
+	"js":     true,
+	"wasip1": true,
 }
 
 var forbiddenArch = map[string]bool{
@@ -138,8 +139,8 @@ func osSubs(systems []bindown.System) []systemSub {
 			subs = append(subs, systemSub{val: dist.OS(), normalized: dist.OS()})
 		}
 	}
-	slices.SortFunc(subs, func(a, b systemSub) bool {
-		return len(a.val) > len(b.val)
+	slices.SortFunc(subs, func(a, b systemSub) int {
+		return cmp.Compare(len(b.val), len(a.val))
 	})
 	return subs
 }
@@ -175,8 +176,8 @@ func archSubs(systems []bindown.System) []systemSub {
 			subs = append(subs, systemSub{val: dist.Arch(), normalized: dist.Arch()})
 		}
 	}
-	slices.SortFunc(subs, func(a, b systemSub) bool {
-		return len(a.val) > len(b.val)
+	slices.SortFunc(subs, func(a, b systemSub) int {
+		return cmp.Compare(len(b.val), len(a.val))
 	})
 	return subs
 }
@@ -340,8 +341,8 @@ func parseDownloads(dlUrls []string, binName, version string, allowedSystems []b
 			continue
 		}
 		// remove all but the highest priority
-		slices.SortFunc(systemFiles[system], func(a, b *dlFile) bool {
-			return a.priority > b.priority
+		slices.SortFunc(systemFiles[system], func(a, b *dlFile) int {
+			return cmp.Compare(b.priority, a.priority)
 		})
 		cutOff := slices.IndexFunc(systemFiles[system], func(f *dlFile) bool {
 			return f.priority < systemFiles[system][0].priority
@@ -363,8 +364,8 @@ func parseDownloads(dlUrls []string, binName, version string, allowedSystems []b
 			continue
 		}
 		// prefer templates that are used more often
-		slices.SortFunc(systemFiles[system], func(a, b *dlFile) bool {
-			return urlFrequency[a.url] > urlFrequency[b.url]
+		slices.SortFunc(systemFiles[system], func(a, b *dlFile) int {
+			return cmp.Compare(urlFrequency[b.url], urlFrequency[a.url])
 		})
 		cutOff := slices.IndexFunc(systemFiles[system], func(f *dlFile) bool {
 			return urlFrequency[f.url] < urlFrequency[systemFiles[system][0].url]
@@ -400,16 +401,11 @@ func parseDownloads(dlUrls []string, binName, version string, allowedSystems []b
 			systemFiles[system] = sf
 		}
 		// now arbitrarily pick the first one alphabetically by origUrl
-		slices.SortFunc(sf, func(a, b *dlFile) bool {
-			return a.origUrl < b.origUrl
+		slices.SortFunc(sf, func(a, b *dlFile) int {
+			return cmp.Compare(a.origUrl, b.origUrl)
 		})
 		systemFiles[system] = sf[:1]
 	}
-
-	templates := maps.Keys(urlFrequency)
-	slices.SortFunc(templates, func(a, b string) bool {
-		return urlFrequency[a] > urlFrequency[b]
-	})
 
 	// special handling to remap darwin/arm64 to darwin/amd64
 	if len(systemFiles["darwin/amd64"]) > 0 && len(systemFiles["darwin/arm64"]) == 0 && slices.Contains(allowedSystems, "darwin/arm64") {
@@ -420,17 +416,18 @@ func parseDownloads(dlUrls []string, binName, version string, allowedSystems []b
 	}
 
 	var groups []*depGroup
-	systems := maps.Keys(systemFiles)
-	slices.SortFunc(systems, func(a, b bindown.System) bool {
+	systems := bindown.MapKeys(systemFiles)
+
+	slices.SortFunc(systems, func(a, b bindown.System) int {
 		if len(systemFiles[a]) == 0 || len(systemFiles[b]) == 0 {
-			return len(systemFiles[a]) > 0
+			return cmp.Compare(len(systemFiles[b]), len(systemFiles[a]))
 		}
 		aFile := systemFiles[a][0]
 		bFile := systemFiles[b][0]
 		if aFile.priority != bFile.priority {
-			return aFile.priority > bFile.priority
+			return cmp.Compare(bFile.priority, aFile.priority)
 		}
-		return a < b
+		return cmp.Compare(a, b)
 	})
 	for _, system := range systems {
 		file := systemFiles[system][0]
@@ -451,8 +448,8 @@ func parseDownloads(dlUrls []string, binName, version string, allowedSystems []b
 		group.addFile(file, binName)
 		groups = append(groups, group)
 	}
-	slices.SortFunc(groups, func(a, b *depGroup) bool {
-		return len(a.files) > len(b.files)
+	slices.SortFunc(groups, func(a, b *depGroup) int {
+		return cmp.Compare(len(a.files), len(b.files))
 	})
 	return groups
 }

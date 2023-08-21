@@ -3,11 +3,11 @@ package builddep
 import (
 	"context"
 	"fmt"
+	"maps"
 	"path"
+	"slices"
 
 	"github.com/willabides/bindown/v4/internal/bindown"
-	"golang.org/x/exp/maps"
-	"golang.org/x/exp/slices"
 	"golang.org/x/sync/errgroup"
 )
 

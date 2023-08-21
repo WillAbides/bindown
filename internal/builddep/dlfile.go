@@ -11,11 +11,11 @@ import (
 	"net/http"
 	"net/url"
 	"path"
+	"slices"
 	"strings"
 
 	"github.com/mholt/archiver/v4"
 	"github.com/willabides/bindown/v4/internal/bindown"
-	"golang.org/x/exp/slices"
 )
 
 type dlFile struct {
@@ -115,7 +115,7 @@ func (f *dlFile) setArchiveFiles(ctx context.Context, binName, version string) e
 	if err != nil {
 		return err
 	}
-	slices.SortFunc(f.archiveFiles, archiveFileLess)
+	slices.SortFunc(f.archiveFiles, archiveFileComp)
 	// read remaining bytes to calculate hash
 	_, err = io.Copy(io.Discard, reader)
 	if err != nil {

@@ -12,7 +12,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
-	"sort"
+	"slices"
 	"strings"
 
 	"github.com/willabides/bindown/v4/internal/cache"
@@ -554,7 +554,7 @@ func (c *Config) templatesList() []string {
 	for tmpl := range c.Templates {
 		templates = append(templates, tmpl)
 	}
-	sort.Strings(templates)
+	slices.Sort(templates)
 	return templates
 }
 
@@ -622,11 +622,7 @@ func (c *Config) WriteFile(outputJSON bool) (errOut error) {
 		return err
 	}
 	defer deferErr(&errOut, file.Close)
-	if len(c.Systems) > 0 {
-		sort.Slice(c.Systems, func(i, j int) bool {
-			return c.Systems[i] < c.Systems[j]
-		})
-	}
+	slices.Sort(c.Systems)
 	if outputJSON {
 		encoder := json.NewEncoder(file)
 		encoder.SetIndent("", "  ")
