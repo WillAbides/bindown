@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -195,7 +196,12 @@ func Run(ctx context.Context, args []string, opts *runOpts) {
 		kongCtx.Stdout = io.Discard
 	}
 	err = kongCtx.Run()
-	parser.FatalIfErrorf(err)
+	// unwrap the error because we don't want to output the method name
+	e := errors.Unwrap(err)
+	if e != nil {
+		err = e
+	}
+	kongCtx.FatalIfErrorf(err)
 }
 
 func runCompletion(ctx context.Context, parser *kong.Kong) {

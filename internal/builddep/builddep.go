@@ -8,9 +8,8 @@ import (
 	"strings"
 
 	"github.com/Masterminds/semver/v3"
-	"github.com/google/go-github/v52/github"
+	"github.com/google/go-github/v54/github"
 	"github.com/willabides/bindown/v4/internal/bindown"
-	"golang.org/x/oauth2"
 	"gopkg.in/yaml.v3"
 )
 
@@ -616,9 +615,7 @@ func systemsMatcher(systems, otherSystems []bindown.System) (_ map[string][]stri
 }
 
 func QueryGitHubRelease(ctx context.Context, repo, tag, tkn string) (urls []string, version, homepage, description string, _ error) {
-	client := github.NewClient(oauth2.NewClient(ctx, oauth2.StaticTokenSource(
-		&oauth2.Token{AccessToken: tkn},
-	)))
+	client := github.NewTokenClient(ctx, tkn)
 	splitRepo := strings.Split(repo, "/")
 	orgName, repoName := splitRepo[0], splitRepo[1]
 	repoResp, _, err := client.Repositories.Get(ctx, orgName, repoName)
