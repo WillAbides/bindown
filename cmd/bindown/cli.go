@@ -39,6 +39,7 @@ var kongVars = kong.Vars{
 	"extract_target_dir_help":         `path to extract to. Default extracts to cache.`,
 	"checksums_dep_help":              `name of the dependency to update`,
 	"trust_cache_help":                `trust the cache contents and do not recheck existing downloads and extracts in the cache`,
+	"all_deps_help":                   `select all dependencies`,
 }
 
 type rootCmd struct {
@@ -252,10 +253,16 @@ func (c fmtCmd) Run(ctx *runContext, cli *rootCmd) error {
 
 type installCmd struct {
 	Force                bool           `kong:"help=${install_force_help}"`
-	Dependency           []string       `kong:"required=true,arg,help=${download_dependency_help},predictor=bin"`
+	Dependency           []string       `kong:"arg,name=dependency,help=${download_dependency_help},predictor=bin"`
+	All                  bool           `kong:"help=${all_deps_help}"`
 	TargetFile           string         `kong:"type=path,name=output,type=file,help=${install_target_file_help}"`
 	System               bindown.System `kong:"name=system,default=${system_default},help=${system_help},predictor=allSystems"`
 	AllowMissingChecksum bool           `kong:"name=allow-missing-checksum,help=${allow_missing_checksum}"`
+}
+
+func (d *installCmd) BeforeApply(k *kong.Context) error {
+	optionalDependency(k)
+	return nil
 }
 
 func (d *installCmd) Run(ctx *runContext) error {
@@ -263,8 +270,20 @@ func (d *installCmd) Run(ctx *runContext) error {
 	if err != nil {
 		return err
 	}
-	if len(d.Dependency) > 1 && d.TargetFile != "" {
-		return fmt.Errorf("cannot specify --output when installing multiple dependencies")
+	if d.All {
+		if len(d.Dependency) > 0 {
+			return fmt.Errorf("cannot specify dependencies when using --all")
+		}
+		d.Dependency = allDependencies(config)
+	}
+	switch len(d.Dependency) {
+	case 0:
+		return fmt.Errorf("must specify at least one dependency")
+	case 1:
+	default:
+		if d.TargetFile != "" {
+			return fmt.Errorf("cannot specify --output when installing multiple dependencies")
+		}
 	}
 	for _, dep := range d.Dependency {
 		var pth string
@@ -284,14 +303,29 @@ func (d *installCmd) Run(ctx *runContext) error {
 type downloadCmd struct {
 	Force                bool           `kong:"help=${download_force_help}"`
 	System               bindown.System `kong:"name=system,default=${system_default},help=${system_help},predictor=allSystems"`
-	Dependency           []string       `kong:"required=true,arg,help=${download_dependency_help},predictor=bin"`
+	Dependency           []string       `kong:"arg,help=${download_dependency_help},predictor=bin"`
+	All                  bool           `kong:"help=${all_deps_help}"`
 	AllowMissingChecksum bool           `kong:"name=allow-missing-checksum,help=${allow_missing_checksum}"`
+}
+
+func (d *downloadCmd) BeforeApply(k *kong.Context) error {
+	optionalDependency(k)
+	return nil
 }
 
 func (d *downloadCmd) Run(ctx *runContext) error {
 	config, err := loadConfigFile(ctx, false)
 	if err != nil {
 		return err
+	}
+	if d.All {
+		if len(d.Dependency) > 0 {
+			return fmt.Errorf("cannot specify dependencies when using --all")
+		}
+		d.Dependency = allDependencies(config)
+	}
+	if len(d.Dependency) == 0 {
+		return fmt.Errorf("must specify at least one dependency")
 	}
 	for _, dep := range d.Dependency {
 		var pth string
@@ -309,14 +343,29 @@ func (d *downloadCmd) Run(ctx *runContext) error {
 
 type extractCmd struct {
 	System               bindown.System `kong:"name=system,default=${system_default},help=${system_help},predictor=allSystems"`
-	Dependency           []string       `kong:"required=true,arg,help=${extract_dependency_help},predictor=bin"`
+	Dependency           []string       `kong:"arg,help=${extract_dependency_help},predictor=bin"`
+	All                  bool           `kong:"help=${all_deps_help}"`
 	AllowMissingChecksum bool           `kong:"name=allow-missing-checksum,help=${allow_missing_checksum}"`
+}
+
+func (d *extractCmd) BeforeApply(k *kong.Context) error {
+	optionalDependency(k)
+	return nil
 }
 
 func (d *extractCmd) Run(ctx *runContext) error {
 	config, err := loadConfigFile(ctx, false)
 	if err != nil {
 		return err
+	}
+	if d.All {
+		if len(d.Dependency) > 0 {
+			return fmt.Errorf("cannot specify dependencies when using --all")
+		}
+		d.Dependency = allDependencies(config)
+	}
+	if len(d.Dependency) == 0 {
+		return fmt.Errorf("must specify at least one dependency")
 	}
 	for _, dep := range d.Dependency {
 		var pth string
@@ -329,4 +378,14 @@ func (d *extractCmd) Run(ctx *runContext) error {
 		fmt.Fprintf(ctx.stdout, "extracted %s to %s\n", dep, pth)
 	}
 	return nil
+}
+
+// optionalDependency sets dependency positional to optional. We do this because we want to allow --all to be
+// equivalent to specifying all dependencies but want the help output to indicate that a dependency is required.
+func optionalDependency(k *kong.Context) {
+	for _, pos := range k.Selected().Positional {
+		if pos.Name == "dependency" {
+			pos.Required = false
+		}
+	}
 }
