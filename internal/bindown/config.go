@@ -295,7 +295,7 @@ func (c *Config) Validate(depName string, systems []System) (errOut error) {
 		}
 	}
 	for _, system := range depSystems {
-		_, err = c.InstallDependency(depName, system, &ConfigInstallDependencyOpts{
+		err = c.InstallDependencies([]string{depName}, system, &ConfigInstallDependenciesOpts{
 			Force: true,
 		})
 		if err != nil {
@@ -413,38 +413,89 @@ type ConfigInstallDependencyOpts struct {
 	Force bool
 	// AllowMissingChecksum - whether to allow missing checksum
 	AllowMissingChecksum bool
+	// ToCache - if set, the dependency will be installed to a cache directory. ToCache overrides TargetPath.
+	ToCache bool
 }
 
-// InstallDependency downloads, extracts and installs a dependency
-func (c *Config) InstallDependency(dependencyName string, system System, opts *ConfigInstallDependencyOpts) (_ string, errOut error) {
-	if opts == nil {
-		opts = &ConfigInstallDependencyOpts{}
-	}
-	dep, err := c.BuildDependency(dependencyName, system)
-	if err != nil {
-		return "", err
-	}
-	dlFile, key, dlUnlock, err := downloadDependency(dep, c.downloadsCache(), opts.AllowMissingChecksum, opts.Force)
-	if err != nil {
-		return "", err
-	}
-	defer deferErr(&errOut, dlUnlock)
+// ConfigInstallDependenciesOpts provides options for Config.InstallDependencies
+type ConfigInstallDependenciesOpts struct {
+	TargetFile           string
+	TargetDir            string
+	BindownPath          string
+	Stdout               io.Writer
+	Force                bool
+	AllowMissingChecksum bool
+	ToCache              bool
+	Wrapper              bool
+}
 
-	extractDir, exUnlock, err := extractDependencyToCache(dlFile, c.Cache, key, c.extractsCache(), opts.Force)
-	if err != nil {
-		return "", err
+func (c *Config) InstallDependencies(deps []string, system System, opts *ConfigInstallDependenciesOpts) (errOut error) {
+	if opts == nil {
+		opts = &ConfigInstallDependenciesOpts{}
 	}
-	defer deferErr(&errOut, exUnlock)
-	targetPath := opts.TargetPath
-	if targetPath == "" {
-		var binName string
-		binName, err = c.BinName(dependencyName, system)
+	targetDir := opts.TargetDir
+	if targetDir == "" {
+		targetDir = c.InstallDir
+	}
+	if opts.Wrapper {
+		cacheDir := c.Cache
+		configFile := c.Filename
+		err := createWrappers(deps, opts.TargetFile, targetDir, opts.BindownPath, cacheDir, configFile, opts.AllowMissingChecksum, opts.Stdout)
 		if err != nil {
-			return "", err
+			return err
 		}
-		targetPath = filepath.Join(c.InstallDir, binName)
+		return nil
 	}
-	return install(dep, targetPath, extractDir)
+	for _, name := range deps {
+		dep, err := c.BuildDependency(name, system)
+		if err != nil {
+			return err
+		}
+		target := opts.TargetFile
+		if target == "" {
+			target = filepath.Join(targetDir, name)
+		}
+		out, err := install(dep, target, c.Cache, opts.Force, opts.ToCache, opts.AllowMissingChecksum)
+		if err != nil {
+			return err
+		}
+		if opts.Stdout == nil {
+			continue
+		}
+		if !opts.ToCache {
+			out = fmt.Sprintf("installed %s to %s", dep.name, out)
+		}
+		_, err = fmt.Fprintln(opts.Stdout, out)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func createWrappers(
+	deps []string, targetFile, targetDir, bindownExec, cacheDir, configFile string,
+	missingSums bool,
+	stdout io.Writer,
+) error {
+	for _, name := range deps {
+		target := targetFile
+		if target == "" {
+			target = filepath.Join(targetDir, name)
+		}
+		out, err := createWrapper(name, target, bindownExec, cacheDir, configFile, missingSums)
+		if err != nil {
+			return err
+		}
+		if stdout == nil {
+			continue
+		}
+		_, err = fmt.Fprintln(stdout, out)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // AddDependencyFromTemplateOpts options for AddDependencyFromTemplate

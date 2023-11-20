@@ -1,6 +1,7 @@
 package bindown
 
 import (
+	"encoding/json"
 	"fmt"
 	"maps"
 	"os"
@@ -139,6 +140,14 @@ func (d *Dependency) clone() *Dependency {
 	return dd
 }
 
+func (d *Dependency) binName() string {
+	d.mustBeBuilt()
+	if d.BinName != nil && *d.BinName != "" {
+		return *d.BinName
+	}
+	return d.name
+}
+
 // interpolateVars executes go templates in values
 func (d *Dependency) interpolateVars(system System) error {
 	for _, p := range []*string{d.URL, d.ArchivePath, d.BinName} {
@@ -198,6 +207,20 @@ func (d *Dependency) applyTemplate(templates map[string]*Dependency, depth int) 
 	}
 	*d = *newDL
 	return nil
+}
+
+func (d *Dependency) mustBeBuilt() {
+	if !d.built {
+		panic("dependency must be built")
+	}
+}
+
+func (d *Dependency) cacheKey() string {
+	b, err := json.Marshal(d)
+	if err != nil {
+		panic(err)
+	}
+	return cacheKey(string(b) + d.name + d.checksum + d.url + string(d.system))
 }
 
 const maxOverrideDepth = 10
@@ -309,5 +332,5 @@ func linkBin(link, src string) error {
 	if err != nil {
 		return err
 	}
-	return os.Chmod(link, info.Mode().Perm()|0o750)
+	return os.Chmod(link, addExec(info.Mode()))
 }
