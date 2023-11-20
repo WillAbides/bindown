@@ -316,17 +316,3 @@ func MapKeys[M ~map[K]V, K comparable, V any](m M) []K {
 	}
 	return r
 }
-
-// DefaultValue returns the first argument that isn't zero
-func DefaultValue[T comparable](val T, def ...T) T {
-	var zero T
-	if val != zero {
-		return val
-	}
-	for _, d := range def {
-		if d != zero {
-			return d
-		}
-	}
-	return zero
-}
