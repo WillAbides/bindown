@@ -1,14 +1,60 @@
 package bindown
 
 import (
+	_ "embed"
+	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
+	"text/template"
+
+	"github.com/willabides/bindown/v4/internal/cache"
 )
 
-func install(dep *Dependency, targetPath, extractDir string) (string, error) {
-	if !dep.built {
-		panic("install called on non-built dependency")
+//go:embed wrapper.gotmpl
+var wrapperTmplText string
+
+func install(
+	dep *Dependency,
+	targetPath, cacheDir string,
+	force, toCache, missingSums bool,
+) (_ string, errOut error) {
+	dep.mustBeBuilt()
+	if toCache {
+		instCache := &cache.Cache{Root: filepath.Join(cacheDir, "bin")}
+		key := dep.cacheKey()
+		dir, unlock, err := instCache.Dir(key, nil, func(dir string) error {
+			filename := filepath.Join(dir, dep.binName())
+			if FileExists(filename) {
+				return nil
+			}
+			_, err := install(dep, filename, cacheDir, force, false, missingSums)
+			return err
+		})
+		if err != nil {
+			return "", err
+		}
+		err = unlock()
+		if err != nil {
+			return "", err
+		}
+		return filepath.Join(dir, dep.binName()), nil
 	}
+
+	dlCache := cache.Cache{Root: filepath.Join(cacheDir, "downloads")}
+	dlFile, key, dlUnlock, err := downloadDependency(dep, &dlCache, missingSums, force)
+	if err != nil {
+		return "", err
+	}
+	defer deferErr(&errOut, dlUnlock)
+
+	extractsCache := cache.Cache{Root: filepath.Join(cacheDir, "extracts")}
+	extractDir, exUnlock, err := extractDependencyToCache(dlFile, cacheDir, key, &extractsCache, force)
+	if err != nil {
+		return "", err
+	}
+	defer deferErr(&errOut, exUnlock)
+
 	var binName string
 	if dep.BinName != nil {
 		binName = *dep.BinName
@@ -24,13 +70,13 @@ func install(dep *Dependency, targetPath, extractDir string) (string, error) {
 	if dep.Link != nil && *dep.Link {
 		return targetPath, linkBin(targetPath, extractBin)
 	}
-	if fileExists(targetPath) {
-		err := os.RemoveAll(targetPath)
+	if FileExists(targetPath) {
+		err = os.RemoveAll(targetPath)
 		if err != nil {
 			return "", err
 		}
 	}
-	err := os.MkdirAll(filepath.Dir(targetPath), 0o755)
+	err = os.MkdirAll(filepath.Dir(targetPath), 0o755)
 	if err != nil {
 		return "", err
 	}
@@ -42,9 +88,121 @@ func install(dep *Dependency, targetPath, extractDir string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	err = os.Chmod(targetPath, targetStat.Mode()|0o750)
+	err = os.Chmod(targetPath, addExec(targetStat.Mode()))
 	if err != nil {
 		return "", err
 	}
 	return targetPath, nil
+}
+
+type wrapperTmplVars struct {
+	DependencyName string
+	BindownExec    string
+	ConfigFile     string
+	FlagArgs       string
+}
+
+var wrapperTmpl = template.Must(template.New("wrapper").Parse(wrapperTmplText))
+
+func createWrapper(name, target, bindownExec, cacheDir, configFile string, missingSums bool) (string, error) {
+	wrapperDir := filepath.Dir(target)
+	err := os.MkdirAll(wrapperDir, 0o750)
+	if err != nil {
+		return "", err
+	}
+	if bindownExec == "" {
+		bindownExec = "bindown"
+	} else {
+		bindownExec, err = relPath(wrapperDir, bindownExec)
+		if err != nil {
+			return "", err
+		}
+		if !strings.HasPrefix(bindownExec, ".") && !filepath.IsAbs(bindownExec) {
+			bindownExec = "./" + bindownExec
+		}
+	}
+
+	configFile, err = relPath(wrapperDir, configFile)
+	if err != nil {
+		return "", err
+	}
+
+	flagArgs := `--to-cache`
+	if missingSums {
+		flagArgs += " \\\n    --allow-missing-checksum"
+	}
+	addFlagArg := func(name, value string) {
+		flagArgs += fmt.Sprintf(" \\\n    %s %q", name, value)
+	}
+	addFlagArg("--configfile", configFile)
+
+	err = os.MkdirAll(cacheDir, 0o750)
+	if err != nil {
+		return "", err
+	}
+	cacheDir, err = relPath(wrapperDir, cacheDir)
+	if err != nil {
+		return "", err
+	}
+	addFlagArg("--cache", cacheDir)
+
+	file, err := os.OpenFile(target, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0o750)
+	if err != nil {
+		return "", err
+	}
+
+	err = wrapperTmpl.Execute(file, wrapperTmplVars{
+		DependencyName: name,
+		BindownExec:    bindownExec,
+		ConfigFile:     configFile,
+		FlagArgs:       flagArgs,
+	})
+	if err != nil {
+		return "", err
+	}
+	err = file.Close()
+	if err != nil {
+		return "", err
+	}
+	return target, nil
+}
+
+// relPath returns target relative to base and converted to slash-separated path.
+// Unlike filepath.Rel, it converts both paths to absolute paths before calculating the relative path.
+func relPath(base, target string) (string, error) {
+	absBase, err := filepath.Abs(base)
+	if err != nil {
+		return "", err
+	}
+	absBase, err = filepath.EvalSymlinks(absBase)
+	if err != nil {
+		return "", err
+	}
+	absTarget, err := filepath.Abs(target)
+	if err != nil {
+		return "", err
+	}
+	absTarget, err = filepath.EvalSymlinks(absTarget)
+	if err != nil {
+		return "", err
+	}
+	rel, err := filepath.Rel(absBase, absTarget)
+	if err != nil {
+		return "", err
+	}
+	return filepath.ToSlash(rel), nil
+}
+
+// addExec adds exec for each read bit in mode
+func addExec(mode os.FileMode) os.FileMode {
+	if mode&0o4 != 0 {
+		mode |= 0o1
+	}
+	if mode&0o40 != 0 {
+		mode |= 0o10
+	}
+	if mode&0o400 != 0 {
+		mode |= 0o100
+	}
+	return mode
 }

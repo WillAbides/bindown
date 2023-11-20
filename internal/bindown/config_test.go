@@ -1,6 +1,7 @@
 package bindown
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"os"
@@ -192,7 +193,7 @@ func TestConfig_addTemplateFromSource(t *testing.T) {
 	})
 }
 
-func TestConfig_InstallDependency(t *testing.T) {
+func TestConfig_InstallDependencies(t *testing.T) {
 	t.Run("raw file", func(t *testing.T) {
 		dir := t.TempDir()
 		servePath := filepath.Join("testdata", "downloadables", "rawfile", "foo")
@@ -212,10 +213,14 @@ dependencies:
 `, binDir, cacheDir, depURL, depURL))
 		t.Cleanup(func() { require.NoError(t, config.ClearCache()) })
 		wantBin := filepath.Join(binDir, "foo")
-		gotPath, err := config.InstallDependency("foo", "darwin/amd64", &ConfigInstallDependencyOpts{})
+		wantStdout := fmt.Sprintf("installed foo to %s\n", wantBin)
+		var stdout bytes.Buffer
+		err := config.InstallDependencies([]string{"foo"}, "darwin/amd64", &ConfigInstallDependenciesOpts{
+			Stdout: &stdout,
+		})
 		require.NoError(t, err)
-		require.Equal(t, wantBin, gotPath)
-		require.True(t, fileExists(wantBin))
+		require.Equal(t, wantStdout, stdout.String())
+		require.True(t, FileExists(wantBin))
 		stat, err := os.Stat(wantBin)
 		require.NoError(t, err)
 		require.False(t, stat.IsDir())
@@ -241,10 +246,14 @@ dependencies:
 `, binDir, cacheDir, depURL, depURL))
 		t.Cleanup(func() { require.NoError(t, config.ClearCache()) })
 		wantBin := filepath.Join(binDir, "foo")
-		gotPath, err := config.InstallDependency("foo", "darwin/amd64", &ConfigInstallDependencyOpts{})
+		var stdout bytes.Buffer
+		wantStdout := fmt.Sprintf("installed foo to %s\n", wantBin)
+		err := config.InstallDependencies([]string{"foo"}, "darwin/amd64", &ConfigInstallDependenciesOpts{
+			Stdout: &stdout,
+		})
 		require.NoError(t, err)
-		require.Equal(t, wantBin, gotPath)
-		require.True(t, fileExists(wantBin))
+		require.Equal(t, wantStdout, stdout.String())
+		require.True(t, FileExists(wantBin))
 		stat, err := os.Stat(wantBin)
 		require.NoError(t, err)
 		require.False(t, stat.IsDir())
@@ -274,9 +283,9 @@ dependencies:
 `, binDir, cacheDir, depURL, depURL))
 		t.Cleanup(func() { require.NoError(t, config.ClearCache()) })
 		wantBin := filepath.Join(binDir, "foo")
-		_, err := config.InstallDependency("foo", "darwin/amd64", &ConfigInstallDependencyOpts{})
+		err := config.InstallDependencies([]string{"foo"}, "darwin/amd64", &ConfigInstallDependenciesOpts{})
 		require.Error(t, err)
-		require.False(t, fileExists(wantBin))
+		require.False(t, FileExists(wantBin))
 	})
 }
 

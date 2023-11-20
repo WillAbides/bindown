@@ -17,9 +17,7 @@ func downloadDependency(
 	dlCache *cache.Cache,
 	allowMissingChecksum, force bool,
 ) (cachedFile, key string, unlock func() error, errOut error) {
-	if !dep.built {
-		panic("downloadDependency called on non-built dependency")
-	}
+	dep.mustBeBuilt()
 	dlFile, err := urlFilename(dep.url)
 	if err != nil {
 		return "", "", nil, err
