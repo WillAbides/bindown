@@ -48,90 +48,90 @@ This will show you how to get bindown configured to install `jq` in the developm
 1. Install `bindown` using one of the methods above and make sure it is in your PATH.
 2. (optional) Configure completions for your shell.
 
-```shell
-$ `bindown install-completions`
-```
+    ```shell
+    $ `bindown install-completions`
+    ```
 
 3. In your project's root create a bindown configuration file (`.bindown.yaml`)
 
-```shell
-$ bindown init
-```
+    ```shell
+    $ bindown init
+    ```
 
 4. Add a template source that contains a template for jq. We will use https://github.com/WillAbides/bindown-templates.
 
-```shell
-$ bindown template-source add origin https://raw.githubusercontent.com/WillAbides/bindown-templates/main/bindown.yml
-```
+    ```shell
+    $ bindown template-source add origin https://raw.githubusercontent.com/WillAbides/bindown-templates/main/bindown.yml
+    ```
 
 5. Add the jq dependency. It will prompt you for a version. You can use any version you like. 1.6 is currently the
    latest version of jq, so let's use 1.6
 
-```shell
-$ bindown dependency add jq --source origin jq
-Please enter a value for required variable "version":	1.6
-```
+    ```shell
+    $ bindown dependency add jq --source origin jq
+    Please enter a value for required variable "version":	1.6
+    ```
 
 6. Install jq to `bin/jq`.
 
-```shell
-$ bindown install jq
-installed jq to bin/jq
-$ bin/jq --version
-jq-1.6
-```
+    ```shell
+    $ bindown install jq
+    installed jq to bin/jq
+    $ bin/jq --version
+    jq-1.6
+    ```
 
 7. Add the `.bindown` cache directory to your `.gitignore`. If you aren't already ignoring `bin`, you should add that
    too.
-
-```shell
-$ echo '/.bindown/' >> .gitignore
-$ echo '/bin/' >> .gitignore
-```
+    
+    ```shell
+    $ echo '/.bindown/' >> .gitignore
+    $ echo '/bin/' >> .gitignore
+    ```
 
 8. Commit `.bindown.yaml` and `.gitignore`.
 
-```shell
-$ git add .bindown.yaml .gitignore
-$ git commit -m 'Add initial bindown configuration'
-```
+    ```shell
+    $ git add .bindown.yaml .gitignore
+    $ git commit -m 'Add initial bindown configuration'
+    ```
 
 ### Integrate with make
 
 1. Add this to your `Makefile`
 
-```makefile
-BINDOWN_VERSION := 3.10.0
-
-bin/bootstrap-bindown.sh: Makefile
-	@mkdir -p bin
-	curl -sL https://github.com/WillAbides/bindown/releases/download/v$(BINDOWN_VERSION)/bootstrap-bindown.sh -o $@
-	@chmod +x $@
-
-bin/bindown: bin/bootstrap-bindown.sh
-	bin/bootstrap-bindown.sh
-
-bin/jq: bin/bindown
-	bin/bindown install jq
-```
+	```makefile
+	BINDOWN_VERSION := 3.10.0
+	
+	bin/bootstrap-bindown.sh: Makefile
+		@mkdir -p bin
+		curl -sL https://github.com/WillAbides/bindown/releases/download/v$(BINDOWN_VERSION)/bootstrap-bindown.sh -o $@
+		@chmod +x $@
+	
+	bin/bindown: bin/bootstrap-bindown.sh
+		bin/bootstrap-bindown.sh
+	
+	bin/jq: bin/bindown
+		bin/bindown install jq
+	```
 
 2. Install jq
 
-```shell
-$ make bin/jq
-curl -sL https://github.com/WillAbides/bindown/releases/download/v3.10.0/bootstrap-bindown.sh -o bin/bootstrap-bindown.sh
-bin/bootstrap-bindown.sh
-bin/bootstrap-bindown.sh info installed ./bin/bindown
-bin/bindown install jq
-installed jq to bin/jq
-```
+    ```shell
+    $ make bin/jq
+    curl -sL https://github.com/WillAbides/bindown/releases/download/v3.10.0/bootstrap-bindown.sh -o bin/bootstrap-bindown.sh
+    bin/bootstrap-bindown.sh
+    bin/bootstrap-bindown.sh info installed ./bin/bindown
+    bin/bindown install jq
+    installed jq to bin/jq
+    ```
 
 3. Run jq
 
-```shell
-$ bin/jq --version
-jq-1.6
-```
+    ```shell
+    $ bin/jq --version
+    jq-1.6
+    ```
 
 ### Integrate with scripts-to-rule-them-all
 
