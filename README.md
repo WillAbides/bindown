@@ -140,47 +140,47 @@ each dependency bindown manages.
 
 1. Download bootstrap-bindown.sh from the latest release.
 
-```shell
-$ curl -L https://github.com/willabides/bindown/releases/latest/download/bootstrap-bindown.sh -o script/bootstrap-bindown.sh
-```
+   ```shell
+   $ curl -L https://github.com/willabides/bindown/releases/latest/download/bootstrap-bindown.sh -o script/bootstrap-bindown.sh
+   ```
 
 2. Create `script/bindown`
 
-```sh
-#!/bin/sh
-
-set -e
-
-CDPATH="" cd -- "$(dirname -- "$(dirname -- "$0")")"
-mkdir -p bin
-[ -f bin/bindown ] || sh script/bootstrap-bindown.sh 2>/dev/null
-exec bin/bindown "$@"
-```
+   ```sh
+   #!/bin/sh
+   
+   set -e
+   
+   CDPATH="" cd -- "$(dirname -- "$(dirname -- "$0")")"
+   mkdir -p bin
+   [ -f bin/bindown ] || sh script/bootstrap-bindown.sh 2>/dev/null
+   exec bin/bindown "$@"
+   ```
 
 3. Create `script/jq`
 
-```sh
-#!/bin/sh
-
-set -e
-
-CDPATH="" cd -- "$(dirname -- "$(dirname -- "$0")")"
-script/bindown install jq > /dev/null
-exec bin/jq "$@"
-```
+   ```sh
+   #!/bin/sh
+   
+   set -e
+   
+   CDPATH="" cd -- "$(dirname -- "$(dirname -- "$0")")"
+   script/bindown install jq > /dev/null
+   exec bin/jq "$@"
+   ```
 
 4. Make your scripts executable
 
-```shell
-$ chmod +x script/bindown script/jq
-```
+   ```shell
+   $ chmod +x script/bindown script/jq
+   ```
 
 5. Run jq
 
-```shell
-$ script/jq --version
-jq-1.6
-```
+   ```shell
+   $ script/jq --version
+   jq-1.6
+   ```
 
 ## Config file properties
 
