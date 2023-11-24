@@ -40,6 +40,7 @@ var kongVars = kong.Vars{
 	"install_to_cache_help":           `install to cache instead of install dir`,
 	"install_wrapper_help":            `install a wrapper script instead of the binary`,
 	"install_bindown_help":            `path to bindown executable to use in wrapper`,
+	"bootstrap_tag_default":           defaultBootstrapTag(),
 }
 
 type rootCmd struct {
@@ -59,6 +60,7 @@ type rootCmd struct {
 	Checksums       checksumsCmd       `kong:"cmd,help='manage checksums'"`
 	Init            initCmd            `kong:"cmd,help='create an empty config file'"`
 	Cache           cacheCmd           `kong:"cmd,help='manage the cache'"`
+	Bootstrap       bootstrapCmd       `kong:"cmd,help='create bootstrap script for bindown'"`
 
 	Version            versionCmd                   `kong:"cmd,help='show bindown version'"`
 	InstallCompletions kongplete.InstallCompletions `kong:"cmd,help=${config_install_completions_help}"`

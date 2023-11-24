@@ -2,25 +2,31 @@
 
 set -e
 
-TAG="v3.15.5"
+TAG="v4.8.0"
 
 CHECKSUMS="
-00e936e28e816ac4f05e3f9e47aad3771df3a847fcbea3f3bbe33159508b478d  bindown_3.15.5_darwin_arm64
-07568b436622d3a28cbd4e9a81c6b619e4e3d9533e8f65184f0e9cf3f82df620  bindown_3.15.5_linux_arm64.tar.gz
-0c06832f8a795e99dfebe550482cf790c9a7cca304635a8393dfba0eb7c1c872  bindown_3.15.5_windows_arm64.tar.gz
-1727fb1a696e46432ac6110f73524e5ae87d0a136e2c649049e3886db9260331  bindown_3.15.5_windows_amd64.exe
-25a9b2bf3e7ae99935cd7d93034a5166192120d9e8a572f4b38a124baa62e274  bindown_3.15.5_windows_arm64.exe
-43c099b123585df691a0018ebd63def5c2876f64fe6fe2e736792e359ac489b9  bindown_3.15.5_linux_amd64
-59266496ab2410582726d11bb8204cc11ba69e0333d9d6b016f912d19ab30885  bindown_3.15.5_darwin_amd64
-6334cf81db488a4ac217c1799d165a6a96dd74a76cc08e080487fbb32d15fdf6  bindown_3.15.5_linux_amd64.tar.gz
-72cdb65fb8361c0bc9cb85fd7768e75cb831f3527365ae348e62bba9ca44d6c6  bindown_3.15.5_linux_arm64
-87d9f9b81010e83ca16115634503071673f3d898e073326524e795e50b37e690  bindown_3.15.5_windows_386.exe
-90a6d0fb9fd59004aa80dc0738773b59e4d4c3ed7428996695583c1eee5cc18b  bindown_3.15.5_windows_386.tar.gz
-b1099c0f3558ccc70a06d5c33b2172b3cc911a13b58388e7d6573c7ca01471be  bindown_3.15.5_windows_amd64.tar.gz
-c4a5f4f80c5729bf56b9448798ae3aebb61104bf7bb46f6b04adaf0c650cd4e2  bindown_3.15.5_darwin_amd64.tar.gz
-cdb3c98fa5bee90e6c5c3e3e8f2214513f1a7bad1ade2663180ac1cce3ef0701  bindown_3.15.5_darwin_arm64.tar.gz
-d3b824e6b1bab234ac76a00e5d073fca647e917efd05df3fe620e9771a74d037  bindown_3.15.5_linux_386.tar.gz
-e2a62bfb094bd973d9e215f520effbab236ef7acdc9b5d592be688f624a30454  bindown_3.15.5_linux_386
+26fcbc738bf9bb910b070f236816b2dfe5bc9589be3a578135f37d950ebaf771  bindown_4.8.0_freebsd_amd64.tar.gz
+2fa6460ebe8d7c6be33576acf5b63f7208780af72d758e82313f6c5772e097d5  bindown_4.8.0_linux_386.tar.gz
+32e3fbfaecf41a1b2bced22c1842b3905f4e6de1e879a4db68402799c206415d  bindown_4.8.0_windows_386.exe
+335802ed91fa6f040e10570479a6c817c7e42bd57fe98c959890a821099d3e1f  bindown_4.8.0_freebsd_arm64
+372846f7edd9d93df0cb17889790f595f17cb083e093f3e6437d34e3253fd378  bindown_4.8.0_windows_amd64.exe
+40acf94b7c69e5d4101cb46ea99641d302ff23579cd7ead29a5abfceb1a5d9ba  bindown_4.8.0_linux_arm64.tar.gz
+66aca230d9aea549ecd3647082b63752f5bb5307ef6954a08cc0eaf9c70723f1  bindown_4.8.0_windows_amd64.tar.gz
+752c78a926be1287312eea3c831e841e223de4780d1e4a8a813432d0a73f890b  bindown_4.8.0_linux_amd64.tar.gz
+7f1f1c883beceb6ec3919484511fb20c3ceb41088e814d6fc234b015e98b78d9  bindown_4.8.0_darwin_arm64
+7fdfbc007c0c285a498bf251bd4ab7469f334752581b45fda5ad6450ddd23377  bindown_4.8.0_windows_arm64.exe
+95764bf76b54d5b13b9b8a801635d82447ee349c3545145ddd8a0a84246d66e2  bindown_4.8.0_freebsd_arm64.tar.gz
+966087f13a6cf82804456119289ab982f2eee3ad04d8d4fb6ce74bd7eabdf74e  bindown_4.8.0_windows_386.tar.gz
+9b29e37ba273bc0dca9c8227ee4b58153289073ede7d900e9c84ae3c71f3dff5  bindown_4.8.0_windows_arm64.tar.gz
+a625900e52f4413bee3863062463cc24f9c0669841fd6bc9979ee599edd88f3e  bindown_4.8.0_freebsd_amd64
+ba09df557edc4499f41ddadc26369d7f70ed20bfb8310662f1290e6a355343e8  bindown_4.8.0_darwin_amd64.tar.gz
+cd7b917d2737fe9fa087aea172d9b581757e9b300fa1d1dbd83c1b765be05bdb  bindown_4.8.0_freebsd_386.tar.gz
+d5d35274d4eab337c107940fc5b326c51f5bfd70d00924c79011684e2a0d4f22  bindown_4.8.0_freebsd_386
+d71d6c436ad33bb3aa01468698b86d5423127a19f9b1c664e346cc502501d415  bindown_4.8.0_darwin_arm64.tar.gz
+d9361698bc1571c34915496da9c624e89fa12d87731711efd2cbbc9136c6fa85  bindown_4.8.0_darwin_amd64
+d93eae8638b96682d0e9b55bcbe92fecb296afd442e0526cc94ce0160c108c13  bindown_4.8.0_linux_arm64
+ec3d19abd00fbf099a98edb64c569842fa5b909222fb10da86d668f5597885be  bindown_4.8.0_linux_amd64
+fa7e87f49aa30e42485431bd9dd021a32924ab11e4d39065533e9bccce182de4  bindown_4.8.0_linux_386
 "
 
 cat /dev/null << EOF
@@ -242,8 +248,6 @@ usage() {
   this=$1
   cat << EOT
 Usage: $this [-b bindir] [-d]
-
-Usage: $this [-b] bindir [-d]
   -b sets bindir or installation directory, Defaults to ./bin
   -d turns on debug logging
 
@@ -267,6 +271,14 @@ parse_args() {
   shift $((OPTIND - 1))
 }
 
+bindown_name() {
+  if [ "$OS" = "windows" ]; then
+    echo bindown.exe
+  else
+    echo bindown
+  fi
+}
+
 execute() {
   tmpdir=$(mktemp -d)
   echo "$CHECKSUMS" > "${tmpdir}/checksums.txt"
@@ -276,13 +288,15 @@ execute() {
   srcdir="${tmpdir}"
   (cd "${tmpdir}" && untar "${TARBALL}")
   test ! -d "${BINDIR}" && install -d "${BINDIR}"
-  binexe="bindown"
-  if [ "$OS" = "windows" ]; then
-    binexe="${binexe}.exe"
-  fi
-  install "${srcdir}/${binexe}" "${BINDIR}/"
-  log_info "installed ${BINDIR}/${binexe}"
+  install "${srcdir}/$(bindown_name)" "${BINDIR}/"
+  log_info "installed ${BINDIR}/$(bindown_name)"
   rm -rf "${tmpdir}"
+}
+
+already_installed() {
+  VERSION="$1"
+  [ -f "${BINDIR}/$(bindown_name)" ] &&
+    "${BINDIR}/$(bindown_name)" version 2> /dev/null | grep -q "$VERSION"
 }
 
 OS=$(uname_os)
@@ -294,6 +308,12 @@ uname_arch_check "$ARCH"
 parse_args "$@"
 
 VERSION=${TAG#v}
+
+if already_installed "$VERSION"; then
+  log_debug "bindown ${VERSION} is already installed"
+  exit 0
+fi
+
 NAME=bindown_${VERSION}_${OS}_${ARCH}
 TARBALL=${NAME}.${FORMAT}
 TARBALL_URL=${GITHUB_DOWNLOAD}/${TAG}/${TARBALL}

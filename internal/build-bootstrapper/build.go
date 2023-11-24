@@ -1,14 +1,13 @@
-package main
+package bootstrapper
 
 import (
 	"bytes"
 	"embed"
-	"flag"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
-	"os/exec"
-	"path/filepath"
+	"runtime"
 	"strings"
 	"text/template"
 )
@@ -16,27 +15,28 @@ import (
 //go:embed assets/*
 var assets embed.FS
 
-func build(tag, repoRoot string) (_ string, errOut error) {
-	bindownCmd := exec.Command("script/bindown", "install", "shfmt", "shellcheck")
-	bindownCmd.Dir = repoRoot
-	err := bindownCmd.Run()
-	if err != nil {
-		return "", err
+type BuildOpts struct {
+	BaseURL string // defaults to https://github.com
+}
+
+// Build builds a bootstrapper for the given tag
+func Build(tag string, opts *BuildOpts) (_ string, errOut error) {
+	if opts == nil {
+		opts = &BuildOpts{}
+	}
+	baseURL := opts.BaseURL
+	if baseURL == "" {
+		baseURL = "https://github.com"
 	}
 	checksumsURL := fmt.Sprintf(
-		`https://github.com/WillAbides/bindown/releases/download/%s/checksums.txt`,
-		tag,
+		`%s/WillAbides/bindown/releases/download/%s/checksums.txt`,
+		baseURL, tag,
 	)
 	resp, err := http.Get(checksumsURL)
 	if err != nil {
 		return "", err
 	}
-	defer func() {
-		err = resp.Body.Close()
-		if errOut == nil {
-			errOut = err
-		}
-	}()
+	defer func() { errOut = errors.Join(errOut, resp.Body.Close()) }()
 	if resp.StatusCode != http.StatusOK {
 		return "", fmt.Errorf("got status %d from %s", resp.StatusCode, checksumsURL)
 	}
@@ -70,32 +70,24 @@ func build(tag, repoRoot string) (_ string, errOut error) {
 	if err != nil {
 		return "", err
 	}
-	shfmtCmd := exec.Command(filepath.Join(repoRoot, "bin", "shfmt"), "-i", "2", "-ci", "-sr", "-")
-	shfmtCmd.Stdin = &tmplOut
-	formatted, err := shfmtCmd.Output()
-	if err != nil {
-		return "", err
+	out := strings.TrimSpace(tmplOut.String()) + "\n"
+	if runtime.GOOS == "windows" {
+		out = windowsLineEndings(out)
 	}
-	shellcheckCmd := exec.Command(filepath.Join(repoRoot, "bin", "shellcheck"), "--shell", "sh", "-")
-	shellcheckCmd.Stdin = bytes.NewReader(formatted)
-	err = shellcheckCmd.Run()
-	if err != nil {
-		return "", err
-	}
-	return string(formatted), nil
+	return out, nil
 }
 
-func main() {
-	var tag, repoRoot string
-	flag.StringVar(&tag, "tag", "", "tag to build")
-	flag.StringVar(&repoRoot, "repo-root", ".", "path to bindown repo root")
-	flag.Parse()
-	if tag == "" {
-		panic("tag is required")
+func windowsLineEndings(in string) string {
+	buf := bytes.NewBuffer(make([]byte, 0, len(in)))
+	for i := 0; i < len(in); i++ {
+		if in[i] != '\n' {
+			buf.WriteByte(in[i])
+			continue
+		}
+		if i == 0 || in[i-1] != '\r' {
+			buf.WriteByte('\r')
+		}
+		buf.WriteByte('\n')
 	}
-	got, err := build(tag, repoRoot)
-	if err != nil {
-		panic(err)
-	}
-	fmt.Println(got)
+	return buf.String()
 }
