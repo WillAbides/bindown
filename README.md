@@ -338,6 +338,7 @@ Commands:
                                       checksums
   init                                create an empty config file
   cache clear                         clear the cache
+  bootstrap                           create bootstrap script for bindown
   version                             show bindown version
   install-completions                 install shell completions
 
