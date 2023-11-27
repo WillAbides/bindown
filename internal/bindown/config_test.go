@@ -264,6 +264,45 @@ dependencies:
 		require.Equal(t, wantMode, stat.Mode().Perm()&0o750)
 	})
 
+	t.Run("renames bin", func(t *testing.T) {
+		dir := t.TempDir()
+		servePath := filepath.Join("testdata", "downloadables", "fooinroot.tar.gz")
+		ts := testutil.ServeFile(t, servePath, "/foo/fooinroot.tar.gz", "")
+		depURL := ts.URL + "/foo/fooinroot.tar.gz"
+		binDir := filepath.Join(dir, "bin")
+		require.NoError(t, os.MkdirAll(binDir, 0o755))
+		cacheDir := filepath.Join(dir, ".bindown")
+		config := mustConfigFromYAML(t, fmt.Sprintf(`
+install_dir: %q
+cache: %q
+url_checksums:
+  "%s": 27dcce60d1ed72920a84dd4bc01e0bbd013e5a841660e9ee2e964e53fb83c0b3
+dependencies:
+  foo:
+    url: %q
+    archive_path: foo
+    bin: baz
+`, binDir, cacheDir, depURL, depURL))
+		t.Cleanup(func() { require.NoError(t, config.ClearCache()) })
+		wantBin := filepath.Join(binDir, "baz")
+		var stdout bytes.Buffer
+		wantStdout := fmt.Sprintf("installed foo to %s\n", wantBin)
+		err := config.InstallDependencies([]string{"foo"}, "darwin/amd64", &ConfigInstallDependenciesOpts{
+			Stdout: &stdout,
+		})
+		require.NoError(t, err)
+		require.Equal(t, wantStdout, stdout.String())
+		require.True(t, FileExists(wantBin))
+		stat, err := os.Stat(wantBin)
+		require.NoError(t, err)
+		require.False(t, stat.IsDir())
+		wantMode := os.FileMode(0o750)
+		if runtime.GOOS == "windows" {
+			wantMode = 0o640
+		}
+		require.Equal(t, wantMode, stat.Mode().Perm()&0o750)
+	})
+
 	t.Run("wrong checksum", func(t *testing.T) {
 		dir := t.TempDir()
 		servePath := filepath.Join("testdata", "downloadables", "fooinroot.tar.gz")

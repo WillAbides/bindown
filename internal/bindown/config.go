@@ -453,7 +453,7 @@ func (c *Config) InstallDependencies(deps []string, system System, opts *ConfigI
 		}
 		target := opts.TargetFile
 		if target == "" {
-			target = filepath.Join(targetDir, name)
+			target = filepath.Join(targetDir, dep.binName())
 		}
 		out, err := install(dep, target, c.Cache, opts.Force, opts.ToCache, opts.AllowMissingChecksum)
 		if err != nil {
