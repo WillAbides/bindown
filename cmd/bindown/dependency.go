@@ -132,7 +132,7 @@ func (c *dependencyListCmd) Run(ctx *runContext) error {
 	if err != nil {
 		return err
 	}
-	fmt.Fprintln(ctx.stdout, strings.Join(allDependencies(cfg), "\n"))
+	fmt.Fprintln(ctx.stdout, strings.Join(cfg.DependencyNames(), "\n"))
 	return nil
 }
 

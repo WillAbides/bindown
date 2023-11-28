@@ -312,6 +312,7 @@ Commands:
   download                            download a dependency but don't extract or install it
   extract                             download and extract a dependency but don't install it
   install                             download, extract and install a dependency
+  wrap                                create a wrapper script for a dependency
   format                              formats the config file
   dependency list                     list configured dependencies
   dependency add                      add a template-based dependency
