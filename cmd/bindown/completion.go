@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"os"
-	"slices"
 	"strings"
 
 	"github.com/alecthomas/kong"
@@ -69,23 +68,6 @@ func completionConfig(ctx context.Context, args []string) *bindown.Config {
 		return nil
 	}
 	return configFile
-}
-
-func allDependencies(cfg *bindown.Config) []string {
-	if cfg == nil {
-		return []string{}
-	}
-	system := bindown.CurrentSystem
-	dependencies := make([]string, 0, len(cfg.Dependencies))
-	for depName := range cfg.Dependencies {
-		bn, err := cfg.BinName(depName, system)
-		if err != nil {
-			return []string{}
-		}
-		dependencies = append(dependencies, bn)
-	}
-	slices.Sort(dependencies)
-	return dependencies
 }
 
 func templateSourceCompleter(ctx context.Context) complete.PredictFunc {
@@ -164,13 +146,19 @@ func localTemplateFromSourceCompleter(ctx context.Context) complete.PredictFunc 
 func binCompleter(ctx context.Context) complete.PredictFunc {
 	return func(a complete.Args) []string {
 		cfg := completionConfig(ctx, a.Completed)
-		return complete.PredictSet(allDependencies(cfg)...).Predict(a)
+		if cfg == nil {
+			return []string{}
+		}
+		return complete.PredictSet(cfg.DependencyNames()...).Predict(a)
 	}
 }
 
 func systemCompleter(ctx context.Context) complete.PredictFunc {
 	return func(a complete.Args) []string {
 		cfg := completionConfig(ctx, a.Completed)
+		if cfg == nil {
+			return []string{}
+		}
 		opts := make([]string, 0, len(cfg.Systems))
 		for _, system := range cfg.Systems {
 			opts = append(opts, string(system))

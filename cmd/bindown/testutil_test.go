@@ -70,7 +70,7 @@ func (c *cmdRunner) run(commandLine ...string) *runCmdResult {
 		&runOpts{
 			stdin:   simpleFileReader{c.stdin},
 			stdout:  SimpleFileWriter{&result.stdOut},
-			stderr:  &result.stdErr,
+			stderr:  SimpleFileWriter{&result.stdErr},
 			cmdName: "cmd",
 			exitHandler: func(i int) {
 				result.exited = true
@@ -102,7 +102,7 @@ func (c *cmdRunner) runExpect(expectFunc func(*expect.Console), commandLine ...s
 			&runOpts{
 				stdin:   console.Tty(),
 				stdout:  console.Tty(),
-				stderr:  &result.stdErr,
+				stderr:  console.Tty(),
 				cmdName: "cmd",
 				exitHandler: func(i int) {
 					result.exited = true

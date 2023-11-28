@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"hash/fnv"
 	"io"
@@ -46,6 +47,15 @@ type Config struct {
 	URLChecksums map[string]string `json:"url_checksums,omitempty" yaml:"url_checksums,omitempty"`
 
 	Filename string `json:"-" yaml:"-"`
+}
+
+func (c *Config) DependencyNames() []string {
+	var result []string
+	for name := range c.Dependencies {
+		result = append(result, name)
+	}
+	slices.Sort(result)
+	return result
 }
 
 // UnsetDependencyVars removes a dependency var. Noop if the var doesn't exist.
@@ -317,12 +327,6 @@ func (c *Config) ClearCache() error {
 	return os.RemoveAll(c.Cache)
 }
 
-// ConfigDownloadDependencyOpts options for Config.DownloadDependency
-type ConfigDownloadDependencyOpts struct {
-	Force                bool
-	AllowMissingChecksum bool
-}
-
 func (c *Config) downloadsCache() *cache.Cache {
 	return &cache.Cache{
 		Root: filepath.Join(c.Cache, "downloads"),
@@ -341,28 +345,42 @@ func cacheKey(hashMaterial string) string {
 	return hex.EncodeToString(hasher.Sum(nil))
 }
 
-// DownloadDependency downloads a dependency
-func (c *Config) DownloadDependency(
-	name string,
-	system System,
-	opts *ConfigDownloadDependencyOpts,
-) (_ string, errOut error) {
+type ConfigDownloadDependenciesOpts struct {
+	Force                bool
+	AllowMissingChecksum bool
+	AllDeps              bool
+	Stdout               io.Writer
+}
+
+func (c *Config) DownloadDependencies(deps []string, system System, opts *ConfigDownloadDependenciesOpts) error {
 	if opts == nil {
-		opts = &ConfigDownloadDependencyOpts{}
+		opts = &ConfigDownloadDependenciesOpts{}
 	}
-	dep, err := c.BuildDependency(name, system)
-	if err != nil {
-		return "", err
+	if opts.AllDeps {
+		deps = c.DependencyNames()
 	}
-	dlFile, _, unlock, err := downloadDependency(dep, c.downloadsCache(), opts.AllowMissingChecksum, opts.Force)
-	if err != nil {
-		return "", err
+	for _, name := range deps {
+		dep, err := c.BuildDependency(name, system)
+		if err != nil {
+			return err
+		}
+		dlFile, _, unlock, err := downloadDependency(dep, c.downloadsCache(), opts.AllowMissingChecksum, opts.Force)
+		if err != nil {
+			return err
+		}
+		err = unlock()
+		if err != nil {
+			return err
+		}
+		if opts.Stdout == nil {
+			continue
+		}
+		_, err = fmt.Fprintf(opts.Stdout, "downloaded %s to %s\n", dep.name, dlFile)
+		if err != nil {
+			return err
+		}
 	}
-	err = unlock()
-	if err != nil {
-		return "", err
-	}
-	return dlFile, nil
+	return nil
 }
 
 func urlFilename(dlURL string) (string, error) {
@@ -373,36 +391,45 @@ func urlFilename(dlURL string) (string, error) {
 	return path.Base(u.EscapedPath()), nil
 }
 
-// ConfigExtractDependencyOpts options for Config.ExtractDependency
-type ConfigExtractDependencyOpts struct {
-	Force                bool
+type ConfigExtractDependenciesOpts struct {
 	AllowMissingChecksum bool
+	AllDeps              bool
+	Stdout               io.Writer
 }
 
-// ExtractDependency downloads and extracts a dependency
-func (c *Config) ExtractDependency(dependencyName string, system System, opts *ConfigExtractDependencyOpts) (_ string, errOut error) {
+func (c *Config) ExtractDependencies(deps []string, system System, opts *ConfigExtractDependenciesOpts) error {
 	if opts == nil {
-		opts = &ConfigExtractDependencyOpts{}
+		opts = &ConfigExtractDependenciesOpts{}
 	}
-	dep, err := c.BuildDependency(dependencyName, system)
-	if err != nil {
-		return "", err
+	if opts.AllDeps {
+		deps = c.DependencyNames()
 	}
-	dlFile, key, dlUnlock, err := downloadDependency(dep, c.downloadsCache(), opts.AllowMissingChecksum, opts.Force)
-	if err != nil {
-		return "", err
+	for _, name := range deps {
+		dep, err := c.BuildDependency(name, system)
+		if err != nil {
+			return err
+		}
+		dlFile, key, dlUnlock, err := downloadDependency(dep, c.downloadsCache(), opts.AllowMissingChecksum, false)
+		if err != nil {
+			return err
+		}
+		outDir, unlock, err := extractDependencyToCache(dlFile, c.Cache, key, c.extractsCache(), false)
+		if err != nil {
+			return errors.Join(dlUnlock(), err)
+		}
+		err = errors.Join(dlUnlock(), unlock())
+		if err != nil {
+			return err
+		}
+		if opts.Stdout == nil {
+			continue
+		}
+		_, err = fmt.Fprintf(opts.Stdout, "extracted %s to %s\n", dep.name, outDir)
+		if err != nil {
+			return err
+		}
 	}
-	defer deferErr(&errOut, dlUnlock)
-
-	outDir, unlock, err := extractDependencyToCache(dlFile, c.Cache, key, c.extractsCache(), opts.Force)
-	if err != nil {
-		return "", err
-	}
-	err = unlock()
-	if err != nil {
-		return "", err
-	}
-	return outDir, nil
+	return nil
 }
 
 // ConfigInstallDependencyOpts provides options for Config.InstallDependency
@@ -419,41 +446,36 @@ type ConfigInstallDependencyOpts struct {
 
 // ConfigInstallDependenciesOpts provides options for Config.InstallDependencies
 type ConfigInstallDependenciesOpts struct {
-	TargetFile           string
+	Output               string
 	TargetDir            string
-	BindownPath          string
 	Stdout               io.Writer
 	Force                bool
 	AllowMissingChecksum bool
 	ToCache              bool
-	Wrapper              bool
+	AllDeps              bool
 }
 
-func (c *Config) InstallDependencies(deps []string, system System, opts *ConfigInstallDependenciesOpts) (errOut error) {
+func (c *Config) InstallDependencies(deps []string, system System, opts *ConfigInstallDependenciesOpts) error {
 	if opts == nil {
 		opts = &ConfigInstallDependenciesOpts{}
 	}
-	targetDir := opts.TargetDir
-	if targetDir == "" {
-		targetDir = c.InstallDir
+	if opts.AllDeps {
+		deps = c.DependencyNames()
 	}
-	if opts.Wrapper {
-		cacheDir := c.Cache
-		configFile := c.Filename
-		err := createWrappers(deps, opts.TargetFile, targetDir, opts.BindownPath, cacheDir, configFile, opts.AllowMissingChecksum, opts.Stdout)
-		if err != nil {
-			return err
-		}
-		return nil
+	output := opts.Output
+	outputIsDir := opts.AllDeps || len(deps) > 1
+	if output == "" {
+		output = c.InstallDir
+		outputIsDir = true
 	}
 	for _, name := range deps {
 		dep, err := c.BuildDependency(name, system)
 		if err != nil {
 			return err
 		}
-		target := opts.TargetFile
-		if target == "" {
-			target = filepath.Join(targetDir, dep.binName())
+		target := output
+		if outputIsDir {
+			target = filepath.Join(output, dep.binName())
 		}
 		out, err := install(dep, target, c.Cache, opts.Force, opts.ToCache, opts.AllowMissingChecksum)
 		if err != nil {
@@ -473,24 +495,40 @@ func (c *Config) InstallDependencies(deps []string, system System, opts *ConfigI
 	return nil
 }
 
-func createWrappers(
-	deps []string, targetFile, targetDir, bindownExec, cacheDir, configFile string,
-	missingSums bool,
-	stdout io.Writer,
-) error {
+type ConfigWrapDependenciesOpts struct {
+	Output               string
+	BindownPath          string
+	AllowMissingChecksum bool
+	AllDeps              bool
+	Stdout               io.Writer
+}
+
+func (c *Config) WrapDependencies(deps []string, opts *ConfigWrapDependenciesOpts) error {
+	if opts == nil {
+		opts = &ConfigWrapDependenciesOpts{}
+	}
+	if opts.AllDeps {
+		deps = c.DependencyNames()
+	}
+	output := opts.Output
+	outputIsDir := opts.AllDeps || len(deps) > 1
+	if output == "" {
+		output = c.InstallDir
+		outputIsDir = true
+	}
 	for _, name := range deps {
-		target := targetFile
-		if target == "" {
-			target = filepath.Join(targetDir, name)
+		target := output
+		if outputIsDir {
+			target = filepath.Join(output, name)
 		}
-		out, err := createWrapper(name, target, bindownExec, cacheDir, configFile, missingSums)
+		out, err := createWrapper(name, target, opts.BindownPath, c.Cache, c.Filename, opts.AllowMissingChecksum)
 		if err != nil {
 			return err
 		}
-		if stdout == nil {
+		if opts.Stdout == nil {
 			continue
 		}
-		_, err = fmt.Fprintln(stdout, out)
+		_, err = fmt.Fprintln(opts.Stdout, out)
 		if err != nil {
 			return err
 		}
