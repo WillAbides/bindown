@@ -220,11 +220,7 @@ dependencies:
 		})
 		require.NoError(t, err)
 		require.Equal(t, wantStdout, stdout.String())
-		require.True(t, FileExists(wantBin))
-		stat, err := os.Stat(wantBin)
-		require.NoError(t, err)
-		require.False(t, stat.IsDir())
-		testutil.AssertExecutable(t, stat.Mode())
+		testutil.AssertFile(t, wantBin, true, false)
 	})
 
 	t.Run("bin in root", func(t *testing.T) {

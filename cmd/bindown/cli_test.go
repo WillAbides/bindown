@@ -416,10 +416,7 @@ url_checksums:
 			stdout: `installed foo to`,
 		})
 		wantBin := filepath.Join(runner.tmpDir, "bin", "foo")
-		require.FileExists(t, wantBin)
-		stat, err := os.Stat(wantBin)
-		require.NoError(t, err)
-		testutil.AssertExecutable(t, stat.Mode())
+		testutil.AssertFile(t, wantBin, true, false)
 	})
 
 	t.Run("link raw file", func(t *testing.T) {
@@ -440,11 +437,7 @@ url_checksums:
 			stdout: `installed foo to`,
 		})
 		wantBin := filepath.Join(runner.tmpDir, "bin", "foo")
-		require.FileExists(t, wantBin)
-		stat, err := os.Lstat(wantBin)
-		require.NoError(t, err)
-		testutil.AssertExecutable(t, stat.Mode())
-		require.True(t, stat.Mode()&os.ModeSymlink != 0)
+		testutil.AssertFile(t, wantBin, true, true)
 	})
 
 	t.Run("bin in root", func(t *testing.T) {
@@ -464,10 +457,7 @@ url_checksums:
 			stdout: `installed foo to`,
 		})
 		wantBin := filepath.Join(runner.tmpDir, "bin", "foo")
-		require.FileExists(t, wantBin)
-		stat, err := os.Stat(wantBin)
-		require.NoError(t, err)
-		testutil.AssertExecutable(t, stat.Mode())
+		testutil.AssertFile(t, wantBin, true, false)
 	})
 
 	t.Run("wrong checksum", func(t *testing.T) {
