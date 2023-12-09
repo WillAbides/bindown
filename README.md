@@ -151,7 +151,7 @@ each dependency bindown manages.
    
    set -e
    
-   CDPATH="" cd -- "$(dirname -- "$(dirname -- "$0")")"
+   CDPATH="" cd -- "$(dirname -- "$0")/.."
    mkdir -p bin
    [ -f bin/bindown ] || sh script/bootstrap-bindown.sh 2>/dev/null
    exec bin/bindown "$@"
@@ -164,7 +164,7 @@ each dependency bindown manages.
    
    set -e
    
-   CDPATH="" cd -- "$(dirname -- "$(dirname -- "$0")")"
+   CDPATH="" cd -- "$(dirname -- "$0")/.."
    script/bindown install jq > /dev/null
    exec bin/jq "$@"
    ```

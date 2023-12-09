@@ -2,7 +2,7 @@
 
 set -e
 
-REPO_DIR="$(CDPATH="" cd -- "$(dirname -- "$(dirname -- "$0")")" && pwd)"
+REPO_DIR="$(CDPATH="" cd -- "$(dirname -- "$0")/.." && pwd)"
 
 (
   cd "$REPO_DIR"
