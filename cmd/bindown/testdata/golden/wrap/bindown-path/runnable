@@ -6,7 +6,7 @@ set -e
 bindown_bin="$(
   CDPATH="" cd -- "$(dirname -- "$0")"
 
-  "../../../../../../../../../Users/wroden/repos/WillAbides/bindown/tmp/_test/bindown" install "runnable" \
+  "../../bindown" install "runnable" \
     --to-cache \
     --configfile "../.bindown.yaml" \
     --cache "../cache"
