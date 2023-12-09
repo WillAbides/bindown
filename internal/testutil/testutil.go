@@ -2,17 +2,52 @@ package testutil
 
 import (
 	"bytes"
+	"fmt"
 	"io/fs"
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"runtime"
+	"sync"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+var bindownBinOnce sync.Once
+
+func BindownBin() string {
+	bindownBinPath := filepath.Join(RepoRoot(), "tmp", "_test", "bindown")
+	bindownBinOnce.Do(func() {
+		cmd := exec.Command(goExec(), "build", "-o", bindownBinPath, "./cmd/bindown")
+		cmd.Dir = RepoRoot()
+		err := cmd.Run()
+		if err != nil {
+			panic(fmt.Sprintf("error building bindown: %v", err))
+		}
+	})
+	return bindownBinPath
+}
+
+// goExec returns te path to the go executable to use for tests.
+func goExec() string {
+	goRoot := runtime.GOROOT()
+	if goRoot != "" {
+		p := filepath.Join(goRoot, "bin", "go")
+		info, err := os.Stat(p)
+		if err == nil && !info.IsDir() {
+			return p
+		}
+	}
+	p, err := exec.LookPath("go")
+	if err != nil {
+		panic("unable to find go executable")
+	}
+	return p
+}
 
 // ServeFile starts an HTTP server
 func ServeFile(t *testing.T, file, path, query string) *httptest.Server {
@@ -58,11 +93,45 @@ func ServeFiles(t *testing.T, files map[string]string) *httptest.Server {
 	return ts
 }
 
-func AssertExecutable(t *testing.T, mode fs.FileMode) {
+// AssertFile asserts that the file at filename exists and has the given properties.
+func AssertFile(t *testing.T, filename string, wantExecutable, wantLink bool) bool {
 	t.Helper()
-	// Windows doesn't have executable bits
-	if runtime.GOOS == "windows" {
-		return
+	linfo, err := os.Lstat(filename)
+	if !assert.NoError(t, err) {
+		return false
 	}
-	assert.Equal(t, fs.FileMode(0o110), mode&0o110)
+	var ok bool
+	if wantLink {
+		ok = assert.True(t, linfo.Mode()&fs.ModeSymlink != 0, "expected %s to be a symlink", filename)
+	} else {
+		ok = assert.False(t, linfo.Mode()&fs.ModeSymlink != 0, "expected %s to not be a symlink", filename)
+	}
+	if !ok {
+		return false
+	}
+	// windows doesn't have executable bit so we can't check it
+	if runtime.GOOS == "windows" {
+		return false
+	}
+	info, err := os.Stat(filename)
+	if !assert.NoError(t, err) {
+		return false
+	}
+	if wantExecutable {
+		ok = assert.True(t, info.Mode()&0o110 != 0, "expected %s to be executable", filename)
+	} else {
+		ok = assert.False(t, info.Mode()&0o110 != 0, "expected %s to not be executable", filename)
+	}
+	return ok
+}
+
+// RepoRoot returns the absolute path to the root of this repo
+func RepoRoot() string {
+	_, filename, _, _ := runtime.Caller(0)
+	dir := filepath.Join(filepath.Dir(filename), "..", "..")
+	abs, err := filepath.Abs(dir)
+	if err != nil {
+		panic(err)
+	}
+	return abs
 }

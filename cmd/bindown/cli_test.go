@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -416,10 +417,7 @@ url_checksums:
 			stdout: `installed foo to`,
 		})
 		wantBin := filepath.Join(runner.tmpDir, "bin", "foo")
-		require.FileExists(t, wantBin)
-		stat, err := os.Stat(wantBin)
-		require.NoError(t, err)
-		testutil.AssertExecutable(t, stat.Mode())
+		testutil.AssertFile(t, wantBin, true, false)
 	})
 
 	t.Run("link raw file", func(t *testing.T) {
@@ -440,11 +438,7 @@ url_checksums:
 			stdout: `installed foo to`,
 		})
 		wantBin := filepath.Join(runner.tmpDir, "bin", "foo")
-		require.FileExists(t, wantBin)
-		stat, err := os.Lstat(wantBin)
-		require.NoError(t, err)
-		testutil.AssertExecutable(t, stat.Mode())
-		require.True(t, stat.Mode()&os.ModeSymlink != 0)
+		testutil.AssertFile(t, wantBin, true, true)
 	})
 
 	t.Run("bin in root", func(t *testing.T) {
@@ -464,10 +458,7 @@ url_checksums:
 			stdout: `installed foo to`,
 		})
 		wantBin := filepath.Join(runner.tmpDir, "bin", "foo")
-		require.FileExists(t, wantBin)
-		stat, err := os.Stat(wantBin)
-		require.NoError(t, err)
-		testutil.AssertExecutable(t, stat.Mode())
+		testutil.AssertFile(t, wantBin, true, false)
 	})
 
 	t.Run("wrong checksum", func(t *testing.T) {
@@ -486,5 +477,34 @@ url_checksums:
 		require.Equal(t, 1, result.exitVal)
 		require.True(t, strings.HasPrefix(result.stdErr.String(), `cmd: error: checksum mismatch in downloaded file`))
 		require.NoFileExists(t, filepath.Join(runner.tmpDir, "bin", "foo"))
+	})
+}
+
+func Test_wrapCmd(t *testing.T) {
+	t.Run("bindown path", func(t *testing.T) {
+		runner := newCmdRunner(t)
+		servePath := testdataPath("downloadables/runnable.tar.gz")
+		ts := testutil.ServeFile(t, servePath, "/runnable/runnable.tar.gz", "")
+		depURL := ts.URL + "/runnable/runnable.tar.gz"
+		runner.writeConfigYaml(fmt.Sprintf(`
+dependencies:
+  runnable:
+    archive_path: bin/runnable.sh
+    url: %s
+url_checksums:
+    %s: fb2fe41a34b77ee180def0cb9a222d8776a6e581106009b64f35983da291ab6e
+`, depURL, depURL))
+		outputDir := filepath.Join(runner.tmpDir, "output")
+		runnable := filepath.Join(outputDir, "runnable")
+		result := runner.run("wrap", "runnable", "--bindown", testutil.BindownBin(), "--output", runnable)
+		result.assertState(resultState{stdout: runnable})
+		testutil.AssertFile(t, runnable, true, false)
+		testutil.CheckGoldenDir(t, outputDir, filepath.FromSlash("testdata/golden/wrap/bindown-path"))
+
+		// make sure it runs
+		cmd := exec.Command("sh", "-c", filepath.ToSlash(runnable))
+		out, err := cmd.Output()
+		require.NoError(t, err)
+		require.Equal(t, "Hello world", strings.TrimSpace(string(out)))
 	})
 }

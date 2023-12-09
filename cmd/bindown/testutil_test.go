@@ -38,7 +38,7 @@ type cmdRunner struct {
 
 func newCmdRunner(t testing.TB) *cmdRunner {
 	t.Helper()
-	dir := t.TempDir()
+	dir := testTmp(t)
 	cacheDir := filepath.Join(dir, "cache")
 	configfile := filepath.Join(dir, ".bindown.yaml")
 	runner := &cmdRunner{
@@ -241,6 +241,24 @@ func testInDir(t testing.TB, dir string) {
 		assert.NoError(t, os.Chdir(orig))
 	})
 	assert.NoError(t, os.Chdir(dir))
+}
+
+// testTmp is like t.TempDir but it uses a directory in this repo's tmp directory.
+// This is useful so that there can be a relative path from the resulting directory to
+// directories in this repo.
+func testTmp(t testing.TB) string {
+	t.Helper()
+	tmpDir := filepath.FromSlash("../../tmp/_test")
+	err := os.MkdirAll(tmpDir, 0o777)
+	require.NoError(t, err)
+	dir, err := os.MkdirTemp(tmpDir, "")
+	require.NoError(t, err)
+	t.Cleanup(func() {
+		assert.NoError(t, os.RemoveAll(dir))
+	})
+	abs, err := filepath.Abs(dir)
+	require.NoError(t, err)
+	return abs
 }
 
 func testdataPath(f string) string {
