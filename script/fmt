@@ -4,12 +4,10 @@ set -e
 
 CDPATH="" cd -- "$(dirname -- "$0")/.."
 
-script/bindown -q install gofumpt shfmt
-
-bin/gofumpt -w internal/*/*.go cmd/*/*.go
+script/gofumpt -w internal/*/*.go cmd/*/*.go
 
 find script -type f -not -name 'bootstrap-bindown.sh' |
   grep -v "/.*/" |
-  xargs bin/shfmt -w -i 2 -ci -sr
+  xargs script/shfmt -w -i 2 -ci -sr
 
-bin/shfmt -w -i 2 -ci -sr internal/build-bootstrapper/assets/*.sh
+script/shfmt -w -i 2 -ci -sr internal/build-bootstrapper/assets/*.sh

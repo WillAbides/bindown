@@ -2,11 +2,14 @@
 
 set -e
 
-TAG="{{ .tag }}"
+bindown_tag="{{ .tag }}"
 
-CHECKSUMS="
+bindown_checksums="
 {{ .checksums }}
 "
 
 {{ .shlib }}
+{{ .lib }}
+bindown_bindir="{{ .bindir }}"
+
 {{ .main }}

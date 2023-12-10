@@ -8,6 +8,7 @@ import (
 	"strings"
 	"text/template"
 
+	bootstrapper "github.com/willabides/bindown/v4/internal/build-bootstrapper"
 	"github.com/willabides/bindown/v4/internal/cache"
 )
 
@@ -23,14 +24,19 @@ func install(
 	if toCache {
 		instCache := &cache.Cache{Root: filepath.Join(cacheDir, "bin")}
 		key := dep.cacheKey()
-		dir, unlock, err := instCache.Dir(key, nil, func(dir string) error {
+		validateFn := func(dir string) error {
 			filename := filepath.Join(dir, dep.binName())
-			if FileExists(filename) {
-				return nil
+			if !FileExists(filename) {
+				return fmt.Errorf("file %q does not exist", filename)
 			}
+			return nil
+		}
+		popFn := func(dir string) error {
+			filename := filepath.Join(dir, dep.binName())
 			_, err := install(dep, filename, cacheDir, force, false, missingSums)
 			return err
-		})
+		}
+		dir, unlock, err := instCache.Dir(key, validateFn, popFn)
 		if err != nil {
 			return "", err
 		}
@@ -167,26 +173,69 @@ func createWrapper(name, target, bindownExec, cacheDir, configFile string, missi
 	return target, nil
 }
 
+func createBindownWrapper(target, cacheDir, tag, baseURL string) (string, error) {
+	wrapperDir := filepath.Dir(target)
+	err := os.MkdirAll(wrapperDir, 0o750)
+	if err != nil {
+		return "", err
+	}
+	binDir := filepath.Join(cacheDir, "bootstrapped")
+	err = os.MkdirAll(binDir, 0o750)
+	if err != nil {
+		return "", err
+	}
+	binDir, err = relPath(wrapperDir, binDir)
+	if err != nil {
+		return "", err
+	}
+	content, err := bootstrapper.Build(tag, &bootstrapper.BuildOpts{
+		BinDir:  binDir,
+		Wrap:    true,
+		BaseURL: baseURL,
+	})
+	if err != nil {
+		return "", err
+	}
+	err = os.WriteFile(target, []byte(content), 0o750)
+	if err != nil {
+		return "", err
+	}
+	return target, nil
+}
+
 // relPath returns target relative to base and converted to slash-separated path.
 // Unlike filepath.Rel, it converts both paths to absolute paths before calculating the relative path.
 func relPath(base, target string) (string, error) {
-	absBase, err := filepath.Abs(base)
+	// if it works without abs, use that
+	rel, err := filepath.Rel(base, target)
+	if err == nil {
+		return filepath.ToSlash(rel), nil
+	}
+
+	// convert to abs and try again
+	base, err = filepath.Abs(base)
 	if err != nil {
 		return "", err
 	}
-	absBase, err = filepath.EvalSymlinks(absBase)
+	target, err = filepath.Abs(target)
 	if err != nil {
 		return "", err
 	}
-	absTarget, err := filepath.Abs(target)
+	rel, err = filepath.Rel(base, target)
+	if err == nil {
+		return filepath.ToSlash(rel), nil
+	}
+
+	// resolve symlinks and try again
+	base, err = filepath.EvalSymlinks(base)
 	if err != nil {
 		return "", err
 	}
-	absTarget, err = filepath.EvalSymlinks(absTarget)
+	target, err = filepath.EvalSymlinks(target)
 	if err != nil {
 		return "", err
 	}
-	rel, err := filepath.Rel(absBase, absTarget)
+	rel, err = filepath.Rel(base, target)
 	if err != nil {
 		return "", err
 	}

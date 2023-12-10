@@ -122,6 +122,15 @@ func FileExists(path string) bool {
 	return !os.IsNotExist(statErr)
 }
 
+// dirExists asserts that a directory exists.
+func dirExists(path string) bool {
+	info, err := os.Stat(filepath.FromSlash(path))
+	if err != nil {
+		return false
+	}
+	return info.IsDir()
+}
+
 // fileExistsWithChecksum returns true if the file both exists and has a matching checksum
 func fileExistsWithChecksum(filename, checksum string) (bool, error) {
 	if !FileExists(filename) {

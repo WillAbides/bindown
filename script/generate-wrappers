@@ -1,0 +1,7 @@
+#!/bin/bash
+
+set -e
+
+CDPATH="" cd -- "$(dirname -- "$0")/.."
+
+script/bindown -q wrap yq gofumpt shfmt golangci-lint shellcheck --output ./script

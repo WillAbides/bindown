@@ -29,7 +29,7 @@ var kongVars = kong.Vars{
 	"config_install_completions_help": `install shell completions`,
 	"config_extract_path_help":        `output path to directory where the downloaded archive is extracted`,
 	"install_force_help":              `force install even if it already exists`,
-	"output_help":                     `where to write the file. when multiple dependencies are selected, this is the directory to write to.`,
+	"output_help":                     `where to write the file. this is a directory unless a single dependency is selected and the path isn't an existing directory`,
 	"download_force_help":             `force download even if the file already exists`,
 	"allow_missing_checksum":          `allow missing checksums`,
 	"download_help":                   `download a dependency but don't extract or install it`,
@@ -222,7 +222,7 @@ func runCompletion(ctx context.Context, parser *kong.Kong) {
 	defer cancel()
 	kongplete.Complete(parser,
 		kongplete.WithPredictor("bin", binCompleter(ctx)),
-		kongplete.WithPredictor("wrap_bin", binCompleter(ctx)),
+		kongplete.WithPredictor("wrap_bin", wrapBinCompleter(ctx)),
 		kongplete.WithPredictor("allSystems", allSystemsCompleter),
 		kongplete.WithPredictor("templateSource", templateSourceCompleter(ctx)),
 		kongplete.WithPredictor("system", systemCompleter(ctx)),
@@ -318,11 +318,13 @@ func (d *installCmd) Run(ctx *runContext) error {
 }
 
 type wrapCmd struct {
-	Dependency           []string `kong:"arg,name=dependency,help=${dependency_help},predictor=bin"`
+	Dependency           []string `kong:"arg,name=dependency,help=${dependency_help},predictor=wrap_bin"`
 	All                  bool     `kong:"help=${all_deps_help}"`
 	Output               string   `kong:"type=path,name=output,type=file,help=${output_help}"`
 	AllowMissingChecksum bool     `kong:"name=allow-missing-checksum,help=${allow_missing_checksum}"`
 	BindownExec          string   `kong:"name=bindown,help=${install_bindown_help}"`
+	BindownTag           string   `kong:"hidden,default=${bootstrap_tag_default}"`
+	BaseURL              string   `kong:"hidden,name='base-url',default='https://github.com'"`
 }
 
 func (d *wrapCmd) Run(ctx *runContext) error {
@@ -333,9 +335,12 @@ func (d *wrapCmd) Run(ctx *runContext) error {
 	return config.WrapDependencies(d.Dependency, &bindown.ConfigWrapDependenciesOpts{
 		Output:               d.Output,
 		AllowMissingChecksum: d.AllowMissingChecksum,
-		BindownPath:          d.BindownExec,
+		BindownExec:          d.BindownExec,
 		Stdout:               ctx.stdout,
 		AllDeps:              d.All,
+		BindownTag:           d.BindownTag,
+		BindownWrapped:       os.Getenv("BINDOWN_WRAPPED"),
+		BaseURL:              d.BaseURL,
 	})
 }
 

@@ -17,6 +17,8 @@ var assets embed.FS
 
 type BuildOpts struct {
 	BaseURL string // defaults to https://github.com
+	BinDir  string
+	Wrap    bool
 }
 
 // Build builds a bootstrapper for the given tag
@@ -28,9 +30,10 @@ func Build(tag string, opts *BuildOpts) (_ string, errOut error) {
 	if baseURL == "" {
 		baseURL = "https://github.com"
 	}
+	repoURL := fmt.Sprintf("%s/WillAbides/bindown", baseURL)
 	checksumsURL := fmt.Sprintf(
-		`%s/WillAbides/bindown/releases/download/%s/checksums.txt`,
-		baseURL, tag,
+		`%s/releases/download/%s/checksums.txt`,
+		repoURL, tag,
 	)
 	resp, err := http.Get(checksumsURL)
 	if err != nil {
@@ -48,7 +51,15 @@ func Build(tag string, opts *BuildOpts) (_ string, errOut error) {
 	if err != nil {
 		return "", err
 	}
-	mainContent, err := assets.ReadFile("assets/main.sh")
+	mainSrc := "assets/bootstrap-main.sh"
+	if opts.Wrap {
+		mainSrc = "assets/wrap-main.sh"
+	}
+	mainContent, err := assets.ReadFile(mainSrc)
+	if err != nil {
+		return "", err
+	}
+	libContent, err := assets.ReadFile("assets/lib.sh")
 	if err != nil {
 		return "", err
 	}
@@ -60,12 +71,19 @@ func Build(tag string, opts *BuildOpts) (_ string, errOut error) {
 	if err != nil {
 		return "", err
 	}
+	binDir := "./bin"
+	if opts.BinDir != "" {
+		binDir = opts.BinDir
+	}
 	var tmplOut bytes.Buffer
 	err = tmpl.Execute(&tmplOut, map[string]string{
 		"tag":       tag,
 		"checksums": strings.TrimSpace(string(checksums)),
 		"shlib":     string(shlibContent),
+		"lib":       string(libContent),
 		"main":      string(mainContent),
+		"bindir":    binDir,
+		"repo_url":  repoURL,
 	})
 	if err != nil {
 		return "", err

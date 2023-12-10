@@ -4,8 +4,6 @@ set -e
 
 CDPATH="" cd -- "$(dirname -- "$0")/.."
 
-script/bindown -q install yq
-
 go run ./internal/genjsonschema > bindown.schema.json
 cp bindown.schema.json ./internal/bindown/bindown.schema.json
-bin/yq -P . < bindown.schema.json > bindown.schema.yml
+script/yq -P . < bindown.schema.json > bindown.schema.yml

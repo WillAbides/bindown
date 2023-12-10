@@ -507,4 +507,35 @@ url_checksums:
 		require.NoError(t, err)
 		require.Equal(t, "Hello world", strings.TrimSpace(string(out)))
 	})
+
+	t.Run("wrap bindown", func(t *testing.T) {
+		runner := newCmdRunner(t)
+		servePath := testdataPath("downloadables/runnable.tar.gz")
+		ts := testutil.ServeFiles(t, map[string]string{
+			"/runnable/runnable.tar.gz":                                  servePath,
+			"/WillAbides/bindown/releases/download/v4.8.0/checksums.txt": "testdata/bootstrap/checksums.txt",
+		})
+		depURL := ts.URL + "/runnable/runnable.tar.gz"
+		runner.writeConfigYaml(fmt.Sprintf(`
+dependencies:
+  runnable:
+    archive_path: bin/runnable.sh
+    url: %s
+url_checksums:
+    %s: fb2fe41a34b77ee180def0cb9a222d8776a6e581106009b64f35983da291ab6e
+`, depURL, depURL))
+		outputDir := filepath.Join(runner.tmpDir, "output")
+		runnable := filepath.Join(outputDir, "runnable")
+		bindown := filepath.Join(outputDir, "bindown")
+		result := runner.run(
+			"wrap", "runnable", "bindown",
+			"--bindown-tag", "v4.8.0",
+			"--output", outputDir,
+			"--base-url", ts.URL,
+		)
+		result.assertState(resultState{stdout: bindown + "\n" + runnable})
+		testutil.AssertFile(t, runnable, true, false)
+		testutil.AssertFile(t, bindown, true, false)
+		testutil.CheckGoldenDir(t, outputDir, filepath.FromSlash("testdata/golden/wrap/wrap-bindown"))
+	})
 }
