@@ -2,9 +2,9 @@
 
 set -e
 
-TAG="v4.8.0"
+bindown_tag="v4.8.0"
 
-CHECKSUMS="
+bindown_checksums="
 26fcbc738bf9bb910b070f236816b2dfe5bc9589be3a578135f37d950ebaf771  bindown_4.8.0_freebsd_amd64.tar.gz
 2fa6460ebe8d7c6be33576acf5b63f7208780af72d758e82313f6c5772e097d5  bindown_4.8.0_linux_386.tar.gz
 32e3fbfaecf41a1b2bced22c1842b3905f4e6de1e879a4db68402799c206415d  bindown_4.8.0_windows_386.exe
@@ -109,45 +109,6 @@ uname_arch() {
   esac
   echo "${arch}"
 }
-uname_os_check() {
-  os=$(uname_os)
-  case "$os" in
-    darwin) return 0 ;;
-    dragonfly) return 0 ;;
-    freebsd) return 0 ;;
-    linux) return 0 ;;
-    android) return 0 ;;
-    nacl) return 0 ;;
-    netbsd) return 0 ;;
-    openbsd) return 0 ;;
-    plan9) return 0 ;;
-    solaris) return 0 ;;
-    windows) return 0 ;;
-  esac
-  log_crit "uname_os_check '$(uname -s)' got converted to '$os' which is not a GOOS value. Please file bug at https://github.com/client9/shlib"
-  return 1
-}
-uname_arch_check() {
-  arch=$(uname_arch)
-  case "$arch" in
-    386) return 0 ;;
-    amd64) return 0 ;;
-    arm64) return 0 ;;
-    armv5) return 0 ;;
-    armv6) return 0 ;;
-    armv7) return 0 ;;
-    ppc64) return 0 ;;
-    ppc64le) return 0 ;;
-    mips) return 0 ;;
-    mipsle) return 0 ;;
-    mips64) return 0 ;;
-    mips64le) return 0 ;;
-    s390x) return 0 ;;
-    amd64p32) return 0 ;;
-  esac
-  log_crit "uname_arch_check '$(uname -m)' got converted to '$arch' which is not a GOARCH value.  Please file bug report at https://github.com/client9/shlib"
-  return 1
-}
 untar() {
   tarball=$1
   case "${tarball}" in
@@ -241,81 +202,82 @@ End of functions from https://github.com/client9/shlib
 ------------------------------------------------------------------------
 EOF
 
-FORMAT=tar.gz
-GITHUB_DOWNLOAD=https://github.com/WillAbides/bindown/releases/download
-
-usage() {
-  this=$1
-  cat << EOT
-Usage: $this [-b bindir] [-d]
-  -b sets bindir or installation directory, Defaults to ./bin
-  -d turns on debug logging
-
-EOT
-  exit 2
-}
-
-parse_args() {
-  #BINDIR is ./bin unless set be ENV
-  # over-ridden by flag below
-
-  BINDIR=${BINDIR:-./bin}
-  while getopts "b:dh?x" arg; do
-    case "$arg" in
-      b) BINDIR="$OPTARG" ;;
-      d) log_set_priority 10 ;;
-      h | \?) usage "$0" ;;
-      x) set -x ;;
-    esac
-  done
-  shift $((OPTIND - 1))
-}
-
 bindown_name() {
-  if [ "$OS" = "windows" ]; then
+  if [ "$(uname_os)" = "windows" ]; then
     echo bindown.exe
   else
     echo bindown
   fi
 }
 
-execute() {
+already_installed() {
+  version="$1"
+  bindir="$2"
+  use_checksum_path="$3"
+  [ -f "$bindir/$(bindown_name)" ] || return 1
+  if [ -n "$use_checksum_path" ]; then
+    return
+  fi
+  "$bindir/$(bindown_name)" version 2> /dev/null | grep -q "$version"
+}
+
+install_bindown() {
+  tag="$1"
+  checksums="$2"
+  bindir="$3"
+  use_checksum_path="$4"
+  repo_url="$5"
+
+  version=${tag#v}
+  tarball="bindown_${version}_$(uname_os)_$(uname_arch).tar.gz"
+  tarball_url="$repo_url/releases/download/${tag}/${tarball}"
+
+  if [ -n "$use_checksum_path" ]; then
+    tarball_checksum="$(echo "$checksums" | grep "$tarball" | tr '\t' ' ' | cut -d ' ' -f 1)"
+    bindir="${bindir}/${tarball_checksum}"
+  fi
+
+  echo "$bindir/$(bindown_name)"
+
+  if already_installed "$version" "$bindir" "$use_checksum_path"; then
+    log_info "bindown $version already installed in $bindir"
+    return
+  fi
+
   tmpdir=$(mktemp -d)
-  echo "$CHECKSUMS" > "${tmpdir}/checksums.txt"
-  log_debug "downloading files into ${tmpdir}"
-  http_download "${tmpdir}/${TARBALL}" "${TARBALL_URL}"
-  hash_sha256_verify "${tmpdir}/${TARBALL}" "${tmpdir}/checksums.txt"
-  srcdir="${tmpdir}"
-  (cd "${tmpdir}" && untar "${TARBALL}")
-  test ! -d "${BINDIR}" && install -d "${BINDIR}"
-  install "${srcdir}/$(bindown_name)" "${BINDIR}/"
-  log_info "installed ${BINDIR}/$(bindown_name)"
+  echo "$checksums" > "${tmpdir}/checksums.txt"
+  http_download "${tmpdir}/${tarball}" "${tarball_url}"
+  hash_sha256_verify "${tmpdir}/${tarball}" "${tmpdir}/checksums.txt"
+  (cd "${tmpdir}" && untar "${tarball}")
+  test ! -d "${bindir}" && install -d "${bindir}"
+  install "$tmpdir/$(bindown_name)" "${bindir}/"
+  log_info "installed ${bindir}/$(bindown_name)"
   rm -rf "${tmpdir}"
 }
 
-already_installed() {
-  VERSION="$1"
-  [ -f "${BINDIR}/$(bindown_name)" ] &&
-    "${BINDIR}/$(bindown_name)" version 2> /dev/null | grep -q "$VERSION"
-}
+bindown_bindir="./bin"
 
-OS=$(uname_os)
-ARCH=$(uname_arch)
+BINDOWN_REPO_URL="${BINDOWN_REPO_URL:-"https://github.com/WillAbides/bindown"}"
 
-uname_os_check "$OS"
-uname_arch_check "$ARCH"
-
-parse_args "$@"
-
-VERSION=${TAG#v}
-
-if already_installed "$VERSION"; then
-  log_debug "bindown ${VERSION} is already installed"
-  exit 0
+if [ -n "$BINDIR" ]; then
+  bindown_bindir="$BINDIR"
 fi
 
-NAME=bindown_${VERSION}_${OS}_${ARCH}
-TARBALL=${NAME}.${FORMAT}
-TARBALL_URL=${GITHUB_DOWNLOAD}/${TAG}/${TARBALL}
+while getopts "b:cdh?x" arg; do
+  case "$arg" in
+    b) bindown_bindir="$OPTARG" ;;
+    c) opt_use_checksum_path=1 ;;
+    d) log_set_priority 10 ;;
+    h | \?)
+      echo "Usage: $0 [-b bindir] [-c] [-d] [-x]
+  -b sets bindir or installation directory, Defaults to ./bin
+  -c includes checksum in the output path
+  -d turns on debug logging
+  -x turns on bash debugging" >&2
+      exit 2
+      ;;
+    x) set -x ;;
+  esac
+done
 
-execute
+install_bindown "${bindown_tag:?}" "${bindown_checksums:?}" "$bindown_bindir" "$opt_use_checksum_path" "$BINDOWN_REPO_URL" > /dev/null

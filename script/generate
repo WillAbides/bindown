@@ -31,6 +31,7 @@ if [ "$1" = "--check" ]; then
   exit 0
 fi
 
+script/generate-wrappers
 script/generate-jsonschema
 
 go generate ./...

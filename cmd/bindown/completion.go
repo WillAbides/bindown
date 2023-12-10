@@ -153,6 +153,10 @@ func binCompleter(ctx context.Context) complete.PredictFunc {
 	}
 }
 
+func wrapBinCompleter(ctx context.Context) complete.Predictor {
+	return complete.PredictOr(binCompleter(ctx), complete.PredictSet("bindown"))
+}
+
 func systemCompleter(ctx context.Context) complete.PredictFunc {
 	return func(a complete.Args) []string {
 		cfg := completionConfig(ctx, a.Completed)

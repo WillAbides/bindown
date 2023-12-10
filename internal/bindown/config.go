@@ -497,7 +497,10 @@ func (c *Config) InstallDependencies(deps []string, system System, opts *ConfigI
 
 type ConfigWrapDependenciesOpts struct {
 	Output               string
-	BindownPath          string
+	BindownExec          string
+	BindownTag           string
+	BindownWrapped       string
+	BaseURL              string
 	AllowMissingChecksum bool
 	AllDeps              bool
 	Stdout               io.Writer
@@ -510,18 +513,64 @@ func (c *Config) WrapDependencies(deps []string, opts *ConfigWrapDependenciesOpt
 	if opts.AllDeps {
 		deps = c.DependencyNames()
 	}
+	if len(deps) == 0 {
+		return nil
+	}
+
 	output := opts.Output
-	outputIsDir := opts.AllDeps || len(deps) > 1
+	outputIsDir := opts.AllDeps || len(deps) > 1 || dirExists(output)
 	if output == "" {
 		output = c.InstallDir
 		outputIsDir = true
 	}
+	outputDir := output
+	if !outputIsDir {
+		outputDir = filepath.Dir(output)
+	}
+
+	bindownIdx := slices.Index(deps, "bindown")
+	wrapsSelf := false
+	if bindownIdx != -1 && c.Dependencies["bindown"] == nil {
+		wrapsSelf = true
+		deps = slices.Delete(deps, bindownIdx, bindownIdx+1)
+	}
+
+	if wrapsSelf {
+		target := output
+		if outputIsDir {
+			target = filepath.Join(output, "bindown")
+		}
+		out, err := createBindownWrapper(target, c.Cache, opts.BindownTag, opts.BaseURL)
+		if err != nil {
+			return err
+		}
+		if opts.Stdout != nil {
+			_, err = fmt.Fprintln(opts.Stdout, out)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	bindownExec := opts.BindownExec
+	if bindownExec == "" {
+		bindownExec = opts.BindownWrapped
+	}
+	if bindownExec == "" {
+		if FileExists(filepath.Join(outputDir, "bindown")) {
+			bindownExec = filepath.Join(outputDir, "bindown")
+		}
+	}
+
 	for _, name := range deps {
 		target := output
 		if outputIsDir {
 			target = filepath.Join(output, name)
 		}
-		out, err := createWrapper(name, target, opts.BindownPath, c.Cache, c.Filename, opts.AllowMissingChecksum)
+		if name == "bindown" && wrapsSelf {
+			continue
+		}
+		out, err := createWrapper(name, target, bindownExec, c.Cache, c.Filename, opts.AllowMissingChecksum)
 		if err != nil {
 			return err
 		}
