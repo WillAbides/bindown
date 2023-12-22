@@ -403,6 +403,7 @@ dependencies:
 		runner := newCmdRunner(t)
 		srcFile := filepath.Join(runner.tmpDir, "template-source.yaml")
 		runner.writeConfigYaml(fmt.Sprintf(`
+systems: ["linux/amd64", "darwin/amd64"]
 url_checksums:
   foo-linux-amd64-1.2.3: deadbeef
   foo-darwin-amd64-1.2.3: deadbeef
@@ -436,6 +437,7 @@ dependencies:
 		runner := newCmdRunner(t)
 		srcFile := filepath.Join(runner.tmpDir, "template-source.yaml")
 		runner.writeConfigYaml(fmt.Sprintf(`
+systems: ["linux/amd64", "darwin/amd64"]
 url_checksums:
   foo-linux-amd64-1.2.3: deadbeef
   foo-darwin-amd64-1.2.3: deadbeef
