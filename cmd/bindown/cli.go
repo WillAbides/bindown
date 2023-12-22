@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"slices"
+	"strings"
 	"time"
 
 	"github.com/alecthomas/kong"
@@ -40,7 +41,6 @@ var kongVars = kong.Vars{
 	"install_to_cache_help":           `install to cache instead of install dir`,
 	"install_wrapper_help":            `install a wrapper script instead of the binary`,
 	"install_bindown_help":            `path to bindown executable to use in wrapper`,
-	"bootstrap_tag_default":           defaultBootstrapTag(),
 }
 
 type rootCmd struct {
@@ -326,11 +326,18 @@ type wrapCmd struct {
 	Output               string   `kong:"type=path,name=output,type=file,help=${output_help}"`
 	AllowMissingChecksum bool     `kong:"name=allow-missing-checksum,help=${allow_missing_checksum}"`
 	BindownExec          string   `kong:"name=bindown,help=${install_bindown_help}"`
-	BindownTag           string   `kong:"hidden,default=${bootstrap_tag_default}"`
+	BindownTag           string   `kong:"hidden"`
 	BaseURL              string   `kong:"hidden,name='base-url',default='https://github.com'"`
 }
 
 func (d *wrapCmd) Run(ctx *runContext) error {
+	tag := d.BindownTag
+	if tag == "" {
+		tag = getVersion()
+	}
+	if tag != "" && !strings.HasPrefix(tag, "v") {
+		tag = "v" + tag
+	}
 	config, err := loadConfigFile(ctx, false)
 	if err != nil {
 		return err
@@ -341,7 +348,7 @@ func (d *wrapCmd) Run(ctx *runContext) error {
 		BindownExec:          d.BindownExec,
 		Stdout:               ctx.stdout,
 		AllDeps:              d.All,
-		BindownTag:           d.BindownTag,
+		BindownTag:           tag,
 		BindownWrapped:       os.Getenv("BINDOWN_WRAPPED"),
 		BaseURL:              d.BaseURL,
 	})
