@@ -68,6 +68,9 @@ type rootCmd struct {
 }
 
 func (r *rootCmd) BeforeApply(k *kong.Context) error {
+	if k == nil || k.Selected() == nil {
+		return nil
+	}
 	// set dependency positional to optional for install, wrap, download and extract.
 	// We do this because we want to allow --all to be equivalent to specifying all
 	// dependencies but want the help output to indicate that a dependency is required.
