@@ -9,24 +9,20 @@ import (
 	bootstrapper "github.com/willabides/bindown/v4/internal/build-bootstrapper"
 )
 
-func defaultBootstrapTag() string {
-	if Version == "unknown" {
-		return ""
-	}
-	return "v" + Version
-}
-
 type bootstrapCmd struct {
-	Tag     string `kong:"hidden,default=${bootstrap_tag_default}"`
+	Tag     string `kong:"hidden"`
 	BaseURL string `kong:"hidden,name='base-url',default='https://github.com'"`
 	Output  string `kong:"help='output file, writes to stdout if not set',type='path'"`
 }
 
 func (c *bootstrapCmd) Run(ctx *runContext) error {
-	if c.Tag == "" {
+	tag := c.Tag
+	if tag == "" {
+		tag = getVersion()
+	}
+	if tag == "" {
 		return fmt.Errorf("version is required")
 	}
-	tag := c.Tag
 	if !strings.HasPrefix(tag, "v") {
 		tag = "v" + tag
 	}
