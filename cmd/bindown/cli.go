@@ -310,7 +310,7 @@ func (d *installCmd) Run(ctx *runContext) error {
 		return err
 	}
 
-	return config.InstallDependencies(d.Dependency, d.System, &bindown.ConfigInstallDependenciesOpts{
+	return config.InstallDependencies(ctx, d.Dependency, d.System, &bindown.ConfigInstallDependenciesOpts{
 		Output:               d.Output,
 		Force:                d.Force,
 		AllowMissingChecksum: d.AllowMissingChecksum,
@@ -387,7 +387,7 @@ func (d *extractCmd) Run(ctx *runContext) error {
 	if err != nil {
 		return err
 	}
-	return config.ExtractDependencies(d.Dependency, d.System, &bindown.ConfigExtractDependenciesOpts{
+	return config.ExtractDependencies(ctx, d.Dependency, d.System, &bindown.ConfigExtractDependenciesOpts{
 		AllowMissingChecksum: d.AllowMissingChecksum,
 		AllDeps:              d.All,
 		Stdout:               ctx.stdout,

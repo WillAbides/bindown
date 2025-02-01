@@ -1,6 +1,7 @@
 package bindown
 
 import (
+	"context"
 	_ "embed"
 	"fmt"
 	"os"
@@ -16,6 +17,7 @@ import (
 var wrapperTmplText string
 
 func install(
+	ctx context.Context,
 	dep *Dependency,
 	targetPath, cacheDir string,
 	force, toCache, missingSums bool,
@@ -33,7 +35,7 @@ func install(
 		}
 		popFn := func(dir string) error {
 			filename := filepath.Join(dir, dep.binName())
-			_, err := install(dep, filename, cacheDir, force, false, missingSums)
+			_, err := install(ctx, dep, filename, cacheDir, force, false, missingSums)
 			return err
 		}
 		dir, unlock, err := instCache.Dir(key, validateFn, popFn)
@@ -55,7 +57,7 @@ func install(
 	defer deferErr(&errOut, dlUnlock)
 
 	extractsCache := cache.Cache{Root: filepath.Join(cacheDir, "extracts")}
-	extractDir, exUnlock, err := extractDependencyToCache(dlFile, cacheDir, key, &extractsCache, force)
+	extractDir, exUnlock, err := extractDependencyToCache(ctx, dlFile, cacheDir, key, &extractsCache, force)
 	if err != nil {
 		return "", err
 	}

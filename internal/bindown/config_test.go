@@ -195,6 +195,7 @@ func TestConfig_addTemplateFromSource(t *testing.T) {
 
 func TestConfig_InstallDependencies(t *testing.T) {
 	t.Run("raw file", func(t *testing.T) {
+		ctx := context.Background()
 		dir := t.TempDir()
 		servePath := filepath.Join("testdata", "downloadables", "rawfile", "foo")
 		ts := testutil.ServeFile(t, servePath, "/foo/foo", "")
@@ -215,7 +216,7 @@ dependencies:
 		wantBin := filepath.Join(binDir, "foo")
 		wantStdout := fmt.Sprintf("installed foo to %s\n", wantBin)
 		var stdout bytes.Buffer
-		err := config.InstallDependencies([]string{"foo"}, "darwin/amd64", &ConfigInstallDependenciesOpts{
+		err := config.InstallDependencies(ctx, []string{"foo"}, "darwin/amd64", &ConfigInstallDependenciesOpts{
 			Stdout: &stdout,
 		})
 		require.NoError(t, err)
@@ -224,6 +225,7 @@ dependencies:
 	})
 
 	t.Run("bin in root", func(t *testing.T) {
+		ctx := context.Background()
 		dir := t.TempDir()
 		servePath := filepath.Join("testdata", "downloadables", "fooinroot.tar.gz")
 		ts := testutil.ServeFile(t, servePath, "/foo/fooinroot.tar.gz", "")
@@ -244,7 +246,7 @@ dependencies:
 		wantBin := filepath.Join(binDir, "foo")
 		var stdout bytes.Buffer
 		wantStdout := fmt.Sprintf("installed foo to %s\n", wantBin)
-		err := config.InstallDependencies([]string{"foo"}, "darwin/amd64", &ConfigInstallDependenciesOpts{
+		err := config.InstallDependencies(ctx, []string{"foo"}, "darwin/amd64", &ConfigInstallDependenciesOpts{
 			Stdout: &stdout,
 		})
 		require.NoError(t, err)
@@ -261,6 +263,7 @@ dependencies:
 	})
 
 	t.Run("renames bin", func(t *testing.T) {
+		ctx := context.Background()
 		dir := t.TempDir()
 		servePath := filepath.Join("testdata", "downloadables", "fooinroot.tar.gz")
 		ts := testutil.ServeFile(t, servePath, "/foo/fooinroot.tar.gz", "")
@@ -283,7 +286,7 @@ dependencies:
 		wantBin := filepath.Join(binDir, "baz")
 		var stdout bytes.Buffer
 		wantStdout := fmt.Sprintf("installed foo to %s\n", wantBin)
-		err := config.InstallDependencies([]string{"foo"}, "darwin/amd64", &ConfigInstallDependenciesOpts{
+		err := config.InstallDependencies(ctx, []string{"foo"}, "darwin/amd64", &ConfigInstallDependenciesOpts{
 			Stdout: &stdout,
 		})
 		require.NoError(t, err)
@@ -300,6 +303,7 @@ dependencies:
 	})
 
 	t.Run("wrong checksum", func(t *testing.T) {
+		ctx := context.Background()
 		dir := t.TempDir()
 		servePath := filepath.Join("testdata", "downloadables", "fooinroot.tar.gz")
 		ts := testutil.ServeFile(t, servePath, "/foo/fooinroot.tar.gz", "")
@@ -318,7 +322,7 @@ dependencies:
 `, binDir, cacheDir, depURL, depURL))
 		t.Cleanup(func() { require.NoError(t, config.ClearCache()) })
 		wantBin := filepath.Join(binDir, "foo")
-		err := config.InstallDependencies([]string{"foo"}, "darwin/amd64", &ConfigInstallDependenciesOpts{})
+		err := config.InstallDependencies(ctx, []string{"foo"}, "darwin/amd64", &ConfigInstallDependenciesOpts{})
 		require.Error(t, err)
 		require.False(t, FileExists(wantBin))
 	})

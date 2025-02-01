@@ -66,7 +66,7 @@ func addDependency(
 	if err != nil {
 		return err
 	}
-	err = built.Validate(name, built.Systems)
+	err = built.Validate(ctx, name, built.Systems)
 	if err != nil {
 		b, e := yaml.Marshal(&bindown.Config{
 			Dependencies: built.Dependencies,
@@ -614,7 +614,10 @@ func systemsMatcher(systems, otherSystems []bindown.System) (_ map[string][]stri
 	}, s, r
 }
 
-func QueryGitHubRelease(ctx context.Context, repo, tag, tkn string) (urls []string, version, homepage, description string, _ error) {
+func QueryGitHubRelease(
+	ctx context.Context,
+	repo, tag, tkn string,
+) (urls []string, version, homepage, description string, _ error) {
 	client := github.NewTokenClient(ctx, tkn)
 	splitRepo := strings.Split(repo, "/")
 	orgName, repoName := splitRepo[0], splitRepo[1]

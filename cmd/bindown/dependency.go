@@ -228,7 +228,12 @@ func (c *dependencyAddCmd) Run(ctx *runContext) error {
 	return config.WriteFile(ctx.rootCmd.JSONConfig)
 }
 
-func (c *dependencyAddCmd) promptForVars(ctx *runContext, config *bindown.Config, dep *bindown.Dependency, varVals map[string][]string) error {
+func (c *dependencyAddCmd) promptForVars(
+	ctx *runContext,
+	config *bindown.Config,
+	dep *bindown.Dependency,
+	varVals map[string][]string,
+) error {
 	if c.SkipRequiredVars {
 		return nil
 	}
@@ -395,5 +400,5 @@ func (d dependencyValidateCmd) Run(ctx *runContext) error {
 	if err != nil {
 		return err
 	}
-	return config.Validate(d.Dependency, d.Systems)
+	return config.Validate(ctx, d.Dependency, d.Systems)
 }
