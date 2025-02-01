@@ -33,10 +33,8 @@
           "description": "Whether to create a symlink to the bin instead of copying it."
         },
         "vars": {
-          "patternProperties": {
-            ".*": {
-              "type": "string"
-            }
+          "additionalProperties": {
+            "type": "string"
           },
           "type": "object",
           "description": "A list of variables that can be used in 'url', 'archive_path' and 'bin'.\n\nTwo variables are always added based on the current environment: 'os' and 'arch'. Those are the operating\nsystem and architecture as defined by go's GOOS and GOARCH variables. I should document what those are\nsomewhere.\n\nYou can reference a variable using golang template syntax. For example, you could have a url set to\n`https://example.org/mydependency/v{{.version}}/mydependency-{{.os}}-{{.arch}}.tar.gz`.  If you define the var\n'version: 1.2.3' and run bindown on a 64-bit Linux system, it will download\n`https://example.org/mydependency/v1.2.3/mydependency-linux-amd64.tar.gz`."
@@ -49,15 +47,11 @@
           "description": "Overrides allows you to override values depending on the os and architecture of the target system."
         },
         "substitutions": {
-          "patternProperties": {
-            ".*": {
-              "patternProperties": {
-                ".*": {
-                  "type": "string"
-                }
-              },
-              "type": "object"
-            }
+          "additionalProperties": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object"
           },
           "type": "object",
           "description": "Substitutions will substitute values from vars. The key is the name of the variable to substitute. The value is\na map of substitutions. { \"os\": { \"linux\": \"Linux\", \"darwin\": \"MacOS\" } } is an example of a substitution that\nwill update the os variable."
@@ -83,13 +77,11 @@
     "DependencyOverride": {
       "properties": {
         "matcher": {
-          "patternProperties": {
-            ".*": {
-              "items": {
-                "type": "string"
-              },
-              "type": "array"
-            }
+          "additionalProperties": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
           },
           "type": "object",
           "description": "Limits the override to configurations matching all of the matchers. Keys may be \"os\", \"arch\" or any variable name.\nValues are an array of values to match. Any matching value will match. If a value can be interpreted as a\nsemantic version it will be treated as such."
@@ -125,10 +117,8 @@
           "description": "Whether to create a symlink to the bin instead of copying it."
         },
         "vars": {
-          "patternProperties": {
-            ".*": {
-              "type": "string"
-            }
+          "additionalProperties": {
+            "type": "string"
           },
           "type": "object",
           "description": "A list of variables that can be used in 'url', 'archive_path' and 'bin'.\n\nTwo variables are always added based on the current environment: 'os' and 'arch'. Those are the operating\nsystem and architecture as defined by go's GOOS and GOARCH variables. I should document what those are\nsomewhere.\n\nYou can reference a variable using golang template syntax. For example, you could have a url set to\n`https://example.org/mydependency/v{{.version}}/mydependency-{{.os}}-{{.arch}}.tar.gz`.  If you define the var\n'version: 1.2.3' and run bindown on a 64-bit Linux system, it will download\n`https://example.org/mydependency/v1.2.3/mydependency-linux-amd64.tar.gz`."
@@ -141,15 +131,11 @@
           "description": "Overrides allows you to override values depending on the os and architecture of the target system."
         },
         "substitutions": {
-          "patternProperties": {
-            ".*": {
-              "patternProperties": {
-                ".*": {
-                  "type": "string"
-                }
-              },
-              "type": "object"
-            }
+          "additionalProperties": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object"
           },
           "type": "object",
           "description": "Substitutions will substitute values from vars. The key is the name of the variable to substitute. The value is\na map of substitutions. { \"os\": { \"linux\": \"Linux\", \"darwin\": \"MacOS\" } } is an example of a substitution that\nwill update the os variable."
@@ -176,37 +162,29 @@
       "description": "List of systems supported by this config. Systems are in the form of os/architecture."
     },
     "dependencies": {
-      "patternProperties": {
-        ".*": {
-          "$ref": "#/$defs/Dependency"
-        }
+      "additionalProperties": {
+        "$ref": "#/$defs/Dependency"
       },
       "type": "object",
       "description": "Dependencies available for bindown to install."
     },
     "templates": {
-      "patternProperties": {
-        ".*": {
-          "$ref": "#/$defs/Dependency"
-        }
+      "additionalProperties": {
+        "$ref": "#/$defs/Dependency"
       },
       "type": "object",
       "description": "Templates that can be used by dependencies in this file."
     },
     "template_sources": {
-      "patternProperties": {
-        ".*": {
-          "type": "string"
-        }
+      "additionalProperties": {
+        "type": "string"
       },
       "type": "object",
       "description": "Upstream sources for templates."
     },
     "url_checksums": {
-      "patternProperties": {
-        ".*": {
-          "type": "string"
-        }
+      "additionalProperties": {
+        "type": "string"
       },
       "type": "object",
       "description": "Checksums of downloaded files."
