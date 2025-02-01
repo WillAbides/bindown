@@ -1,7 +1,6 @@
 package bindown
 
 import (
-	"context"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -12,7 +11,7 @@ const fooChecksum = "f7fa712caea646575c920af17de3462fe9d08d7fe062b9a17010117d5fa
 
 func mustConfigFromYAML(t *testing.T, yml string) *Config {
 	t.Helper()
-	got, err := ConfigFromYAML(context.Background(), []byte(yml))
+	got, err := ConfigFromYAML([]byte(yml))
 	require.NoError(t, err)
 	return got
 }

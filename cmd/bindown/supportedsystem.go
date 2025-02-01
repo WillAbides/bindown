@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"slices"
 
 	"github.com/willabides/bindown/v4/internal/bindown"
@@ -22,7 +21,7 @@ func (c *supportedSystemListCmd) Run(ctx *runContext) error {
 	}
 
 	for _, system := range cfg.Systems {
-		fmt.Fprintln(ctx.stdout, system)
+		mustPrintln(ctx.stdout, string(system))
 	}
 	return nil
 }

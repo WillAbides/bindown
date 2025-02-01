@@ -68,7 +68,7 @@ func TestCache_Dir(t *testing.T) {
 
 	t.Run("errors when populated content is invalid", func(t *testing.T) {
 		cache := testCache(t)
-		_, _, err := cache.Dir("foo", fooValidator, func(dir string) error {
+		_, _, err := cache.Dir("foo", fooValidator, func(string) error {
 			return nil
 		})
 		require.ErrorIs(t, err, os.ErrNotExist)
@@ -76,7 +76,7 @@ func TestCache_Dir(t *testing.T) {
 
 	t.Run("errors when populator returns error", func(t *testing.T) {
 		cache := testCache(t)
-		_, _, err := cache.Dir("foo", fooValidator, func(dir string) error {
+		_, _, err := cache.Dir("foo", fooValidator, func(string) error {
 			return assert.AnError
 		})
 		require.EqualError(t, err, assert.AnError.Error())
@@ -138,7 +138,7 @@ func TestCache_Dir(t *testing.T) {
 		testDir := filepath.Join(cache.Root, "foo")
 		testFile := filepath.Join(testDir, "foo.txt")
 		mustWriteFile(t, testFile, "bar")
-		validate := func(dir string) error {
+		validate := func(string) error {
 			err := os.RemoveAll(testDir)
 			assert.NoError(t, err)
 			mustWriteFile(t, testDir, "bar")

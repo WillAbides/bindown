@@ -19,7 +19,7 @@ jobs:
       - uses: WillAbides/setup-go-faster@v1
         id: setup-go
         with:
-          go-version: '1.21.x'
+          go-version: '1.23.5'
       - uses: actions/cache@v3
         with:
           path: |
@@ -43,7 +43,7 @@ jobs:
       - uses: WillAbides/setup-go-faster@v1
         id: setup-go
         with:
-          go-version: '1.21.x'
+          go-version: '1.23.5'
       - uses: actions/cache@v3
         with:
           path: |
@@ -61,7 +61,7 @@ jobs:
       - uses: WillAbides/setup-go-faster@v1
         id: setup-go
         with:
-          go-version: '1.21.x'
+          go-version: '1.23.5'
       - name: configure git
         run: |
           git config --global user.name 'github-actions[bot]'
@@ -90,7 +90,7 @@ jobs:
       - uses: WillAbides/setup-go-faster@v1
         id: setup-go
         with:
-          go-version: '1.21.x'
+          go-version: '1.23.5'
       - uses: actions/cache@v3
         with:
           path: |

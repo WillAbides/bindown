@@ -25,7 +25,7 @@ func (c *templateSourceListCmd) Run(ctx *runContext) error {
 	sourceNames := bindown.MapKeys(cfg.TemplateSources)
 	slices.Sort(sourceNames)
 	for _, name := range sourceNames {
-		fmt.Fprintln(w, name+"\t"+cfg.TemplateSources[name])
+		mustPrintln(w, name+"\t"+cfg.TemplateSources[name])
 	}
 	return w.Flush()
 }

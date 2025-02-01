@@ -102,7 +102,7 @@ templates:
 		result := runner.run("template", "remove", "tmpl1")
 		result.assertState(resultState{})
 		configFile := runner.getConfigFile()
-		require.True(t, configFile.Templates == nil || len(configFile.Templates) == 0)
+		require.True(t, len(configFile.Templates) == 0)
 	})
 
 	t.Run("remove non-existent template", func(t *testing.T) {
