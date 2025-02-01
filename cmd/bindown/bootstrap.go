@@ -32,7 +32,7 @@ func (c *bootstrapCmd) Run(ctx *runContext) error {
 		return err
 	}
 	if c.Output == "" {
-		fmt.Fprint(ctx.stdout, content)
+		mustPrint(ctx.stdout, content)
 		return nil
 	}
 	err = os.MkdirAll(filepath.Dir(c.Output), 0o755)

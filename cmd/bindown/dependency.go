@@ -132,7 +132,7 @@ func (c *dependencyListCmd) Run(ctx *runContext) error {
 	if err != nil {
 		return err
 	}
-	fmt.Fprintln(ctx.stdout, strings.Join(cfg.DependencyNames(), "\n"))
+	mustPrintln(ctx.stdout, strings.Join(cfg.DependencyNames(), "\n"))
 	return nil
 }
 
@@ -204,7 +204,7 @@ func (c *dependencyAddCmd) Run(ctx *runContext) error {
 	// Don't need to output the list of systems
 	systems := tmplCfg.Systems
 	tmplCfg.Systems = nil
-	fmt.Fprintf(ctx.stdout, "Adding dependency %q from template ", c.Name)
+	mustPrintf(ctx.stdout, "Adding dependency %q from template ", c.Name)
 	err = bindown.EncodeYaml(ctx.stdout, map[string]bindown.Dependency{
 		*dep.Template: *tmplCfg,
 	})
@@ -298,7 +298,7 @@ func (c *dependencyAddCmd) promptForVars(
 		config.Dependencies[c.Name].Vars[k] = s
 	}
 
-	fmt.Fprintf(ctx.stdout, "Adding dependency %q from template\n", c.Name)
+	mustPrintf(ctx.stdout, "Adding dependency %q from template\n", c.Name)
 
 	return nil
 }

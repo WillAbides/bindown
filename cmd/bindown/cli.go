@@ -114,6 +114,30 @@ func loadConfigFile(ctx *runContext, noDefaultDirs bool) (*bindown.Config, error
 	return configFile, nil
 }
 
+// mustPrintf is like fmt.Printf but panics if it can't write to the writer
+func mustPrintf(w io.Writer, format string, a ...any) {
+	_, err := fmt.Fprintf(w, format, a...)
+	if err != nil {
+		panic(err)
+	}
+}
+
+// mustPrintln is like fmt.Println but panics if it can't write to the writer
+func mustPrintln(w io.Writer, a ...any) {
+	_, err := fmt.Fprintln(w, a...)
+	if err != nil {
+		panic(err)
+	}
+}
+
+// mustPrint is like fmt.Print but panics if it can't write to the writer
+func mustPrint(w io.Writer, a ...any) {
+	_, err := fmt.Fprint(w, a...)
+	if err != nil {
+		panic(err)
+	}
+}
+
 // fileWriter covers terminal.FileWriter. Needed for survey
 type fileWriter interface {
 	io.Writer
@@ -289,7 +313,7 @@ type installCmd struct {
 
 func (d *installCmd) Run(ctx *runContext) error {
 	if d.Wrapper {
-		fmt.Fprintln(ctx.stderr, `--wrapper is deprecated and will be removed in a future version. Use "bindown wrap" instead.`)
+		mustPrintln(ctx.stderr, `--wrapper is deprecated and will be removed in a future version. Use "bindown wrap" instead.`)
 		if d.ToCache {
 			return fmt.Errorf("cannot use --to-cache and --wrapper together")
 		}
