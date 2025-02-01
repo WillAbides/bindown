@@ -35,10 +35,10 @@ linters-settings:
       - performance
       - opinionated
       - experimental
+      - security
     disabled-checks:
       - rangeValCopy
       - ptrToRefParam
-      - regexpSimplify
       - hugeParam
   govet:
     enable-all: true

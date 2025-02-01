@@ -120,7 +120,7 @@ func extractExtractor(ctx context.Context, reader io.Reader, extractor archives.
 
 		parentDir := filepath.Dir(dstPath)
 
-		err = os.MkdirAll(parentDir, 0o700)
+		err = os.MkdirAll(parentDir, 0o750)
 		if err != nil {
 			return err
 		}
