@@ -33,9 +33,13 @@ linters-settings:
       - style
       - diagnostic
       - performance
+      - opinionated
+      - experimental
     disabled-checks:
       - rangeValCopy
       - ptrToRefParam
+      - regexpSimplify
+      - hugeParam
   govet:
     enable-all: true
     disable:
@@ -47,5 +51,35 @@ linters-settings:
     check-type-assertions: true
   revive:
     rules:
-      - name: package-comments
-        disabled: true
+      # default rules:
+      - name: var-declaration
+      - name: dot-imports
+      - name: blank-imports
+      - name: indent-error-flow
+      - name: range
+      - name: errorf
+      - name: error-naming
+      - name: receiver-naming
+      - name: increment-decrement
+      - name: error-return
+      - name: unexported-return
+      - name: time-naming
+      - name: context-keys-type
+      - name: context-as-argument
+      - name: empty-block
+      - name: superfluous-else
+      - name: unused-parameter
+      - name: unreachable-code
+      - name: redefines-builtin-id
+
+      # extra rules:
+      - name: atomic
+      - name: bare-return
+      - name: bool-literal-in-expr
+      - name: comment-spacings
+      - name: constant-logical-expr
+      - name: datarace
+      - name: deep-exit
+      - name: defer
+      - name: early-return
+      - name: import-shadowing

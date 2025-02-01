@@ -533,7 +533,7 @@ func splitSystems(systems []bindown.System, fn func(s bindown.System) bool) (mat
 			nonMatching = append(nonMatching, system)
 		}
 	}
-	return
+	return matching, nonMatching
 }
 
 func systemsMatcher(systems, otherSystems []bindown.System) (_ map[string][]string, matcherSystems, remainingSystems []bindown.System) {

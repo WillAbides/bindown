@@ -112,7 +112,7 @@ func extractExtractor(ctx context.Context, reader io.Reader, extractor archives.
 		return dstPath, nil
 	}
 
-	return extractor.Extract(ctx, reader, func(ctx context.Context, info archives.FileInfo) (errOut error) {
+	return extractor.Extract(ctx, reader, func(_ context.Context, info archives.FileInfo) (errOut error) {
 		dstPath, err := securePath(info.NameInArchive)
 		if err != nil {
 			return err

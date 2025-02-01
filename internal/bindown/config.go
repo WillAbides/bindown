@@ -801,7 +801,7 @@ func NewConfig(ctx context.Context, cfgSrc string, noDefaultDirs bool) (*Config,
 	if err != nil {
 		return nil, err
 	}
-	cfg, err := ConfigFromYAML(ctx, data)
+	cfg, err := ConfigFromYAML(data)
 	if err != nil {
 		return nil, err
 	}
@@ -872,11 +872,11 @@ func configFromHTTP(ctx context.Context, src string) (*Config, error) {
 	if err != nil {
 		return nil, err
 	}
-	return ConfigFromYAML(ctx, data)
+	return ConfigFromYAML(data)
 }
 
-func ConfigFromYAML(ctx context.Context, data []byte) (*Config, error) {
-	err := validateConfig(ctx, data)
+func ConfigFromYAML(data []byte) (*Config, error) {
+	err := validateConfig(data)
 	if err != nil {
 		return nil, err
 	}

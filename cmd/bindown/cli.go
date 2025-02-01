@@ -288,7 +288,7 @@ func (c *initCmd) Run(ctx *runContext) error {
 
 type fmtCmd struct{}
 
-func (c fmtCmd) Run(ctx *runContext, cli *rootCmd) error {
+func (c fmtCmd) Run(ctx *runContext) error {
 	ctx.rootCmd.CacheDir = ""
 	config, err := loadConfigFile(ctx, true)
 	if err != nil {

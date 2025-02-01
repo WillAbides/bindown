@@ -1,7 +1,6 @@
 package bindown
 
 import (
-	"context"
 	"encoding/json"
 	"os"
 	"path/filepath"
@@ -12,11 +11,10 @@ import (
 )
 
 func TestValidateConfig(t *testing.T) {
-	ctx := context.Background()
 	t.Run("valid yaml", func(t *testing.T) {
 		cfg, err := os.ReadFile(filepath.Join("testdata", "configs", "ex1.yaml"))
 		require.NoError(t, err)
-		err = validateConfig(ctx, cfg)
+		err = validateConfig(cfg)
 		require.NoError(t, err)
 	})
 
@@ -25,13 +23,13 @@ func TestValidateConfig(t *testing.T) {
 		require.NoError(t, err)
 		cfg, err := yaml2json(cfgContent)
 		require.NoError(t, err)
-		err = validateConfig(ctx, cfg)
+		err = validateConfig(cfg)
 		require.NoError(t, err)
 	})
 
 	t.Run("empty", func(t *testing.T) {
 		cfg := []byte("")
-		err := validateConfig(ctx, cfg)
+		err := validateConfig(cfg)
 		require.Error(t, err)
 	})
 
@@ -47,7 +45,7 @@ url_checksums:
   foo: deadbeef
   bar: []
 `)
-		err := validateConfig(ctx, cfg)
+		err := validateConfig(cfg)
 		require.Error(t, err)
 	})
 
@@ -70,7 +68,7 @@ url_checksums:
     ]
   }
 }`)
-		err := validateConfig(ctx, cfg)
+		err := validateConfig(cfg)
 		require.Error(t, err)
 	})
 }

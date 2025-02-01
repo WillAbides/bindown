@@ -1,7 +1,6 @@
 package bindown
 
 import (
-	"context"
 	_ "embed"
 	"fmt"
 
@@ -13,7 +12,7 @@ import (
 var jsonSchemaText string
 
 // validateConfig checks whether cfg meets the json schema.
-func validateConfig(ctx context.Context, cfg []byte) error {
+func validateConfig(cfg []byte) error {
 	var val any
 	err := yaml.Unmarshal(cfg, &val)
 	if err != nil {
