@@ -29,8 +29,9 @@ $defs:
         type: boolean
         description: Whether to create a symlink to the bin instead of copying it.
       vars:
-        additionalProperties:
-          type: string
+        patternProperties:
+          .*:
+            type: string
         type: object
         description: |-
           A list of variables that can be used in 'url', 'archive_path' and 'bin'.
@@ -49,10 +50,12 @@ $defs:
         type: array
         description: Overrides allows you to override values depending on the os and architecture of the target system.
       substitutions:
-        additionalProperties:
-          additionalProperties:
-            type: string
-          type: object
+        patternProperties:
+          .*:
+            patternProperties:
+              .*:
+                type: string
+            type: object
         type: object
         description: |-
           Substitutions will substitute values from vars. The key is the name of the variable to substitute. The value is
@@ -73,10 +76,11 @@ $defs:
   DependencyOverride:
     properties:
       matcher:
-        additionalProperties:
-          items:
-            type: string
-          type: array
+        patternProperties:
+          .*:
+            items:
+              type: string
+            type: array
         type: object
         description: |-
           Limits the override to configurations matching all of the matchers. Keys may be "os", "arch" or any variable name.
@@ -105,8 +109,9 @@ $defs:
         type: boolean
         description: Whether to create a symlink to the bin instead of copying it.
       vars:
-        additionalProperties:
-          type: string
+        patternProperties:
+          .*:
+            type: string
         type: object
         description: |-
           A list of variables that can be used in 'url', 'archive_path' and 'bin'.
@@ -125,10 +130,12 @@ $defs:
         type: array
         description: Overrides allows you to override values depending on the os and architecture of the target system.
       substitutions:
-        additionalProperties:
-          additionalProperties:
-            type: string
-          type: object
+        patternProperties:
+          .*:
+            patternProperties:
+              .*:
+                type: string
+            type: object
         type: object
         description: |-
           Substitutions will substitute values from vars. The key is the name of the variable to substitute. The value is
@@ -155,23 +162,27 @@ properties:
     type: array
     description: List of systems supported by this config. Systems are in the form of os/architecture.
   dependencies:
-    additionalProperties:
-      $ref: '#/$defs/Dependency'
+    patternProperties:
+      .*:
+        $ref: '#/$defs/Dependency'
     type: object
     description: Dependencies available for bindown to install.
   templates:
-    additionalProperties:
-      $ref: '#/$defs/Dependency'
+    patternProperties:
+      .*:
+        $ref: '#/$defs/Dependency'
     type: object
     description: Templates that can be used by dependencies in this file.
   template_sources:
-    additionalProperties:
-      type: string
+    patternProperties:
+      .*:
+        type: string
     type: object
     description: Upstream sources for templates.
   url_checksums:
-    additionalProperties:
-      type: string
+    patternProperties:
+      .*:
+        type: string
     type: object
     description: Checksums of downloaded files.
 additionalProperties: false

@@ -283,7 +283,7 @@ func (c *Config) addChecksum(dependencyName string, system System) error {
 }
 
 // Validate installs the downloader to a temporary directory and returns an error if it was unsuccessful.
-func (c *Config) Validate(ctx context.Context, depName string, systems []System) (errOut error) {
+func (c *Config) Validate(depName string, systems []System) (errOut error) {
 	tmpDir, err := os.MkdirTemp("", "bindown-validate")
 	if err != nil {
 		return err
@@ -305,7 +305,7 @@ func (c *Config) Validate(ctx context.Context, depName string, systems []System)
 		}
 	}
 	for _, system := range depSystems {
-		err = c.InstallDependencies(ctx, []string{depName}, system, &ConfigInstallDependenciesOpts{
+		err = c.InstallDependencies([]string{depName}, system, &ConfigInstallDependenciesOpts{
 			Force: true,
 		})
 		if err != nil {
@@ -397,12 +397,7 @@ type ConfigExtractDependenciesOpts struct {
 	Stdout               io.Writer
 }
 
-func (c *Config) ExtractDependencies(
-	ctx context.Context,
-	deps []string,
-	system System,
-	opts *ConfigExtractDependenciesOpts,
-) error {
+func (c *Config) ExtractDependencies(deps []string, system System, opts *ConfigExtractDependenciesOpts) error {
 	if opts == nil {
 		opts = &ConfigExtractDependenciesOpts{}
 	}
@@ -418,7 +413,7 @@ func (c *Config) ExtractDependencies(
 		if err != nil {
 			return err
 		}
-		outDir, unlock, err := extractDependencyToCache(ctx, dlFile, c.Cache, key, c.extractsCache(), false)
+		outDir, unlock, err := extractDependencyToCache(dlFile, c.Cache, key, c.extractsCache(), false)
 		if err != nil {
 			return errors.Join(dlUnlock(), err)
 		}
@@ -460,12 +455,7 @@ type ConfigInstallDependenciesOpts struct {
 	AllDeps              bool
 }
 
-func (c *Config) InstallDependencies(
-	ctx context.Context,
-	deps []string,
-	system System,
-	opts *ConfigInstallDependenciesOpts,
-) error {
+func (c *Config) InstallDependencies(deps []string, system System, opts *ConfigInstallDependenciesOpts) error {
 	if opts == nil {
 		opts = &ConfigInstallDependenciesOpts{}
 	}
@@ -487,7 +477,7 @@ func (c *Config) InstallDependencies(
 		if outputIsDir {
 			target = filepath.Join(output, dep.binName())
 		}
-		out, err := install(ctx, dep, target, c.Cache, opts.Force, opts.ToCache, opts.AllowMissingChecksum)
+		out, err := install(dep, target, c.Cache, opts.Force, opts.ToCache, opts.AllowMissingChecksum)
 		if err != nil {
 			return err
 		}
@@ -603,11 +593,7 @@ type AddDependencyFromTemplateOpts struct {
 }
 
 // AddDependencyFromTemplate adds a dependency to the config. Returns a map of known values for template vars
-func (c *Config) AddDependencyFromTemplate(
-	ctx context.Context,
-	templateName string,
-	opts *AddDependencyFromTemplateOpts,
-) (*Dependency, map[string][]string, error) {
+func (c *Config) AddDependencyFromTemplate(ctx context.Context, templateName string, opts *AddDependencyFromTemplateOpts) (*Dependency, map[string][]string, error) {
 	if opts == nil {
 		opts = &AddDependencyFromTemplateOpts{}
 	}
@@ -635,10 +621,7 @@ func (c *Config) AddDependencyFromTemplate(
 	return dep, varVals, nil
 }
 
-func (c *Config) addOrGetTemplate(
-	ctx context.Context,
-	name, src string,
-) (destName string, varVals map[string][]string, _ error) {
+func (c *Config) addOrGetTemplate(ctx context.Context, name, src string) (destName string, varVals map[string][]string, _ error) {
 	destName = name
 	if src != "" {
 		destName = fmt.Sprintf("%s#%s", src, name)
@@ -679,10 +662,7 @@ func (c *Config) CopyTemplateFromSource(ctx context.Context, src, srcTemplate, d
 }
 
 // addTemplateFromSource copies a template from another config file
-func (c *Config) addTemplateFromSource(
-	ctx context.Context,
-	src, srcTemplate, destName string,
-) (map[string][]string, error) {
+func (c *Config) addTemplateFromSource(ctx context.Context, src, srcTemplate, destName string) (map[string][]string, error) {
 	srcCfg, err := NewConfig(ctx, src, true)
 	if err != nil {
 		return nil, err
@@ -801,7 +781,7 @@ func NewConfig(ctx context.Context, cfgSrc string, noDefaultDirs bool) (*Config,
 	if err != nil {
 		return nil, err
 	}
-	cfg, err := ConfigFromYAML(data)
+	cfg, err := ConfigFromYAML(ctx, data)
 	if err != nil {
 		return nil, err
 	}
@@ -872,11 +852,11 @@ func configFromHTTP(ctx context.Context, src string) (*Config, error) {
 	if err != nil {
 		return nil, err
 	}
-	return ConfigFromYAML(data)
+	return ConfigFromYAML(ctx, data)
 }
 
-func ConfigFromYAML(data []byte) (*Config, error) {
-	err := validateConfig(data)
+func ConfigFromYAML(ctx context.Context, data []byte) (*Config, error) {
+	err := validateConfig(ctx, data)
 	if err != nil {
 		return nil, err
 	}

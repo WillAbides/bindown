@@ -86,7 +86,7 @@ func (c *templateListCmd) Run(ctx *runContext) error {
 	if err != nil {
 		return err
 	}
-	mustPrintln(ctx.stdout, strings.Join(templates, "\n"))
+	fmt.Fprintln(ctx.stdout, strings.Join(templates, "\n"))
 	return nil
 }
 
