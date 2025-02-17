@@ -1,4 +1,4 @@
-Usage: bindown <command> [flags]
+Usage: bindown <command>
 
 Flags:
   -h, --help                 Show context-sensitive help.

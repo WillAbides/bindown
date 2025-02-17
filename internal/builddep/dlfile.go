@@ -14,7 +14,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/mholt/archives"
+	"github.com/mholt/archiver/v4"
 	"github.com/willabides/bindown/v4/internal/bindown"
 )
 
@@ -80,15 +80,15 @@ func (f *dlFile) setArchiveFiles(ctx context.Context, binName, version string) e
 	}()
 	hasher := sha256.New()
 	reader := io.TeeReader(resp.Body, hasher)
-	format, reader, err := archives.Identify(ctx, filename, reader)
+	format, reader, err := archiver.Identify(filename, reader)
 	if err != nil {
-		if errors.Is(err, archives.NoMatch) {
+		if errors.Is(err, archiver.ErrNoMatch) {
 			err = fmt.Errorf("unable to identify archive format for %s", filename)
 		}
 		return err
 	}
 	// reader needs to be an io.ReaderAt and io.Seeker for zip
-	_, isZip := format.(archives.Zip)
+	_, isZip := format.(archiver.Zip)
 	if isZip {
 		var b []byte
 		b, err = io.ReadAll(reader)
@@ -97,11 +97,11 @@ func (f *dlFile) setArchiveFiles(ctx context.Context, binName, version string) e
 		}
 		reader = bytes.NewReader(b)
 	}
-	extractor, ok := format.(archives.Extractor)
+	extractor, ok := format.(archiver.Extractor)
 	if !ok {
 		return errors.New("format does not support extraction")
 	}
-	err = extractor.Extract(ctx, reader, func(_ context.Context, af archives.FileInfo) error {
+	err = extractor.Extract(ctx, reader, nil, func(_ context.Context, af archiver.File) error {
 		if af.IsDir() {
 			return nil
 		}

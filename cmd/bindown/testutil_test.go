@@ -119,7 +119,7 @@ func (c *cmdRunner) runExpect(expectFunc func(*expect.Console), commandLine ...s
 
 func mustConfigFromYAML(t *testing.T, yml string) *bindown.Config {
 	t.Helper()
-	got, err := bindown.ConfigFromYAML([]byte(yml))
+	got, err := bindown.ConfigFromYAML(context.Background(), []byte(yml))
 	require.NoError(t, err)
 	return got
 }
@@ -205,7 +205,7 @@ const fooChecksum = "f7fa712caea646575c920af17de3462fe9d08d7fe062b9a17010117d5fa
 
 func serveErr(t *testing.T, errCode int) *httptest.Server {
 	t.Helper()
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		http.Error(w, http.StatusText(errCode), errCode)
 	}))
 	t.Cleanup(ts.Close)

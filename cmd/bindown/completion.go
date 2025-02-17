@@ -171,6 +171,6 @@ func systemCompleter(ctx context.Context) complete.PredictFunc {
 	}
 }
 
-var allSystemsCompleter = complete.PredictFunc(func(complete.Args) []string {
+var allSystemsCompleter = complete.PredictFunc(func(a complete.Args) []string {
 	return append([]string{"current"}, strings.Split(bindown.GoDists, "\n")...)
 })

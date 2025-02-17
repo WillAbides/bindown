@@ -33,52 +33,20 @@ linters-settings:
       - style
       - diagnostic
       - performance
-      - opinionated
-      - experimental
     disabled-checks:
       - rangeValCopy
       - ptrToRefParam
-      - hugeParam
-  govet:
-    enable-all: true
-    disable:
-      - fieldalignment
   errcheck:
     # report about assignment of errors to blank identifier: `num, _ := strconv.Atoi(numStr)`;
     # default is false: such cases aren't reported by default.
     check-blank: true
-    check-type-assertions: true
+  govet:
+    # report about shadowed variables
+    check-shadowing: true
+  maligned:
+    # print struct with more effective memory layout or not, false by default
+    suggest-new: true
   revive:
     rules:
-      # default rules:
-      - name: var-declaration
-      - name: dot-imports
-      - name: blank-imports
-      - name: indent-error-flow
-      - name: range
-      - name: errorf
-      - name: error-naming
-      - name: receiver-naming
-      - name: increment-decrement
-      - name: error-return
-      - name: unexported-return
-      - name: time-naming
-      - name: context-keys-type
-      - name: context-as-argument
-      - name: empty-block
-      - name: superfluous-else
-      - name: unused-parameter
-      - name: unreachable-code
-      - name: redefines-builtin-id
-
-      # extra rules:
-      - name: atomic
-      - name: bare-return
-      - name: bool-literal-in-expr
-      - name: comment-spacings
-      - name: constant-logical-expr
-      - name: datarace
-      - name: deep-exit
-      - name: defer
-      - name: early-return
-      - name: import-shadowing
+      - name: package-comments
+        disabled: true
